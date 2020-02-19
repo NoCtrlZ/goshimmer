@@ -2,7 +2,7 @@ package dkgapi
 
 import (
 	"encoding/hex"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/labstack/echo"
 	"go.dedis.ch/kyber/v3/share"
@@ -22,11 +22,11 @@ func HandlerGetPubs(c echo.Context) error {
 	var req GetPubsRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &GetPubsResponse{
+		return utils.ToJSON(c, http.StatusOK, &GetPubsResponse{
 			Err: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, GetPubsReq(&req))
+	return utils.ToJSON(c, http.StatusOK, GetPubsReq(&req))
 }
 
 type GetPubsRequest struct {

@@ -2,7 +2,7 @@ package dkgapi
 
 import (
 	"encoding/hex"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/labstack/echo"
@@ -34,7 +34,7 @@ import (
 // After this call:
 // - n nodes keeps in memory generated random polynomials (not saved yet)
 // - caller nxn matrix of Private Shares (except the diagonal values).
-//   j-th row of the matrix corresponds to private shares sent by the node j to the delarer (caller)
+//   j-th row of the matrix corresponds to private shares sent by the node j to the dealer (caller)
 //
 // In the next call 'adm/aggregatedks' dealer will be sending COLUMNS of the matrix to the same nodes.
 // Note, that diagonal values never appear in public, so dealer is not able to reconstruct secret polynomials
@@ -42,14 +42,15 @@ import (
 // Next: see '/adm/aggregatedks' API
 
 func HandlerNewDks(c echo.Context) error {
+	log.Info("HandlerNewDks")
 	var req NewDKSRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &NewDKSResponse{
+		return utils.ToJSON(c, http.StatusOK, &NewDKSResponse{
 			Err: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, NewDKSetReq(&req))
+	return utils.ToJSON(c, http.StatusOK, NewDKSetReq(&req))
 }
 
 type NewDKSRequest struct {

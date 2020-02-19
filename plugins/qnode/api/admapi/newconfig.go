@@ -1,7 +1,7 @@
 package admapi
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
@@ -14,54 +14,54 @@ func HandlerNewConfig(c echo.Context) error {
 	var req NewConfigRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &NewConfigResponse{
-			Err: err.Error(),
+		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{
+			Error: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, NewConfigReq(&req))
+	return utils.ToJSON(c, http.StatusOK, NewConfigReq(&req))
 }
 
 type NewConfigRequest struct {
-	AssemblyId    *hashing.HashValue   `json:"assembly_id"`
-	DKShareId     *hashing.HashValue   `json:"dkshare_id"`
 	Id            *hashing.HashValue   `json:"id"`
+	AssemblyId    *hashing.HashValue   `json:"assembly_id"`
+	Accounts      []*hashing.HashValue `json:"accounts"`
 	OperatorAddrs []*operator.PortAddr `json:"operator_addrs"`
 }
 
-type NewConfigResponse struct {
-	Err string `json:"err"`
-}
-
-func NewConfigReq(req *NewConfigRequest) *NewConfigResponse {
-	ok, err := operator.ExistPrivateConfig(req.AssemblyId, req.Id)
+func NewConfigReq(req *NewConfigRequest) *utils.SimpleResponse {
+	ok, err := operator.ExistConfig(req.AssemblyId, req.Id)
 	if err != nil {
-		return &NewConfigResponse{Err: err.Error()}
+		return &utils.SimpleResponse{Error: err.Error()}
 	}
 	if ok {
-		return &NewConfigResponse{Err: "duplicated private configuration"}
+		return &utils.SimpleResponse{Error: "duplicated configuration"}
 	}
-	ks, err := tcrypto.LoadDKShare(req.AssemblyId, req.DKShareId, true)
-	if err != nil {
-		return &NewConfigResponse{Err: err.Error()}
+	for _, addr := range req.Accounts {
+		ks, err := tcrypto.LoadDKShare(req.AssemblyId, addr, true)
+		if err != nil {
+			return &utils.SimpleResponse{Error: err.Error()}
+		}
+		if int(ks.N) != len(req.OperatorAddrs) {
+			return &utils.SimpleResponse{Error: "number of operators inconsistent with distributed key share parameters"}
+		}
 	}
-	if int(ks.N) != len(req.OperatorAddrs) {
-		return &NewConfigResponse{Err: "number of operators inconsistent with distributed key share parameters"}
-	}
+
 	if !differentAddresses(req.OperatorAddrs) {
-		return &NewConfigResponse{Err: "addresses of operators must all be different"}
+		return &utils.SimpleResponse{Error: "addresses of operators must all be different"}
 	}
-	privCfg := operator.ConfigData{
+
+	cfgRecord := operator.ConfigData{
 		ConfigId:          req.Id,
 		AssemblyId:        req.AssemblyId,
 		Created:           time.Now().UnixNano(),
 		OperatorAddresses: req.OperatorAddrs,
-		DKeyIds:           []*hashing.HashValue{req.DKShareId},
+		Accounts:          req.Accounts,
 	}
-	err = privCfg.Save()
+	err = cfgRecord.Save()
 	if err != nil {
-		return &NewConfigResponse{Err: err.Error()}
+		return &utils.SimpleResponse{Error: err.Error()}
 	}
-	return &NewConfigResponse{}
+	return &utils.SimpleResponse{}
 }
 
 func differentAddresses(addrs []*operator.PortAddr) bool {

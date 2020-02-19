@@ -31,21 +31,22 @@ type serverEvents struct {
 	NodeEvent *events.Event
 }
 
-const modulename = "qserver"
+const modulename = "Qserver"
 
 var (
 	ServerInstance *QServer
 	log            *logger.Logger
 )
 
-func StartServer() error {
+func StartServer() {
 	log = logger.NewLogger(modulename)
 
 	var opdata map[HashValue]*operator.AssemblyData
 	var err error
 	opdata, err = operator.LoadAllOperatorData()
 	if err != nil {
-		return err
+		log.Errorf("StartServer::LoadAllOperatorData %v", err)
+		return
 	}
 	ServerInstance = &QServer{
 		udpPort:      parameter.NodeConfig.GetInt(parameters.UDP_PORT),
@@ -71,10 +72,10 @@ func StartServer() error {
 		log.Infof("UDP server stopped listening...")
 	})
 	if err != nil {
-		return err
+		log.Errorf("StartServer::daemon.BackgroundWorker %v", err)
+		return
 	}
 	logLoadedConfigs()
-	return nil
 }
 
 func logLoadedConfigs() {

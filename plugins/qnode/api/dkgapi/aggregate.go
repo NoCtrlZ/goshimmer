@@ -3,7 +3,7 @@ package dkgapi
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/labstack/echo"
 	"go.dedis.ch/kyber/v3"
@@ -38,11 +38,11 @@ func HandlerAggregateDks(c echo.Context) error {
 	var req AggregateDKSRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &AggregateDKSResponse{
+		return utils.ToJSON(c, http.StatusOK, &AggregateDKSResponse{
 			Err: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, AggregateDKSReq(&req))
+	return utils.ToJSON(c, http.StatusOK, AggregateDKSReq(&req))
 }
 
 type AggregateDKSRequest struct {

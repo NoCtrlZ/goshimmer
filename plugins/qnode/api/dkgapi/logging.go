@@ -1,8 +1,8 @@
-package operator
+package dkgapi
 
 import "github.com/iotaledger/hive.go/logger"
 
-const modulename = "Operator"
+const modulename = "dkgapi"
 
 var log *logger.Logger
 

@@ -2,7 +2,7 @@ package dkgapi
 
 import (
 	"encoding/hex"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/labstack/echo"
 	"go.dedis.ch/kyber/v3"
@@ -31,11 +31,11 @@ func HandlerCommitDks(c echo.Context) error {
 	var req CommitDKSRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &CommitDKSResponse{
+		return utils.ToJSON(c, http.StatusOK, &CommitDKSResponse{
 			Err: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, CommitDKSReq(&req))
+	return utils.ToJSON(c, http.StatusOK, CommitDKSReq(&req))
 }
 
 type CommitDKSRequest struct {

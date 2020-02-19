@@ -2,7 +2,7 @@ package dkgapi
 
 import (
 	"encoding/hex"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/labstack/echo"
 	"net/http"
@@ -12,11 +12,11 @@ func HandlerSignDigest(c echo.Context) error {
 	var req SignDigestRequest
 
 	if err := c.Bind(&req); err != nil {
-		return api.ToJSON(c, http.StatusOK, &SignDigestResponse{
+		return utils.ToJSON(c, http.StatusOK, &SignDigestResponse{
 			Err: err.Error(),
 		})
 	}
-	return api.ToJSON(c, http.StatusOK, SignDigestReq(&req))
+	return utils.ToJSON(c, http.StatusOK, SignDigestReq(&req))
 }
 
 type SignDigestRequest struct {

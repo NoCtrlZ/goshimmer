@@ -1,33 +1,39 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/iotaledger/goshimmer/plugins/qnode/glb"
+	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
-	"io/ioutil"
-	"time"
 )
 
-const (
-	dir = "C://Users//evaldas//Documents//proj//site_data//goshimmer/"
-)
+var hosts = []operator.PortAddr{
+	{8080, "127.0.0.1"},
+	{8081, "127.0.0.1"},
+	{8082, "127.0.0.1"},
+	{8083, "127.0.0.1"},
+}
+
+const assemblyDescription = "test assembly 1"
 
 func main() {
+	assemblyId := hashing.HashStrings(assemblyDescription)
+	ownerPk := hashing.HashStrings("dummy").String() // for testing only
+
 	od := operator.AssemblyData{
-		OwnerPubKey: "ownerPubKey",
-		Description: "Test assembly 2",
-		Program:     "A+B",
-		Modified:    time.Now().UnixNano(),
+		AssemblyId:  assemblyId,
+		OwnerPubKey: ownerPk,
+		Description: assemblyDescription,
+		Program:     "dummy",
 	}
+	fmt.Printf("%+v\n", od)
 	var err error
-	od.AssemblyId = hash.HashStrings(od.OwnerPubKey, od.Description, od.Program)
-	data, err := json.MarshalIndent(&od, " ", "")
-	if err != nil {
-		panic(err)
-	}
-	fname := dir + od.AssemblyId.String() + ".json"
-	err = ioutil.WriteFile(fname, data, 0644)
-	if err != nil {
-		panic(err)
+	for _, h := range hosts {
+		err = apilib.PutAssemblyData(h.Addr, h.Port, &od)
+		if err != nil {
+			fmt.Printf("PutAssemblyData: %v\n", err)
+		} else {
+			fmt.Printf("PutAssemblyData success: %s:%d\n", h.Addr, h.Port)
+		}
 	}
 }

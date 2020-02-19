@@ -105,7 +105,7 @@ func loadAllConfigData(aid, cfgId *HashValue, ownAddr string, ownPort int) (*loa
 	}
 	ret.dkshares = make(map[HashValue]*DKShare)
 
-	for _, dksId := range ret.cfgData.DKeyIds {
+	for _, dksId := range ret.cfgData.Accounts {
 		dks, err := LoadDKShare(aid, dksId, false)
 		if err != nil {
 			return nil, err

@@ -7,7 +7,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/pkg/errors"
-	"time"
 )
 
 // general data about assembly
@@ -15,7 +14,6 @@ import (
 
 type AssemblyData struct {
 	AssemblyId  *HashValue `json:"assembly_id"`
-	Modified    int64      `json:"modified"`
 	OwnerPubKey string     `json:"owner_pub_key"`
 	Description string     `json:"description"`
 	Program     string     `json:"program"`
@@ -30,8 +28,8 @@ type ConfigData struct {
 	ConfigId          *HashValue   `json:"config_id"`
 	AssemblyId        *HashValue   `json:"assembly_id"`
 	Created           int64        `json:"created"`
-	OperatorAddresses []*PortAddr  `json:"addresses"`
-	DKeyIds           []*HashValue `json:"dkey_ids"`
+	OperatorAddresses []*PortAddr  `json:"addresse"`
+	Accounts          []*HashValue `json:"accounts"`
 }
 
 type PortAddr struct {
@@ -46,8 +44,18 @@ func (oa PortAddr) AdjustedIP() (string, int) {
 	return oa.Addr, oa.Port
 }
 
+func dbOpdataGroupKey() []byte {
+	return []byte("opdata")
+}
+
+func dbOpdateKey(aid *HashValue) []byte {
+	var buf bytes.Buffer
+	buf.Write(dbOpdataGroupKey())
+	buf.Write(aid.Bytes())
+	return buf.Bytes()
+}
+
 func (ad *AssemblyData) Save() error {
-	ad.Modified = time.Now().UnixNano()
 	dbase, err := db.Get()
 	if err != nil {
 		return err
@@ -57,13 +65,9 @@ func (ad *AssemblyData) Save() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   nil,
+		Key:   dbOpdateKey(ad.AssemblyId),
 		Value: jsonData,
 	})
-}
-
-func dbOpdataGroupKey() []byte {
-	return []byte("opdata")
 }
 
 func LoadAllOperatorData() (map[HashValue]*AssemblyData, error) {
@@ -108,7 +112,7 @@ func (pcfg *ConfigData) Save() error {
 	})
 }
 
-func ExistPrivateConfig(aid, cid *HashValue) (bool, error) {
+func ExistConfig(aid, cid *HashValue) (bool, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return false, err
