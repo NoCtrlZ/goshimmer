@@ -67,5 +67,10 @@
       "username": "goshimmer"
     },
     "bindAddress": "127.0.0.1:8080"
+  },
+  "qnode": {
+    "udpPort": 4000,
+    "mockTangleIpAddr": "127.0.0.1",
+    "mockTanglePort": 1000
   }
 }
