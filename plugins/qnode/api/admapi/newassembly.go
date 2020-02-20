@@ -16,7 +16,12 @@ func HandlerAssemblyData(c echo.Context) error {
 			Error: err.Error(),
 		})
 	}
+	log.Debugw("HandlerAssemblyData", "assembly_id", req.AssemblyId.Short())
+
 	if err := req.Save(); err != nil {
+		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
+	}
+	if err := registry.RefreshAssemblyData(); err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
 	}
 	return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{})

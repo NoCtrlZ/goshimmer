@@ -91,7 +91,7 @@ func LoadDKShare(assemblyId *HashValue, address *HashValue, maskPrivate bool) (*
 	return ret, nil
 }
 
-func ExistDKShare(assemblyId, addr *HashValue) (bool, error) {
+func ExistDKShareInRegistry(assemblyId, addr *HashValue) (bool, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return false, err

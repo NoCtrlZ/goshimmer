@@ -2,8 +2,10 @@ package dkgapi
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/labstack/echo"
 	"net/http"
@@ -70,7 +72,10 @@ func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
 	if err := tcrypto.ValidateDKSParams(req.T, req.N, req.Index); err != nil {
 		return &NewDKSResponse{Err: err.Error()}
 	}
-	_, ok, err := GetDKShare(req.AssemblyId, req.Id)
+	if _, ok := registry.GetAssemblyData(req.AssemblyId); !ok {
+		return &NewDKSResponse{Err: fmt.Sprintf("unknown assembly id %s", req.AssemblyId.Short())}
+	}
+	_, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
 	if err != nil {
 		return &NewDKSResponse{Err: err.Error()}
 	}
@@ -78,7 +83,8 @@ func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
 		return &NewDKSResponse{Err: "key set already exist"}
 	}
 	ks := tcrypto.NewRndDKShare(req.AssemblyId, req.T, req.N, req.Index)
-	dkscache[*req.Id] = ks
+	registry.CacheDKShare(ks, req.Id)
+
 	resp := NewDKSResponse{
 		PriShares: make([]string, ks.N),
 	}

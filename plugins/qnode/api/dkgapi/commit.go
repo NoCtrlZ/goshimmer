@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/labstack/echo"
 	"go.dedis.ch/kyber/v3"
 	"net/http"
@@ -50,7 +51,7 @@ type CommitDKSResponse struct {
 }
 
 func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
-	ks, ok, err := GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
 	if err != nil {
 		return &CommitDKSResponse{Err: err.Error()}
 	}
@@ -80,6 +81,14 @@ func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
 	if err != nil {
 		return &CommitDKSResponse{Err: err.Error()}
 	}
+	registry.UncacheDKShare(req.Id)
+	log.Infow("Created new key share",
+		"aid", ks.AssemblyId.Short(),
+		"account", ks.Account.String(),
+		"N", ks.N,
+		"T", ks.T,
+		"Index", ks.Index,
+	)
 	return &CommitDKSResponse{
 		Account: ks.Account,
 	}

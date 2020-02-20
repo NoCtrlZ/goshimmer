@@ -5,6 +5,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto/tbdn"
 	"github.com/pkg/errors"
@@ -24,7 +25,10 @@ type resultCalculatedIntern struct {
 }
 
 func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
-	ret, ok := op.keyShares[*addr]
+	ret, ok, err := registry.GetDKShare(op.assemblyId, addr)
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
 		return nil, fmt.Errorf("key not found. id = %s", addr.Short())
 	}

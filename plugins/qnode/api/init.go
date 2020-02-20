@@ -8,6 +8,8 @@ import (
 )
 
 func InitEndpoints() {
+	//webapi.Server.GET("/kuku", TestRequest)
+
 	webapi.Server.POST("/adm/newdks", dkgapi.HandlerNewDks)
 	webapi.Server.POST("/adm/aggregatedks", dkgapi.HandlerAggregateDks)
 	webapi.Server.POST("/adm/commitdks", dkgapi.HandlerCommitDks)
@@ -16,5 +18,10 @@ func InitEndpoints() {
 	webapi.Server.POST("/adm/newconfig", admapi.HandlerNewConfig)
 	webapi.Server.POST("/adm/assemblydata", admapi.HandlerAssemblyData)
 
-	logger.NewLogger("Api").Infof("successfully added api endpoints")
+	logger.NewLogger("QnodeAPI").Infof("successfully added api endpoints")
 }
+
+//
+//func TestRequest(c echo.Context) error {
+//	return c.String(http.StatusOK, "KUKU OK")
+//}

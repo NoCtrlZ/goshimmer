@@ -18,14 +18,13 @@ import (
 )
 
 type QServer struct {
-	udpPort      int
-	OperatorData map[HashValue]*registry.AssemblyData
-	operators    map[HashValue]*operator.AssemblyOperator
-	mockTangle   bool
-	mockAddress  string
-	mockPort     int
-	udpServer    *udp.UDPServer
-	Events       serverEvents
+	udpPort     int
+	operators   map[HashValue]*operator.AssemblyOperator
+	mockTangle  bool
+	mockAddress string
+	mockPort    int
+	udpServer   *udp.UDPServer
+	Events      serverEvents
 }
 
 type serverEvents struct {
@@ -42,21 +41,19 @@ var (
 func StartServer() {
 	log = logger.NewLogger(modulename)
 
-	var opdata map[HashValue]*registry.AssemblyData
 	var err error
-	opdata, err = registry.LoadAllOperatorData()
+	err = registry.RefreshAssemblyData()
 	if err != nil {
-		log.Errorf("StartServer::LoadAllOperatorData %v", err)
+		log.Errorf("StartServer::LoadAllAssemblyData %v", err)
 		return
 	}
 	ServerInstance = &QServer{
-		udpPort:      parameter.NodeConfig.GetInt(parameters.UDP_PORT),
-		mockTangle:   true,
-		mockAddress:  parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
-		mockPort:     parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),
-		OperatorData: opdata,
-		udpServer:    createUDPServer(),
-		operators:    make(map[HashValue]*operator.AssemblyOperator),
+		udpPort:     parameter.NodeConfig.GetInt(parameters.UDP_PORT),
+		mockTangle:  true,
+		mockAddress: parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
+		mockPort:    parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),
+		udpServer:   createUDPServer(),
+		operators:   make(map[HashValue]*operator.AssemblyOperator),
 		Events: serverEvents{
 			NodeEvent: events.NewEvent(nodeEventCaller),
 		},
@@ -76,14 +73,7 @@ func StartServer() {
 		log.Errorf("StartServer::daemon.BackgroundWorker %v", err)
 		return
 	}
-	logLoadedConfigs()
-}
-
-func logLoadedConfigs() {
-	log.Debugf("loaded %d operator data record(s)", len(ServerInstance.OperatorData))
-	for _, od := range ServerInstance.OperatorData {
-		log.Debugf("aid = %s dscr = '%s'", od.AssemblyId.String(), od.Description)
-	}
+	registry.LogLoadedConfigs()
 }
 
 func nodeEventCaller(handler interface{}, params ...interface{}) {
@@ -101,16 +91,16 @@ func nodeEventHandler(txval value.Transaction) {
 	}
 	if st, ok := tx.State(); ok {
 		// it is state update
-		aData := ServerInstance.findAssemblyData(st.AssemblyId())
-		if aData != nil {
+		aData, ok := registry.GetAssemblyData(st.AssemblyId())
+		if ok {
 			// state update has to be processed by this node
 			ServerInstance.processState(tx, aData)
 		}
 	}
 	for i, req := range tx.Requests() {
 		aid := req.AssemblyId()
-		aData := ServerInstance.findAssemblyData(aid)
-		if aData != nil {
+		aData, ok := registry.GetAssemblyData(aid)
+		if ok {
 			// request has to be processed by the node
 			ServerInstance.processRequest(tx, uint16(i), aData)
 		}
@@ -153,13 +143,6 @@ func (q *QServer) processRequest(tx sc.Transaction, reqIndex uint16, assemblyDat
 
 func (q *QServer) isMockTangleAddr(updAddr *net.UDPAddr) bool {
 	return q.mockTangle && q.mockPort == updAddr.Port && q.mockAddress == updAddr.IP.String()
-}
-
-func (q *QServer) findAssemblyData(aid *HashValue) *registry.AssemblyData {
-	if ret, ok := q.OperatorData[*aid]; ok {
-		return ret
-	}
-	return nil
 }
 
 func (q *QServer) getOperator(aid *HashValue) (*operator.AssemblyOperator, bool) {

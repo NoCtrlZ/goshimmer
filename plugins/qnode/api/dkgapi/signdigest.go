@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -31,7 +32,7 @@ type SignDigestResponse struct {
 }
 
 func SignDigestReq(req *SignDigestRequest) *SignDigestResponse {
-	ks, ok, err := GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
 	if err != nil {
 		return &SignDigestResponse{Err: err.Error()}
 	}

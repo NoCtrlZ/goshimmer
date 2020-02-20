@@ -28,6 +28,7 @@ VOLUME /app/mainnetdb
 EXPOSE 14666/tcp
 EXPOSE 14626/udp
 EXPOSE 14626/tcp
+EXPOSE 8080/tcp
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=build /go/bin/goshimmer .

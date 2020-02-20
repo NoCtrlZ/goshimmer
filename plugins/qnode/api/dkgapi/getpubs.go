@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/labstack/echo"
 	"go.dedis.ch/kyber/v3/share"
 	"net/http"
@@ -41,7 +42,7 @@ type GetPubsResponse struct {
 }
 
 func GetPubsReq(req *GetPubsRequest) *GetPubsResponse {
-	ks, ok, err := GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
 	if err != nil {
 		return &GetPubsResponse{Err: err.Error()}
 	}

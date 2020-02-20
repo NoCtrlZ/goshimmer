@@ -18,6 +18,7 @@ func HandlerNewConfig(c echo.Context) error {
 			Error: err.Error(),
 		})
 	}
+	log.Debugw("HandlerAssemblyData", "config_id", req.Id.Short(), "assembly_id", req.AssemblyId.Short())
 	return utils.ToJSON(c, http.StatusOK, NewConfigReq(&req))
 }
 

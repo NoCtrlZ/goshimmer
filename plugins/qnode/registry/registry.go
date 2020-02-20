@@ -70,25 +70,6 @@ func (ad *AssemblyData) Save() error {
 	})
 }
 
-func LoadAllOperatorData() (map[HashValue]*AssemblyData, error) {
-	dbase, err := db.Get()
-	if err != nil {
-		return nil, err
-	}
-	ret := make(map[HashValue]*AssemblyData)
-	err = dbase.ForEachPrefix(dbOpdataGroupKey(), func(entry database.Entry) bool {
-		opdata := &AssemblyData{}
-		if err = json.Unmarshal(entry.Value, opdata); err == nil {
-			ret[*opdata.AssemblyId] = opdata
-		}
-		return false
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func dbCfgKey(aid, cid *HashValue) []byte {
 	var buf bytes.Buffer
 	buf.WriteString("cfgdata")
