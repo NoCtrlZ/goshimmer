@@ -30,5 +30,10 @@
   "node": {
     "disablePlugins": [],
     "enablePlugins": []
+  },
+  "qnode": {
+    "udpPort": 4000,
+    "mockTangleIpAddr": "127.0.0.1",
+    "mockTanglePort": 1000
   }
 }
