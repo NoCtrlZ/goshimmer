@@ -6,8 +6,8 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
-	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"net"
 )
@@ -17,7 +17,7 @@ const (
 	port    = 1000
 )
 
-var operators = []*operator.PortAddr{
+var operators = []*registry.PortAddr{
 	{4000, "127.0.0.1"},
 	{4001, "127.0.0.1"},
 	{4002, "127.0.0.1"},

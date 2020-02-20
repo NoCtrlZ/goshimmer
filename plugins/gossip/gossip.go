@@ -77,7 +77,7 @@ func start(shutdownSignal <-chan struct{}) {
 	mgr.Start(srv)
 	defer mgr.Close()
 
-	log.Infof("%s started: Address=%s/%s", name, gossipAddr.String(), gossipAddr.Network())
+	log.Infof("%s started: Account=%s/%s", name, gossipAddr.String(), gossipAddr.Network())
 
 	<-shutdownSignal
 	log.Info("Stopping " + name + " ...")

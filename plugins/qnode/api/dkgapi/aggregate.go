@@ -53,7 +53,6 @@ type AggregateDKSRequest struct {
 }
 
 type AggregateDKSResponse struct {
-	Index    uint16 `json:"index"`
 	PubShare string `json:"pub_share"`
 	Err      string `json:"err"`
 }
@@ -98,7 +97,6 @@ func AggregateDKSReq(req *AggregateDKSRequest) *AggregateDKSResponse {
 		return &AggregateDKSResponse{Err: fmt.Sprintf("marshal error 2: %v", err)}
 	}
 	return &AggregateDKSResponse{
-		Index:    ks.Index,
 		PubShare: hex.EncodeToString(pkb),
 	}
 }

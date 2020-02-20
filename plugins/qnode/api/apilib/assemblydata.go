@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
-	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"net/http"
 )
 
-func PutAssemblyData(addr string, port int, adata *operator.AssemblyData) error {
+func PutAssemblyData(addr string, port int, adata *registry.AssemblyData) error {
 	data, err := json.Marshal(adata)
 	if err != nil {
 		return err

@@ -45,7 +45,8 @@ type CommitDKSRequest struct {
 }
 
 type CommitDKSResponse struct {
-	Err string `json:"err"`
+	Account *hashing.HashValue `json:"account"`
+	Err     string             `json:"err"`
 }
 
 func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
@@ -79,5 +80,7 @@ func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
 	if err != nil {
 		return &CommitDKSResponse{Err: err.Error()}
 	}
-	return &CommitDKSResponse{}
+	return &CommitDKSResponse{
+		Account: ks.Account,
+	}
 }

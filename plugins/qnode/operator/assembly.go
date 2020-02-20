@@ -4,6 +4,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/vmimpl"
@@ -87,7 +88,7 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 }
 
 type loadAllConfigDataResult struct {
-	cfgData        *ConfigData
+	cfgData        *registry.ConfigData
 	dkshares       map[HashValue]*DKShare
 	peers          []*net.UDPAddr
 	assemblySize   uint16
@@ -99,7 +100,7 @@ type loadAllConfigDataResult struct {
 func loadAllConfigData(aid, cfgId *HashValue, ownAddr string, ownPort int) (*loadAllConfigDataResult, error) {
 	ret := &loadAllConfigDataResult{}
 	var err error
-	ret.cfgData, err = LoadConfig(aid, cfgId)
+	ret.cfgData, err = registry.LoadConfig(aid, cfgId)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func loadAllConfigData(aid, cfgId *HashValue, ownAddr string, ownPort int) (*loa
 		if err != nil {
 			return nil, err
 		}
-		ret.dkshares[*dks.Address] = dks
+		ret.dkshares[*dks.Account] = dks
 		if ret.assemblySize != 0 && dks.N != ret.assemblySize {
 			return nil, errors.New("inconsistent assembly size parameter between config data and DKShare data")
 		} else {
@@ -138,7 +139,7 @@ func loadAllConfigData(aid, cfgId *HashValue, ownAddr string, ownPort int) (*loa
 	return ret, nil
 }
 
-func makePeers(addrs []*PortAddr, index uint16, ownAddr string, ownPort int) ([]*net.UDPAddr, error) {
+func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort int) ([]*net.UDPAddr, error) {
 	ret := make([]*net.UDPAddr, len(addrs))
 
 	iAmAmongOperators := false

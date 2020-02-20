@@ -58,7 +58,7 @@ func broadcastData(c echo.Context) error {
 
 	err = address.ValidAddress(request.Address)
 	if err != nil {
-		log.Warnf("invalid Address: %s", request.Address)
+		log.Warnf("invalid Account: %s", request.Address)
 		return c.JSON(http.StatusBadRequest, Response{Error: err.Error()})
 	}
 

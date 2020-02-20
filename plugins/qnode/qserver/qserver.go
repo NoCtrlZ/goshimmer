@@ -9,6 +9,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/daemon"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/logger"
@@ -18,7 +19,7 @@ import (
 
 type QServer struct {
 	udpPort      int
-	OperatorData map[HashValue]*operator.AssemblyData
+	OperatorData map[HashValue]*registry.AssemblyData
 	operators    map[HashValue]*operator.AssemblyOperator
 	mockTangle   bool
 	mockAddress  string
@@ -41,9 +42,9 @@ var (
 func StartServer() {
 	log = logger.NewLogger(modulename)
 
-	var opdata map[HashValue]*operator.AssemblyData
+	var opdata map[HashValue]*registry.AssemblyData
 	var err error
-	opdata, err = operator.LoadAllOperatorData()
+	opdata, err = registry.LoadAllOperatorData()
 	if err != nil {
 		log.Errorf("StartServer::LoadAllOperatorData %v", err)
 		return
@@ -116,7 +117,7 @@ func nodeEventHandler(txval value.Transaction) {
 	}
 }
 
-func (q *QServer) processState(tx sc.Transaction, assemblyData *operator.AssemblyData) {
+func (q *QServer) processState(tx sc.Transaction, assemblyData *registry.AssemblyData) {
 	state, _ := tx.State()
 	oper, operatorAvailable := ServerInstance.getOperator(state.AssemblyId())
 	if operatorAvailable {
@@ -140,7 +141,7 @@ func (q *QServer) processState(tx sc.Transaction, assemblyData *operator.Assembl
 
 }
 
-func (q *QServer) processRequest(tx sc.Transaction, reqIndex uint16, assemblyData *operator.AssemblyData) {
+func (q *QServer) processRequest(tx sc.Transaction, reqIndex uint16, assemblyData *registry.AssemblyData) {
 	req := tx.Requests()[reqIndex]
 	if oper, ok := ServerInstance.getOperator(req.AssemblyId()); ok {
 		oper.DispatchEvent(&sc.RequestMsg{
@@ -154,7 +155,7 @@ func (q *QServer) isMockTangleAddr(updAddr *net.UDPAddr) bool {
 	return q.mockTangle && q.mockPort == updAddr.Port && q.mockAddress == updAddr.IP.String()
 }
 
-func (q *QServer) findAssemblyData(aid *HashValue) *operator.AssemblyData {
+func (q *QServer) findAssemblyData(aid *HashValue) *registry.AssemblyData {
 	if ret, ok := q.OperatorData[*aid]; ok {
 		return ret
 	}
@@ -177,7 +178,7 @@ func (q *QServer) mustAddOperator(aid *HashValue, oper *operator.AssemblyOperato
 	ServerInstance.operators[*aid] = oper
 }
 
-func (q *QServer) IAmInConfig(configData *operator.ConfigData) bool {
+func (q *QServer) IAmInConfig(configData *registry.ConfigData) bool {
 	ownIp, ownPort := q.GetOwnAddressAndPort()
 	for _, a := range configData.OperatorAddresses {
 		addr, port := a.AdjustedIP()

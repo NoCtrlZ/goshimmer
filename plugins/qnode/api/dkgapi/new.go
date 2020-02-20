@@ -62,12 +62,8 @@ type NewDKSRequest struct {
 }
 
 type NewDKSResponse struct {
-	Id         *HashValue `json:"id"`
-	AssemblyId *HashValue `json:"assembly_id"`
-	Index      uint16     `json:"index"`
-	Created    int64      `json:"created"`
-	PriShares  []string   `json:"pri_shares"`
-	Err        string     `json:"err"`
+	PriShares []string `json:"pri_shares"`
+	Err       string   `json:"err"`
 }
 
 func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
@@ -84,10 +80,7 @@ func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
 	ks := tcrypto.NewRndDKShare(req.AssemblyId, req.T, req.N, req.Index)
 	dkscache[*req.Id] = ks
 	resp := NewDKSResponse{
-		Id:         req.Id,
-		AssemblyId: ks.AssemblyId,
-		Index:      ks.Index,
-		PriShares:  make([]string, ks.N),
+		PriShares: make([]string, ks.N),
 	}
 	for i, s := range ks.PriShares {
 		if uint16(i) != ks.Index {

@@ -20,7 +20,7 @@ type DKShare struct {
 	T          uint16       `json:"t"`
 	Index      uint16       `json:"index"`
 	AssemblyId *HashValue   `json:"assembly_id"`
-	Address    *HashValue   `json:"address"` // used as permanent id = hash(pubkey)
+	Account    *HashValue   `json:"account"` // used as permanent id = hash(pubkey)
 
 	Created    int64 `json:"created"`
 	Aggregated bool  `json:"-"`
@@ -103,7 +103,7 @@ func (ks *DKShare) CommitDKS(pubKeys []kyber.Point) error {
 		return err
 	}
 	// calculate address, the permanent key ID
-	ks.Address = HashData(pubKeyBin)
+	ks.Account = HashData(pubKeyBin)
 
 	ks.PriShares = nil // not needed anymore
 	ks.Committed = true

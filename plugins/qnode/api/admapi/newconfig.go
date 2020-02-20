@@ -3,7 +3,7 @@ package admapi
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/labstack/echo"
 	"net/http"
@@ -25,11 +25,11 @@ type NewConfigRequest struct {
 	Id            *hashing.HashValue   `json:"id"`
 	AssemblyId    *hashing.HashValue   `json:"assembly_id"`
 	Accounts      []*hashing.HashValue `json:"accounts"`
-	OperatorAddrs []*operator.PortAddr `json:"operator_addrs"`
+	OperatorAddrs []*registry.PortAddr `json:"operator_addrs"`
 }
 
 func NewConfigReq(req *NewConfigRequest) *utils.SimpleResponse {
-	ok, err := operator.ExistConfig(req.AssemblyId, req.Id)
+	ok, err := registry.ExistConfig(req.AssemblyId, req.Id)
 	if err != nil {
 		return &utils.SimpleResponse{Error: err.Error()}
 	}
@@ -50,7 +50,7 @@ func NewConfigReq(req *NewConfigRequest) *utils.SimpleResponse {
 		return &utils.SimpleResponse{Error: "addresses of operators must all be different"}
 	}
 
-	cfgRecord := operator.ConfigData{
+	cfgRecord := registry.ConfigData{
 		ConfigId:          req.Id,
 		AssemblyId:        req.AssemblyId,
 		Created:           time.Now().UnixNano(),
@@ -64,7 +64,7 @@ func NewConfigReq(req *NewConfigRequest) *utils.SimpleResponse {
 	return &utils.SimpleResponse{}
 }
 
-func differentAddresses(addrs []*operator.PortAddr) bool {
+func differentAddresses(addrs []*registry.PortAddr) bool {
 	if len(addrs) <= 1 {
 		return true
 	}

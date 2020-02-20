@@ -38,7 +38,7 @@ func (ks *DKShare) SaveToRegistry() error {
 	if err != nil {
 		return err
 	}
-	dbkey := dbKey(ks.AssemblyId, ks.Address)
+	dbkey := dbKey(ks.AssemblyId, ks.Account)
 	exists, err := dbase.Contains(dbkey)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func LoadDKShare(assemblyId *HashValue, address *HashValue, maskPrivate bool) (*
 	if err != nil {
 		return nil, err
 	}
-	if !ret.AssemblyId.Equal(assemblyId) || !ret.Address.Equal(address) {
+	if !ret.AssemblyId.Equal(assemblyId) || !ret.Account.Equal(address) {
 		return nil, errors.New("inconsistency in key share registry data")
 	}
 	return ret, nil
@@ -169,8 +169,8 @@ func unmarshalDKShare(jsonData []byte, maskPrivate bool) (*DKShare, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !HashData(binPK).Equal(ret.Address) {
-		return nil, errors.New("crosscheck II: !HashData(binPK).Equal(ret.Address)")
+	if !HashData(binPK).Equal(ret.Account) {
+		return nil, errors.New("crosscheck II: !HashData(binPK).Equal(ret.Account)")
 	}
 	return ret, nil
 }

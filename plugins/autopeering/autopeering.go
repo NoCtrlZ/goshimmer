@@ -125,7 +125,7 @@ func start(shutdownSignal <-chan struct{}) {
 		defer Selection.Close()
 	}
 
-	log.Infof("%s started: ID=%s Address=%s/%s", name, lPeer.ID(), peeringAddr.String(), peeringAddr.Network())
+	log.Infof("%s started: ID=%s Account=%s/%s", name, lPeer.ID(), peeringAddr.String(), peeringAddr.Network())
 
 	<-shutdownSignal
 

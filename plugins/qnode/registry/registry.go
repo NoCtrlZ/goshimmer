@@ -1,4 +1,4 @@
-package operator
+package registry
 
 import (
 	"bytes"

@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
-	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"net/http"
 )
 
-func NewConfiguration(addr string, port int, cdata *operator.ConfigData) error {
+func NewConfiguration(addr string, port int, cdata *registry.ConfigData) error {
 	data, err := json.Marshal(cdata)
 	if err != nil {
 		return err
