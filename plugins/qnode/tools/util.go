@@ -41,6 +41,14 @@ func Uint32To4Bytes(val uint32) []byte {
 	return tmp4[:]
 }
 
+func Uint32From4Bytes(b []byte) uint32 {
+	if len(b) != 4 {
+		panic("len(b) != 4")
+	}
+	return binary.LittleEndian.Uint32(b[:])
+
+}
+
 func Uint64To8Bytes(val uint64) []byte {
 	var tmp8 [8]byte
 	binary.LittleEndian.PutUint64(tmp8[:], val)
@@ -73,7 +81,7 @@ func ReadUint32(r io.Reader, pval *uint32) error {
 	if err != nil {
 		return err
 	}
-	*pval = binary.LittleEndian.Uint32(tmp4[:])
+	*pval = Uint32From4Bytes(tmp4[:])
 	return nil
 }
 
@@ -101,15 +109,6 @@ func WriteBytes16(w io.Writer, data []byte) error {
 	return err
 }
 
-func WriteBytes32(w io.Writer, data []byte) error {
-	err := WriteUint32(w, uint32(len(data)))
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(data)
-	return err
-}
-
 func ReadBytes16(r io.Reader) ([]byte, error) {
 	var length uint16
 	err := ReadUint16(r, &length)
@@ -122,6 +121,15 @@ func ReadBytes16(r io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+func WriteBytes32(w io.Writer, data []byte) error {
+	err := WriteUint32(w, uint32(len(data)))
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(data)
+	return err
 }
 
 func ReadBytes32(r io.Reader) ([]byte, error) {
@@ -150,10 +158,6 @@ func WriteBoolByte(w io.Writer, cond bool) error {
 func ReadBoolByte(r io.Reader, cond *bool) error {
 	var b [1]byte
 	_, err := r.Read(b[:])
-	if err != nil {
-		return err
-	}
-	_, err = r.Read(b[:])
 	if err != nil {
 		return err
 	}

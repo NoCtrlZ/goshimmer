@@ -11,14 +11,14 @@ var (
 	newTransaction  func() Transaction
 	newFromValueTx  func(value.Transaction) (Transaction, error)
 	newStateBlock   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
-	newRequestBlock func(*hashing.HashValue, bool) Request
+	newRequestBlock func(*hashing.HashValue, bool, uint16) Request
 )
 
 type SetConstructorsParams struct {
 	TxConstructor           func() Transaction
 	TxParser                func(value.Transaction) (Transaction, error)
 	StateBlockConstructor   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
-	RequestBlockConstructor func(*hashing.HashValue, bool) Request
+	RequestBlockConstructor func(*hashing.HashValue, bool, uint16) Request
 }
 
 func SetConstructors(c SetConstructorsParams) {
@@ -40,6 +40,6 @@ func NewStateBlock(aid, cid, reqId *hashing.HashValue, reqBlockIdx uint16) State
 	return newStateBlock(aid, cid, reqId, reqBlockIdx)
 }
 
-func NewRequestBlock(aid *hashing.HashValue, isConfig bool) Request {
-	return newRequestBlock(aid, isConfig)
+func NewRequestBlock(aid *hashing.HashValue, isConfig bool, chainOutputIndex uint16) Request {
+	return newRequestBlock(aid, isConfig, chainOutputIndex)
 }

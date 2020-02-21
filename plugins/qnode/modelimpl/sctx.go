@@ -99,15 +99,12 @@ func (tx *mockScTransaction) ValueTx() (value.Transaction, error) {
 		return tx.vtx, nil
 	}
 	var buf bytes.Buffer
-	var b byte
-	if tx.stateBlock != nil {
-		b = 1
-	}
-	err := tools.WriteByte(&buf, b)
+	hasState := tx.stateBlock != nil
+	err := tools.WriteBoolByte(&buf, hasState)
 	if err != nil {
 		return nil, err
 	}
-	if tx.stateBlock != nil {
+	if hasState {
 		err = tx.stateBlock.Encode().Write(&buf)
 		if err != nil {
 			return nil, err
@@ -133,8 +130,12 @@ func newFromValueTx(vtx value.Transaction) (sc.Transaction, error) {
 	tx := &mockScTransaction{}
 	tx.transfer = vtx.Transfer()
 	buf := bytes.NewReader(vtx.Payload())
-	b, err := tools.ReadByte(buf)
-	if b == 1 {
+	var hasState bool
+	err := tools.ReadBoolByte(buf, &hasState)
+	if err != nil {
+		return nil, err
+	}
+	if hasState {
 		tx.stateBlock = &mockStateBlock{}
 		err = tx.stateBlock.Encode().Read(buf)
 		if err != nil {

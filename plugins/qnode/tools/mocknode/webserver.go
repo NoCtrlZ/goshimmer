@@ -35,7 +35,11 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, _ = fmt.Fprintf(w, "Received reqnr = %s", reqnr)
-		tx = makeReqTx(reqnr)
+		tx, err = makeReqTx(reqnr)
+		if err != nil {
+			_, _ = fmt.Fprintf(w, "error: %v", err)
+			return
+		}
 	}
 	postMsg(tx)
 }

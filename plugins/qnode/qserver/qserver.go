@@ -86,6 +86,7 @@ func nodeEventHandler(txval value.Transaction) {
 	log.Info("nodeEventHandler")
 	tx, err := sc.ParseTransaction(txval)
 	if err != nil {
+		log.Errorf("%v", err)
 		// value tx does not parse to sc tx. Ignore
 		return
 	}

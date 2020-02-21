@@ -15,8 +15,7 @@ type NewOriginParams struct {
 	RequestAccount *HashValue
 	OwnerAccount   *HashValue
 	// owner's section
-	OriginOutput     *generic.OutputRef // output of 1i owned by the owner
-	OwnersPrivateKey interface{}        // owner's private key data used to sign the input
+	OriginOutput *generic.OutputRef // output of 1i owned by the owner
 }
 
 const (
@@ -24,6 +23,8 @@ const (
 	MAP_KEY_REQUEST_ACCOUNT = "request_addr"
 	MAP_KEY_OWNER_ACCOUNT   = "owner_addr"
 )
+
+// transfer is not signed
 
 func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
@@ -43,12 +44,30 @@ func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	}
 	tr.AddInput(value.NewInputFromOutputRef(par.OriginOutput))
 	tr.AddOutput(value.NewOutput(par.StateAccount, 1))
-	// signing inputs with the owner's private key
-	sigs := tr.InputSignatures()
-	sig, ok := sigs[*par.OwnerAccount]
-	if !ok {
-		panic("too bad")
+	return ret, nil
+}
+
+type NewRequestParams struct {
+	AssemblyId         *HashValue
+	RequestAccount     *HashValue
+	RequestChainOutput *generic.OutputRef // output of 1i owned by the request originator
+	Vars               map[string]string
+}
+
+func NewRequest(par NewRequestParams) (sc.Transaction, error) {
+	ret := sc.NewTransaction()
+	tr := ret.Transfer()
+	tr.AddInput(value.NewInputFromOutputRef(par.RequestChainOutput))
+	chainOutIndex := tr.AddOutput(value.NewOutput(par.RequestAccount, 1))
+	_, val := value.GetAddrValue(par.RequestChainOutput)
+	if val != 1 {
+		return nil, fmt.Errorf("request chain output must have value exactly 1i")
 	}
-	sig.SetSignature(NilHash.Bytes(), generic.SIG_TYPE_FAKE) // fake. must be signed by the owner
+	reqBlk := sc.NewRequestBlock(par.AssemblyId, false, chainOutIndex)
+	vars := reqBlk.Vars()
+	for k, v := range par.Vars {
+		vars.SetString(generic.VarName(k), v)
+	}
+	ret.AddRequest(reqBlk)
 	return ret, nil
 }

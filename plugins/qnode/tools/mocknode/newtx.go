@@ -6,7 +6,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"math/rand"
 )
 
@@ -34,44 +33,32 @@ func init() {
 
 func newOrigin() (sc.Transaction, error) {
 	return clientapi.NewOriginTransaction(clientapi.NewOriginParams{
-		AssemblyId:       aid,
-		ConfigId:         configId,
-		StateAccount:     stateAddr,
-		RequestAccount:   requestAddr,
-		OwnerAccount:     ownerAddr,
-		OriginOutput:     generic.NewOutputRef(hashing.NilHash, 0),
-		OwnersPrivateKey: hashing.NilHash.Bytes(),
+		AssemblyId:     aid,
+		ConfigId:       configId,
+		StateAccount:   stateAddr,
+		RequestAccount: requestAddr,
+		OwnerAccount:   ownerAddr,
+		OriginOutput:   generic.NewOutputRef(hashing.NilHash, 0),
 	})
 }
 
 var reqnrseq = 0
 
-func makeReqTx(reqnr string) sc.Transaction {
-	ret := sc.NewTransaction()
-	tr := ret.Transfer()
-	tr.AddInput(value.NewInput(hashing.NilHash, 0))
-	tr.AddOutput(value.NewOutput(requestAddr, 1))
-	sigs := tr.InputSignatures()
-
-	sig, ok := sigs[*hashing.NilHash]
-	if !ok {
-		panic("too bad")
-	}
-	sig.SetSignature(hashing.NilHash.Bytes(), generic.SIG_TYPE_FAKE)
-
-	reqBlk := sc.NewRequestBlock(aid, false)
-	vars := reqBlk.Vars()
-
-	// TODO add and sign transfer from my addr.
-
+func makeReqTx(reqnr string) (sc.Transaction, error) {
+	reqnrstr := fmt.Sprintf("#%d", reqnrseq)
 	if reqnr == "_seq" {
-		vars.SetString("reqnr", fmt.Sprintf("#%d", reqnrseq))
 		reqnrseq++
 	} else {
-		vars.SetString("reqnr", reqnr)
+		reqnrstr = reqnr
 	}
-	vars.SetInt("salt", rand.Int()) // random salt to make the request unique
-	ret.AddRequest(reqBlk)
-
-	return ret
+	vars := map[string]string{
+		"reqnr": reqnrstr,
+		"salt":  fmt.Sprintf("%d", rand.Int()),
+	}
+	return clientapi.NewRequest(clientapi.NewRequestParams{
+		AssemblyId:         aid,
+		RequestAccount:     requestAddr,
+		RequestChainOutput: generic.NewOutputRef(hashing.NilHash, 0),
+		Vars:               vars,
+	})
 }

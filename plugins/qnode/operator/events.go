@@ -59,6 +59,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 // triggered from main msg queue whenever calculation of new result is finished
 
 func (op *AssemblyOperator) EventResultCalculated(res *resultCalculated) {
+	log.Debug("EventResultCalculated")
 	reqHash := RequestId(res.requestTx.Id(), res.requestIndex)
 	reqRec, _ := op.requestFromIdHash(reqHash)
 
@@ -98,6 +99,7 @@ func (op *AssemblyOperator) EventResultCalculated(res *resultCalculated) {
 // called from the main queue
 
 func (op *AssemblyOperator) EventPushResultMsg(resHashMsg *pushResultMsg) {
+	log.Debug("EventPushResultMsg")
 	if err := op.accountNewResultHash(resHashMsg); err != nil {
 		log.Errorf("accountNewResultHash returned: %v", err)
 		return
@@ -107,6 +109,7 @@ func (op *AssemblyOperator) EventPushResultMsg(resHashMsg *pushResultMsg) {
 }
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
+	log.Debug("EventPullResultMsg")
 	req, _ := op.requestFromIdHash(msg.RequestId)
 	req.pullMessages[msg.SenderIndex] = msg
 	op.takeAction()

@@ -56,7 +56,7 @@ func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 	go func() {
 		ctx, _ := newResultCalculated(req.msgTx, req.msgIndex, op.stateTx)
 		op.processor.Run(ctx)
-		op.DispatchEvent(ctx.resultTx)
+		op.DispatchEvent(ctx)
 	}()
 }
 
