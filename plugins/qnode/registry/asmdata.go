@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -40,4 +41,30 @@ func GetAssemblyData(aid *HashValue) (*AssemblyData, bool) {
 		return nil, false
 	}
 	return ret, true
+}
+
+func dbOpdataGroupKey() []byte {
+	return []byte("opdata")
+}
+
+func dbOpdateKey(aid *HashValue) []byte {
+	var buf bytes.Buffer
+	buf.Write(dbOpdataGroupKey())
+	buf.Write(aid.Bytes())
+	return buf.Bytes()
+}
+
+func (ad *AssemblyData) Save() error {
+	dbase, err := db.Get()
+	if err != nil {
+		return err
+	}
+	jsonData, err := json.Marshal(ad)
+	if err != nil {
+		return err
+	}
+	return dbase.Set(database.Entry{
+		Key:   dbOpdateKey(ad.AssemblyId),
+		Value: jsonData,
+	})
 }

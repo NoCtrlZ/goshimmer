@@ -25,6 +25,9 @@ type resultCalculatedIntern struct {
 }
 
 func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
+	if !op.cfgData.AccountIsDefined(addr) {
+		return nil, fmt.Errorf("account id %s is undefined for this configuration", addr.Short())
+	}
 	ret, ok, err := registry.GetDKShare(op.assemblyId, addr)
 	if err != nil {
 		return nil, err
