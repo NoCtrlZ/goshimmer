@@ -2,6 +2,7 @@ package value
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 )
 
 // constructors
@@ -35,6 +36,10 @@ func NewUTXOTransfer() UTXOTransfer {
 
 func NewInput(transferId *hashing.HashValue, outputIndex uint16) Input {
 	return newInput(transferId, outputIndex)
+}
+
+func NewInputFromOutputRef(oref *generic.OutputRef) Input {
+	return newInput(oref.TransferId(), oref.OutputIndex())
 }
 
 func NewOutput(address *hashing.HashValue, value uint64) Output {

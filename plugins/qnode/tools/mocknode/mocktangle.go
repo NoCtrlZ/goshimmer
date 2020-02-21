@@ -8,7 +8,8 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
+	"github.com/iotaledger/hive.go/events"
+	"github.com/iotaledger/hive.go/network/udp"
 	"net"
 )
 
@@ -24,7 +25,7 @@ var operators = []*registry.PortAddr{
 	{4003, "127.0.0.1"},
 }
 
-var srv *udp.Server
+var srv *udp.UDPServer
 var inCh = make(chan interface{}, 10)
 
 type wrapped struct {
@@ -35,19 +36,19 @@ type wrapped struct {
 func main() {
 	srv = udp.NewServer(2048)
 	srv.Events.Start.Attach(events.NewClosure(func() {
-		tools.Logf(0, "MockTangle ServerInstance started")
+		fmt.Printf("MockTangle ServerInstance started\n")
 	}))
 	srv.Events.Shutdown.Attach(events.NewClosure(func() {
-		tools.Logf(0, "ServerInstance shutdown event")
+		fmt.Printf("ServerInstance shutdown event\n")
 	}))
 	srv.Events.ReceiveData.Attach(events.NewClosure(receiveData))
 
 	srv.Events.Error.Attach(events.NewClosure(func(err error) {
-		tools.Logf(0, "Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	}))
 	go inLoop()
 
-	tools.Logf(0, "listen UDP on %s:%d", address, port)
+	fmt.Printf("listen UDP on %s:%d\n", address, port)
 	go srv.Listen(address, port)
 
 	runWebServer()
@@ -55,10 +56,9 @@ func main() {
 
 func receiveData(updAddr *net.UDPAddr, data []byte) {
 	idx := findSenderIndex(updAddr)
-	tools.Logf(3, "Received msg from: %+v, index: %d", *updAddr, idx)
 	msg, err := decodeMsg(data)
 	if err != nil {
-		tools.Logf(0, "decode msg error: %v", err)
+		fmt.Printf("decode msg error: %v\n", err)
 		return
 	}
 	postMsg(&wrapped{
@@ -114,8 +114,8 @@ func processUDPMsg(wrapped *wrapped) {
 }
 
 func processTx(tx sc.Transaction) {
-	tools.Logf(0, "processTx: id = %s", tx.Id().Short())
-	fmt.Printf("%s", tx.ShortStr())
+	fmt.Printf("processTx: id = %s\n", tx.Id().Short())
+	fmt.Printf("%s\n", tx.ShortStr())
 
 	vtx, _ := tx.ValueTx()
 	var buf bytes.Buffer
@@ -124,7 +124,7 @@ func processTx(tx sc.Transaction) {
 		return
 	}
 	sentTo := sendToNodes(buf.Bytes())
-	tools.Logf(0, "sent to %+v", sentTo)
+	fmt.Printf("sent to %+v\n", sentTo)
 }
 
 func sendToNodes(data []byte) []int16 {

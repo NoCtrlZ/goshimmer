@@ -83,7 +83,7 @@ func (tr *mockUTXO) Encode() generic.Encode {
 func (tr *mockUTXO) collectOutputsToSign() map[hashing.HashValue][]*generic.OutputRef {
 	ret := make(map[hashing.HashValue][]*generic.OutputRef)
 	for _, inp := range tr.inputs {
-		addr, _ := value.GetOutputAddrValue(inp)
+		addr, _ := value.GetAddrValue(inp.OutputRef())
 		if _, ok := ret[*addr]; !ok {
 			ret[*addr] = make([]*generic.OutputRef, 0)
 		}

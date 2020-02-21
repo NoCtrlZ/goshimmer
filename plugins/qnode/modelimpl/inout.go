@@ -9,14 +9,14 @@ import (
 )
 
 type mockInput struct {
-	oid generic.OutputRef
-	tr  value.UTXOTransfer
+	oref generic.OutputRef
+	tr   value.UTXOTransfer
 }
 
 func newInput(trid *hashing.HashValue, outidx uint16) value.Input {
 	return &mockInput{
-		oid: *generic.NewOutputRef(trid, outidx),
-		tr:  nil}
+		oref: *generic.NewOutputRef(trid, outidx),
+		tr:   nil}
 }
 
 func newOutput(addr *hashing.HashValue, value uint64) value.Output {
@@ -29,11 +29,11 @@ func newOutput(addr *hashing.HashValue, value uint64) value.Output {
 // Input
 
 func (or *mockInput) OutputRef() *generic.OutputRef {
-	return &or.oid
+	return &or.oref
 }
 
 func (or *mockInput) GetInputTransfer() value.UTXOTransfer {
-	return value.GetTransfer(or.oid.TransferId())
+	return value.GetTransfer(or.oref.TransferId())
 }
 
 func (or *mockInput) Encode() generic.Encode {
@@ -48,11 +48,11 @@ type mockOutput struct {
 // Encode
 
 func (or *mockInput) Write(w io.Writer) error {
-	_, err := w.Write(or.oid.TransferId().Bytes())
+	_, err := w.Write(or.oref.TransferId().Bytes())
 	if err != nil {
 		return err
 	}
-	err = tools.WriteUint16(w, or.oid.OutputIndex())
+	err = tools.WriteUint16(w, or.oref.OutputIndex())
 	return err
 }
 
@@ -67,7 +67,7 @@ func (or *mockInput) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	or.oid = *generic.NewOutputRef(&txid, idx)
+	or.oref = *generic.NewOutputRef(&txid, idx)
 	return nil
 }
 

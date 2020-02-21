@@ -1,12 +1,15 @@
 package value
 
-import "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
+)
 
-func GetOutputAddrValue(inp Input) (*hashing.HashValue, uint64) {
-	tr := inp.GetInputTransfer()
+func GetAddrValue(or *generic.OutputRef) (*hashing.HashValue, uint64) {
+	tr := GetTransfer(or.TransferId())
 	if tr == nil {
-		return hashing.NilHash, 1
+		return hashing.NilHash, 0
 	}
-	output := tr.Outputs()[inp.OutputRef().OutputIndex()]
+	output := tr.Outputs()[or.OutputIndex()]
 	return output.Address(), output.Value()
 }

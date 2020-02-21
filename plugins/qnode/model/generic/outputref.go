@@ -16,10 +16,10 @@ func NewOutputRef(trid *hashing.HashValue, outidx uint16) *OutputRef {
 	}
 }
 
-func (iid *OutputRef) TransferId() *hashing.HashValue {
-	return iid.trid
+func (or *OutputRef) TransferId() *hashing.HashValue {
+	return or.trid
 }
 
-func (iid *OutputRef) OutputIndex() uint16 {
-	return iid.outIdx
+func (or *OutputRef) OutputIndex() uint16 {
+	return or.outIdx
 }
