@@ -44,13 +44,11 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	if !state.ConfigId().Equal(stateUpd.ConfigId()) {
 		// configuration changed
 		ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
-		allCfgData, err := loadAllConfigData(op.assemblyId, stateUpd.ConfigId(), ownAddr, ownPort)
-		if err != nil || !allCfgData.iAmParticipant {
+		iAmParticipant, err := op.configure(stateUpd.ConfigId(), ownAddr, ownPort)
+		if err != nil || !iAmParticipant {
 			op.Dismiss()
 			return
 		}
-		// re-configure operator to new configuration
-		op.reconfigure(allCfgData)
 	}
 	// update current state
 	op.stateTx = tx

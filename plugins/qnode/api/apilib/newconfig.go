@@ -5,30 +5,31 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"net/http"
 )
 
-func NewConfiguration(addr string, port int, cdata *registry.ConfigData) error {
+func NewConfiguration(addr string, port int, cdata *registry.ConfigData) (*hashing.HashValue, error) {
 	data, err := json.Marshal(cdata)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	url := fmt.Sprintf("http://%s:%d/adm/newconfig", addr, port)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var result utils.SimpleResponse
+	var result admapi.NewConfigResponse
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = nil
-	if result.Error != "" {
-		err = errors.New(result.Error)
+	if result.Err != "" {
+		return nil, errors.New(result.Err)
 	}
-	return err
+	return result.ConfigId, nil
 }

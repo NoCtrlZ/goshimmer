@@ -16,6 +16,6 @@ func LogLoadedConfigs() {
 
 	log.Debugf("loaded %d assembly data record(s)", len(assemblyDataCache))
 	for aid, ad := range assemblyDataCache {
-		log.Debugw("Stored assembly data", "aid", aid.Short(), "dscr", ad.Description)
+		log.Debugw("assembly record", "aid", aid.Short(), "dscr", ad.Description)
 	}
 }

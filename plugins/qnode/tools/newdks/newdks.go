@@ -36,7 +36,7 @@ func main() {
 	for i := 0; i < numKeySets; i++ {
 		account, err := apilib.GenerateNewDistributedKeySet(hosts, aid, N, T)
 		if err == nil {
-			fmt.Printf("generated new keys et account %s", account.String())
+			fmt.Printf("generated new keys for account id %s", account.String())
 		} else {
 			fmt.Printf("error: %v\n", err)
 		}

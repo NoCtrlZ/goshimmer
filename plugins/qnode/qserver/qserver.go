@@ -163,7 +163,7 @@ func (q *QServer) mustAddOperator(aid *HashValue, oper *operator.AssemblyOperato
 
 func (q *QServer) IAmInConfig(configData *registry.ConfigData) bool {
 	ownIp, ownPort := q.GetOwnAddressAndPort()
-	for _, a := range configData.OperatorAddresses {
+	for _, a := range configData.NodeAddresses {
 		addr, port := a.AdjustedIP()
 		if port == ownPort && addr == ownIp {
 			return true

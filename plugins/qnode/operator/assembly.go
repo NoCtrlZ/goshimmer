@@ -5,7 +5,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/vmimpl"
 	"github.com/pkg/errors"
@@ -19,14 +18,11 @@ type AssemblyOperator struct {
 	sync.RWMutex
 	dismissed            bool
 	assemblyId           *HashValue
-	size                 uint16
-	quorum               uint16
-	index                uint16
+	cfgData              *registry.ConfigData
 	processor            vm.Processor
 	stateTx              sc.Transaction
 	requests             map[HashValue]*request
 	inChan               chan interface{}
-	keyShares            map[HashValue]*DKShare
 	peers                []*net.UDPAddr
 	comm                 messaging.Messaging
 	stopClock            func()
@@ -60,85 +56,45 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 	state, _ := tx.State()
 	oa, op := comm.GetOwnAddressAndPort()
 
-	allCfgData, err := loadAllConfigData(state.AssemblyId(), state.ConfigId(), oa, op)
-	if err != nil {
-		return nil, err
-	}
-	if !allCfgData.iAmParticipant {
-		return nil, nil
-	}
 	ret := &AssemblyOperator{
 		assemblyId:           state.AssemblyId(),
-		size:                 allCfgData.assemblySize,
-		quorum:               allCfgData.quorum,
-		index:                allCfgData.index,
 		processor:            vmimpl.New(),
 		requests:             make(map[HashValue]*request),
 		stateTx:              tx,
-		keyShares:            allCfgData.dkshares,
 		inChan:               make(chan interface{}, inChanBufLen),
-		peers:                allCfgData.peers,
 		comm:                 comm,
 		clockTickPeriodMutex: &sync.RWMutex{},
 		clockTickPeriod:      clockTickPeriod,
-		rand:                 rand.New(rand.NewSource(int64(allCfgData.index))),
+	}
+
+	iAmParticipant, err := ret.configure(state.ConfigId(), oa, op)
+
+	if err != nil {
+		return nil, err
+	}
+	if !iAmParticipant {
+		return nil, nil
 	}
 	ret.startRoutines()
 	return ret, nil
 }
 
-type loadAllConfigDataResult struct {
-	cfgData        *registry.ConfigData
-	dkshares       map[HashValue]*DKShare
-	peers          []*net.UDPAddr
-	assemblySize   uint16
-	quorum         uint16
-	index          uint16
-	iAmParticipant bool
-}
-
-func loadAllConfigData(aid, cfgId *HashValue, ownAddr string, ownPort int) (*loadAllConfigDataResult, error) {
-	ret := &loadAllConfigDataResult{}
-	var err error
-	ret.cfgData, err = registry.LoadConfig(aid, cfgId)
+func (op *AssemblyOperator) configure(cfgId *HashValue, ownAddr string, ownPort int) (bool, error) {
+	cfg, err := registry.LoadConfig(op.assemblyId, cfgId)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	ret.dkshares = make(map[HashValue]*DKShare)
-
-	// TODO no need to load all keys, can be accessed with cache
-
-	for _, dksId := range ret.cfgData.Accounts {
-		dks, err := LoadDKShare(aid, dksId, false)
-		if err != nil {
-			return nil, err
-		}
-		ret.dkshares[*dks.Account] = dks
-		if ret.assemblySize != 0 && dks.N != ret.assemblySize {
-			return nil, errors.New("inconsistent assembly size parameter between config data and DKShare data")
-		} else {
-			ret.assemblySize = dks.N
-		}
-		if ret.quorum != 0 && dks.T != ret.quorum {
-			return nil, errors.New("inconsistent assembly quorum data parameter between config data and DKShare data")
-		} else {
-			ret.quorum = dks.T
-		}
-		if dks.Index != ret.cfgData.Index {
-			return nil, errors.New("not equal indices between config data and DKShare data")
-		}
-	}
-	ret.peers, err = makePeers(ret.cfgData.OperatorAddresses, ret.cfgData.Index, ownAddr, ownPort)
+	peers, err := makePeers(cfg.NodeAddresses, cfg.Index, ownAddr, ownPort)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-
-	if ret.peers == nil {
-		return &loadAllConfigDataResult{iAmParticipant: false}, nil
+	if peers == nil {
+		return false, nil // not participant
 	}
-	ret.iAmParticipant = true
-	ret.index = ret.cfgData.Index
-	return ret, nil
+	op.cfgData = cfg
+	op.peers = peers
+	op.rand = rand.New(rand.NewSource(int64(cfg.Index)))
+	return true, nil
 }
 
 func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort int) ([]*net.UDPAddr, error) {
@@ -166,25 +122,16 @@ func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort
 	return ret, nil
 }
 
-func (op *AssemblyOperator) reconfigure(cfg *loadAllConfigDataResult) {
-	op.size = cfg.assemblySize
-	op.quorum = cfg.quorum
-	op.index = cfg.index
-	op.keyShares = cfg.dkshares
-	op.peers = cfg.peers
-	op.rand = rand.New(rand.NewSource(int64(cfg.index)))
-}
-
 func (op *AssemblyOperator) requiredQuorum() uint16 {
-	return op.quorum
+	return op.cfgData.T
 }
 
 func (op *AssemblyOperator) assemblySize() uint16 {
-	return op.size
+	return op.cfgData.N
 }
 
 func (op *AssemblyOperator) peerIndex() uint16 {
-	return op.index
+	return op.cfgData.Index
 }
 
 func (op *AssemblyOperator) Dismiss() {
