@@ -14,8 +14,7 @@ const (
 	assemblyDescription = "test assembly 1"
 	N                   = uint16(4)
 	T                   = uint16(3)
-	cfgId1              = "d85036600bb75389dae0d501d983bbe0d1edb3251a5590816c314d9f390cb85f" // 1 account
-	cfgId2              = "eddb2656a97ff6be411aac0d2fddb1fd1cc7de42905eaa742a09031ee921c261" // 2 accounts
+	cfgId2              = "74ca4be8414a6d787dd54d2452364b59c88c11b23a768b8d12810a057fb9a777" // 2 accounts
 )
 
 var accStrings2 = []string{

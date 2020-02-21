@@ -8,11 +8,18 @@ import (
 	"time"
 )
 
-var hosts = []*registry.PortAddr{
+var webHosts = []*registry.PortAddr{
 	{9090, "127.0.0.1"},
 	{9091, "127.0.0.1"},
 	{9092, "127.0.0.1"},
 	{9093, "127.0.0.1"},
+}
+
+var nodeUDPAddresses = []*registry.PortAddr{
+	{4000, "127.0.0.1"},
+	{4001, "127.0.0.1"},
+	{4002, "127.0.0.1"},
+	{4003, "127.0.0.1"},
 }
 
 const (
@@ -29,10 +36,10 @@ var accStrings2 = []string{
 }
 
 var accStrings1 = []string{
-	"c59de480c9ea21705b0d66299f14e9976308e3d7802971271b5eedd9e1f7a9ad", // 2 accounts
+	"c59de480c9ea21705b0d66299f14e9976308e3d7802971271b5eedd9e1f7a9ad",
 }
 
-var accStrings = accStrings1
+var accStrings = accStrings2
 
 func main() {
 	var err error
@@ -49,10 +56,10 @@ func main() {
 		AssemblyId:    assemblyId,
 		N:             N,
 		T:             T,
-		NodeAddresses: hosts,
+		NodeAddresses: nodeUDPAddresses,
 		Accounts:      accounts,
 	}
-	for i, h := range hosts {
+	for i, h := range webHosts {
 		cd.Index = uint16(i)
 		configId, err := apilib.NewConfiguration(h.Addr, h.Port, &cd)
 		if err != nil {
