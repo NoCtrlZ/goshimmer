@@ -37,10 +37,9 @@ type AssemblyOperator struct {
 type request struct {
 	reqId                        *HashValue
 	whenMsgReceived              time.Time
-	msgTx                        sc.Transaction
-	msgIndex                     uint16
+	reqRef                       *sc.RequestRef
 	receivedResultHashes         map[HashValue][]*pushResultMsg // by result hash. Some result hashes may be from future context
-	ownResultCalculated          *resultCalculatedIntern        // can be nil or the record with config and stateTx equal to the current
+	ownResultCalculated          *resultCalculated              // can be nil or the record with config and stateTx equal to the current
 	pullMessages                 map[uint16]*pullResultMsg
 	startedCalculation           map[HashValue]time.Time // by result hash. Flag inidcates asyn calculation started
 	leaderPeerIndexList          []uint16

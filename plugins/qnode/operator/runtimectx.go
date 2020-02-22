@@ -4,57 +4,53 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 )
 
-type resultCalculated struct {
-	requestTx    sc.Transaction
-	requestIndex uint16
-	state        sc.Transaction
-	resultTx     sc.Transaction
+type runtimeContext struct {
+	reqRef   *sc.RequestRef
+	state    sc.Transaction
+	resultTx sc.Transaction
 }
 
-func (ctx *resultCalculated) InputVars() generic.ValueMap {
-	return ctx.requestTx.Requests()[ctx.requestIndex].Vars()
+func (ctx *runtimeContext) InputVars() generic.ValueMap {
+	return ctx.reqRef.RequestBlock().Vars()
 }
 
-func (ctx *resultCalculated) OutputVars() generic.ValueMap {
+func (ctx *runtimeContext) OutputVars() generic.ValueMap {
 	return ctx.resultTx.MustState().StateVars()
 }
 
-func newResultCalculated(reqTx sc.Transaction, reqIdx uint16, prevStateTx sc.Transaction) (*resultCalculated, error) {
-	reqBlock := reqTx.Requests()[reqIdx]
-	if reqBlock.IsConfigUpdateReq() {
-		return nil, fmt.Errorf("req.IsConfigUpdateReq()")
-	}
-	state, _ := prevStateTx.State()
+// creates context with skeleton resulting transaction
+// not signed
 
-	if !reqBlock.AssemblyId().Equal(state.AssemblyId()) {
-		return nil, fmt.Errorf("!req.AssemblyId().Equal(state.AssemblyId())")
+func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
+	ownerAccount := curStateTx.MustState().OwnerChainAccount()
+	if !sc.AuthorizedForAddress(reqRef.Tx(), ownerAccount) {
+		return nil, fmt.Errorf("config update request is not authorized")
 	}
 
-	nextStateVars := state.StateVars().Clone()
+	resTx, err := sc.NextStateUpdateTransaction(curStateTx, reqRef)
+	if err != nil {
+		return nil, err
+	}
+	// just updates config variables
+	resTx.MustState().WithConfigVars(reqRef.RequestBlock().Vars())
 
-	tx := sc.NewTransaction()
-	tr := tx.Transfer()
-	// add request chain link
-	tr.AddInput(value.NewInput(reqTx.Transfer().Id(), reqBlock.RequestChainOutputIndex()))
-	tr.AddOutput(value.NewOutput(state.RequestChainAddress(), 1))
-	// add state chain link
-	tr.AddInput(value.NewInput(prevStateTx.Transfer().Id(), state.StateChainOutputIndex()))
-	chainOutIdx := tr.AddOutput(value.NewOutput(state.StateChainAddress(), 1))
+	return &runtimeContext{
+		reqRef:   reqRef,
+		state:    curStateTx,
+		resultTx: resTx,
+	}, nil
+}
 
-	nextState := sc.NewStateBlock(state.AssemblyId(), state.ConfigId(), reqTx.Id(), reqIdx)
-	nextState.Builder().InitFromPrev(state)
-	nextState.Builder().SetStateVars(nextStateVars)
-	nextState.Builder().SetRequest(reqTx.Id(), reqIdx)
-	nextState.Builder().SetStateChainOutputIndex(chainOutIdx)
-
-	tx.SetState(nextState)
-	return &resultCalculated{
-		requestTx:    reqTx,
-		requestIndex: reqIdx,
-		state:        prevStateTx,
-		resultTx:     tx,
+func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
+	resTx, err := sc.NextStateUpdateTransaction(curStateTx, reqRef)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimeContext{
+		reqRef:   reqRef,
+		state:    curStateTx,
+		resultTx: resTx,
 	}, nil
 }

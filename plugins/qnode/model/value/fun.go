@@ -13,3 +13,8 @@ func GetAddrValue(or *generic.OutputRef) (*hashing.HashValue, uint64) {
 	output := tr.Outputs()[or.OutputIndex()]
 	return output.Address(), output.Value()
 }
+
+func OutputCanBeChained(or *generic.OutputRef, chainAccount *hashing.HashValue) bool {
+	addr, val := GetAddrValue(or)
+	return val == 1 && addr.Equal(chainAccount)
+}

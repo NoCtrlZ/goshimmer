@@ -15,7 +15,7 @@ const (
 
 type SignedBlock interface {
 	SignedHash() *HashValue
-	Address() *HashValue
+	Account() *HashValue
 	SetSignature(signature []byte, signatureType SignatureType)
 	GetSignature() ([]byte, SignatureType)
 	SetPublicKey([]byte)

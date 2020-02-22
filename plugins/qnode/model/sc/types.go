@@ -25,22 +25,17 @@ type State interface {
 	ConfigId() *HashValue
 	RequestRef() (*HashValue, uint16)
 	StateChainOutputIndex() uint16
-	StateChainAddress() *HashValue
-	RequestChainAddress() *HashValue
-	OwnerChainAddress() *HashValue
+	StateChainAccount() *HashValue
+	RequestChainAccount() *HashValue
+	OwnerChainAccount() *HashValue
 	ConfigVars() generic.ValueMap
 	StateVars() generic.ValueMap
 	StateIndex() uint32
-	Builder() StateBuilder
+	WithStateIndex(uint32) State
+	WithConfigVars(generic.ValueMap) State
+	WithStateVars(generic.ValueMap) State
+	WithSetStateChainOutputIndex(uint16) State
 	Encode() generic.Encode
-}
-
-type StateBuilder interface {
-	InitFromPrev(State)
-	SetConfigVars(generic.ValueMap)
-	SetStateVars(generic.ValueMap)
-	SetRequest(*HashValue, uint16)
-	SetStateChainOutputIndex(uint16)
 }
 
 type Request interface {
@@ -51,9 +46,9 @@ type Request interface {
 	Encode() generic.Encode
 }
 
-type RequestMsg struct {
-	Tx           Transaction
-	RequestIndex uint16
+type RequestRef struct {
+	tx           Transaction
+	requestIndex uint16
 }
 
 type StateUpdateMsg struct {

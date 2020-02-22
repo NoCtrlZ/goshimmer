@@ -26,7 +26,7 @@ func (sb *signedBlock) SignedHash() *hashing.HashValue {
 	return sb.signedHash
 }
 
-func (sb *signedBlock) Address() *hashing.HashValue {
+func (sb *signedBlock) Account() *hashing.HashValue {
 	return sb.addr
 }
 
@@ -129,7 +129,7 @@ func ReadSignedBlocks(r io.Reader) (map[hashing.HashValue]generic.SignedBlock, e
 		if err != nil {
 			return nil, err
 		}
-		ret[*sb.Address()] = sb
+		ret[*sb.Account()] = sb
 	}
 	return ret, nil
 }

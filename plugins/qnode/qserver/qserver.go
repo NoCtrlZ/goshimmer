@@ -103,7 +103,8 @@ func nodeEventHandler(txval value.Transaction) {
 		aData, ok := registry.GetAssemblyData(aid)
 		if ok {
 			// request has to be processed by the node
-			ServerInstance.processRequest(tx, uint16(i), aData)
+			reqRef, _ := sc.NewRequestRef(tx, uint16(i))
+			ServerInstance.processRequest(reqRef, aData)
 		}
 	}
 }
@@ -132,13 +133,10 @@ func (q *QServer) processState(tx sc.Transaction, assemblyData *registry.Assembl
 
 }
 
-func (q *QServer) processRequest(tx sc.Transaction, reqIndex uint16, assemblyData *registry.AssemblyData) {
-	req := tx.Requests()[reqIndex]
+func (q *QServer) processRequest(reqRef *sc.RequestRef, assemblyData *registry.AssemblyData) {
+	req := reqRef.RequestBlock()
 	if oper, ok := ServerInstance.getOperator(req.AssemblyId()); ok {
-		oper.DispatchEvent(&sc.RequestMsg{
-			Tx:           tx,
-			RequestIndex: reqIndex,
-		})
+		oper.DispatchEvent(reqRef)
 	}
 }
 

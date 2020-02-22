@@ -1,14 +1,14 @@
-package modelimpl
+package sc
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 )
 
-func AuthorizedForAddress(transfer value.UTXOTransfer, addr *hashing.HashValue) bool {
-	for _, inp := range transfer.Inputs() {
+func AuthorizedForAddress(tx Transaction, account *hashing.HashValue) bool {
+	for _, inp := range tx.Transfer().Inputs() {
 		addr, _ := value.GetAddrValue(inp.OutputRef())
-		if addr.Equal(addr) {
+		if addr.Equal(account) {
 			return true
 		}
 	}

@@ -19,7 +19,7 @@ func (op *AssemblyOperator) validatePushMessage(msg *pushResultMsg) error {
 			return errors.New("validatePushMessage: only BLS sig shares expected")
 		}
 
-		keyData, err := op.getKeyData(blk.Address())
+		keyData, err := op.getKeyData(blk.Account())
 		if err != nil {
 			return err
 		}
@@ -43,7 +43,7 @@ func (op *AssemblyOperator) accountNewResultHash(msg *pushResultMsg) error {
 		msg.RequestId.Bytes(),
 		tools.Uint16To2Bytes(msg.SenderIndex),
 		msg.MasterDataHash.Bytes())
-	req, _ := op.requestFromIdHash(msg.RequestId)
+	req, _ := op.requestFromId(msg.RequestId)
 
 	if rhlst, ok := req.receivedResultHashes[*dataHash]; !ok {
 		req.receivedResultHashes[*dataHash] = make([]*pushResultMsg, op.assemblySize())
@@ -79,7 +79,7 @@ func duplicateResultHashMessages(msg1, msg2 *pushResultMsg) bool {
 			if !msg1.SigBlocks[i].SignedHash().Equal(msg2.SigBlocks[i].SignedHash()) {
 				return false
 			}
-			if !msg1.SigBlocks[i].Address().Equal(msg2.SigBlocks[i].Address()) {
+			if !msg1.SigBlocks[i].Account().Equal(msg2.SigBlocks[i].Account()) {
 				return false
 			}
 		}

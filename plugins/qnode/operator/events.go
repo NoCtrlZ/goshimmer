@@ -10,9 +10,9 @@ import (
 // triggered by new request msg from the node
 // called from he main queue
 
-func (op *AssemblyOperator) EventRequestMsg(tx sc.Transaction, reqIndex uint16) {
-	log.Debugw("EventRequestMsg", "tx", tx.ShortStr(), "reqIdx", reqIndex)
-	op.requestFromMsg(tx, reqIndex)
+func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
+	log.Debugw("EventRequestMsg", "tx", reqRef.Tx().ShortStr(), "reqIdx", reqRef.Index())
+	op.requestFromMsg(reqRef)
 	op.takeAction()
 }
 
@@ -26,18 +26,18 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 
 	if stateUpd.StateIndex() <= state.StateIndex() {
 		// wrong sequence of stateTx indices. Ignore the message
+		log.Warnf("wrong sequence of stateTx indices. Ignore the message")
 		return
 	}
-	reqId := RequestId(stateUpd.RequestRef())
-	req, _ := op.requestFromIdHash(reqId)
+	reqId, _ := stateUpd.RequestRef()
+	req, _ := op.requestFromId(reqId)
 	duration := "unknown"
-	if req.msgTx != nil {
+	if req.reqRef != nil {
 		duration = fmt.Sprintf("%v", time.Since(req.whenMsgReceived))
 	}
-	log.Infow("RECEIVE STATE UPD",
-		"peer", op.peerIndex(), "tx", tx.ShortStr(), "duration", duration)
+	log.Infow("RECEIVE STATE UPD", "peer", op.peerIndex(), "tx", tx.ShortStr(), "duration", duration)
 
-	// delete request from queue
+	// delete processed request from buffer
 	delete(op.requests, *reqId)
 	op.processedCounter++
 
@@ -58,20 +58,20 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 
 // triggered from main msg queue whenever calculation of new result is finished
 
-func (op *AssemblyOperator) EventResultCalculated(res *resultCalculated) {
+func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 	log.Debug("EventResultCalculated")
-	reqHash := RequestId(res.requestTx.Id(), res.requestIndex)
-	reqRec, _ := op.requestFromIdHash(reqHash)
+	reqId := ctx.reqRef.Id()
+	reqRec, _ := op.requestFromId(reqId)
 
-	rsHash := hashing.HashData(reqHash.Bytes(), res.state.Id().Bytes())
+	rsHash := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
 	delete(reqRec.startedCalculation, *rsHash)
 
-	if !op.resultBelongsToContext(res) {
+	if !op.resultBelongsToContext(ctx) {
 		// stateTx changed while it was being calculated
 		// dismiss the result
 		return
 	}
-	log.Debugw("EventResultCalculated (in context)", "req id", res.requestTx.Id().Short())
+	log.Debugw("EventResultCalculated (in context)", "req id", ctx.reqRef.Id().Short())
 
 	if reqRec.ownResultCalculated != nil {
 		// shouldn't be
@@ -82,15 +82,15 @@ func (op *AssemblyOperator) EventResultCalculated(res *resultCalculated) {
 		return
 	}
 	// new result
-	err := op.signTheResultTx(res.resultTx)
+	err := op.signTheResultTx(ctx.resultTx)
 	if err != nil {
 		log.Errorf("signTheResultTx returned: %v", err)
 		return
 	}
-	reqRec.ownResultCalculated = &resultCalculatedIntern{
-		res:            res,
+	reqRec.ownResultCalculated = &resultCalculated{
+		res:            ctx,
 		rsHash:         rsHash,
-		masterDataHash: res.resultTx.MasterDataHash(),
+		masterDataHash: ctx.resultTx.MasterDataHash(),
 	}
 	op.takeAction()
 }
@@ -110,7 +110,7 @@ func (op *AssemblyOperator) EventPushResultMsg(resHashMsg *pushResultMsg) {
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 	log.Debug("EventPullResultMsg")
-	req, _ := op.requestFromIdHash(msg.RequestId)
+	req, _ := op.requestFromId(msg.RequestId)
 	req.pullMessages[msg.SenderIndex] = msg
 	op.takeAction()
 }

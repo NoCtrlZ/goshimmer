@@ -30,36 +30,7 @@ func newStateBlock(aid, cid, reqId *HashValue, reqIdx uint16) sc.State {
 	}
 }
 
-// state builder
-
-func (st *mockStateBlock) InitFromPrev(prev sc.State) {
-	st.stateIndex = prev.StateIndex() + 1
-	st.stateVars = prev.StateVars()
-	st.configVars = prev.ConfigVars()
-}
-
-func (st *mockStateBlock) SetConfigVars(vars generic.ValueMap) {
-	st.configVars = vars
-}
-
-func (st *mockStateBlock) SetStateVars(vars generic.ValueMap) {
-	st.stateVars = vars
-}
-
-func (st *mockStateBlock) SetRequest(reqTxId *HashValue, reqBlkIdx uint16) {
-	st.requestTxId = reqTxId
-	st.requestBlockIndex = reqBlkIdx
-}
-
-func (st *mockStateBlock) SetStateChainOutputIndex(idx uint16) {
-	st.stateChainOutputIndex = idx
-}
-
 // state
-
-func (st *mockStateBlock) Builder() sc.StateBuilder {
-	return st
-}
 
 func (st *mockStateBlock) AssemblyId() *HashValue {
 	return st.assemblyId
@@ -77,7 +48,7 @@ func (st *mockStateBlock) RequestRef() (*HashValue, uint16) {
 	return st.requestTxId, st.requestBlockIndex
 }
 
-func (st *mockStateBlock) StateChainAddress() *HashValue {
+func (st *mockStateBlock) StateChainAccount() *HashValue {
 	addr, ok := st.configVars.GetString("state_chain_addr")
 	if !ok {
 		return NilHash
@@ -89,7 +60,7 @@ func (st *mockStateBlock) StateChainAddress() *HashValue {
 	return ret
 }
 
-func (st *mockStateBlock) RequestChainAddress() *HashValue {
+func (st *mockStateBlock) RequestChainAccount() *HashValue {
 	addr, ok := st.configVars.GetString("request_chain_addr")
 	if !ok {
 		return NilHash
@@ -101,7 +72,7 @@ func (st *mockStateBlock) RequestChainAddress() *HashValue {
 	return ret
 }
 
-func (st *mockStateBlock) OwnerChainAddress() *HashValue {
+func (st *mockStateBlock) OwnerChainAccount() *HashValue {
 	addr, ok := st.configVars.GetString("owner_chain_addr")
 	if !ok {
 		return NilHash
@@ -126,6 +97,26 @@ func (st *mockStateBlock) StateIndex() uint32 {
 }
 
 func (st *mockStateBlock) Encode() generic.Encode {
+	return st
+}
+
+func (st *mockStateBlock) WithStateIndex(idx uint32) sc.State {
+	st.stateIndex = idx
+	return st
+}
+
+func (st *mockStateBlock) WithConfigVars(vars generic.ValueMap) sc.State {
+	st.configVars = vars.Clone()
+	return st
+}
+
+func (st *mockStateBlock) WithStateVars(vars generic.ValueMap) sc.State {
+	st.stateVars = vars.Clone()
+	return st
+}
+
+func (st *mockStateBlock) WithSetStateChainOutputIndex(idx uint16) sc.State {
+	st.stateChainOutputIndex = idx
 	return st
 }
 

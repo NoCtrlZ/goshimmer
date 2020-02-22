@@ -4,7 +4,6 @@ import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"sort"
 	"time"
 )
@@ -24,37 +23,27 @@ func newRequest(reqId *HashValue) *request {
 
 // request record retrieved (or created) by request message
 
-func (op *AssemblyOperator) requestFromMsg(tx sc.Transaction, reqIndex uint16) *request {
-	reqId := RequestIdFromTx(tx, reqIndex)
+func (op *AssemblyOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
+	reqId := reqRef.Id()
 	ret, ok := op.requests[*reqId]
-	if ok && ret.msgTx == nil {
-		ret.msgTx = tx
-		ret.msgIndex = reqIndex
+	if ok && ret.reqRef == nil {
+		ret.reqRef = reqRef
 		ret.whenMsgReceived = time.Now()
 		return ret
 	}
 	if !ok {
 		ret = newRequest(reqId)
 		ret.whenMsgReceived = time.Now()
-		ret.msgTx = tx
-		ret.msgIndex = reqIndex
+		ret.reqRef = reqRef
 		op.requests[*reqId] = ret
 	}
 	ret.msgCounter++
 	return ret
 }
 
-func RequestIdFromTx(tx sc.Transaction, reqIndex uint16) *HashValue {
-	return RequestId(tx.Id(), reqIndex)
-}
-
-func RequestId(txhash *HashValue, reqIndex uint16) *HashValue {
-	return HashData(txhash.Bytes(), tools.Uint16To2Bytes(reqIndex))
-}
-
 // request record retrieved (or created) by request id
 
-func (op *AssemblyOperator) requestFromIdHash(reqIdHash *HashValue) (*request, bool) {
+func (op *AssemblyOperator) requestFromId(reqIdHash *HashValue) (*request, bool) {
 	created := false
 	ret, ok := op.requests[*reqIdHash]
 	if !ok {
@@ -92,7 +81,7 @@ func (op *AssemblyOperator) pickRequestToPush() *request {
 	// with request message received and not led by me
 	reqs := make([]*request, 0, len(op.requests))
 	for _, req := range op.requests {
-		if req.msgTx == nil {
+		if req.reqRef == nil {
 			continue
 		}
 		if op.iAmCurrentLeader(req) {

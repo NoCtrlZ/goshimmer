@@ -78,7 +78,7 @@ func (op *AssemblyOperator) checkQuorum() {
 
 func (op *AssemblyOperator) startCalculations() {
 	for _, req := range op.requests {
-		if req.msgTx == nil && req.ownResultCalculated != nil {
+		if req.reqRef == nil && req.ownResultCalculated != nil {
 			continue
 		}
 		votes, _ := maxVotesFromPeers(req)

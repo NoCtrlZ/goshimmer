@@ -178,9 +178,9 @@ func (op *AssemblyOperator) dispatchEvent(msg interface{}) {
 	switch msgt := msg.(type) {
 	case *sc.StateUpdateMsg:
 		op.EventStateUpdate(msgt.Tx)
-	case *sc.RequestMsg:
-		op.EventRequestMsg(msgt.Tx, msgt.RequestIndex)
-	case *resultCalculated:
+	case *sc.RequestRef:
+		op.EventRequestMsg(msgt)
+	case *runtimeContext:
 		op.EventResultCalculated(msgt)
 	case *pushResultMsg:
 		op.EventPushResultMsg(msgt)

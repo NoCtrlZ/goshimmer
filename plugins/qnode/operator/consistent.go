@@ -81,7 +81,7 @@ func (op *AssemblyOperator) pullMsgConsistentWithContext(am *pullResultMsg) bool
 	return am.StateIndex >= curState.StateIndex()
 }
 
-func (op *AssemblyOperator) resultBelongsToContext(res *resultCalculated) bool {
+func (op *AssemblyOperator) resultBelongsToContext(res *runtimeContext) bool {
 	curState, _ := op.stateTx.State()
 	resState, _ := res.state.State()
 	return curState.StateIndex()+1 == resState.StateIndex()
@@ -90,7 +90,7 @@ func (op *AssemblyOperator) resultBelongsToContext(res *resultCalculated) bool {
 func (op *AssemblyOperator) selectAdvanced() []*request {
 	ret := make([]*request, 0)
 	for _, req := range op.requests {
-		if req.msgTx == nil {
+		if req.reqRef == nil {
 			// only those with request message received
 			continue
 		}

@@ -2,7 +2,6 @@ package operator
 
 import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"time"
 )
 
@@ -15,35 +14,11 @@ func markCalculationInProgress(req *request, resHash *HashValue) {
 	req.startedCalculation[*resHash] = time.Now()
 }
 
-func (op *AssemblyOperator) processRequest(req *request) {
-	reqBlock := req.msgTx.Requests()[req.msgIndex]
-	if reqBlock.IsConfigUpdateReq() {
-		op.processConfigUpdateRequest(req)
-	} else {
-		op.asyncCalculateResult(req)
-	}
-}
-
-func (op *AssemblyOperator) processConfigUpdateRequest(req *request) {
-	// check owner authorisation
-	ownerAddr := op.stateTx.MustState().OwnerChainAddress()
-	if !modelimpl.AuthorizedForAddress(req.msgTx.Transfer(), ownerAddr) {
-		return
-	}
-	// config update request
-	nextState, _ := newResultCalculated(req.msgTx, req.msgIndex, op.stateTx)
-	reqBlock := req.msgTx.Requests()[req.msgIndex]
-	nextState.resultTx.MustState().Builder().SetConfigVars(reqBlock.Vars())
-
-	// update state synchronously
-	op.EventStateUpdate(nextState.resultTx)
-}
-
 func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 	if req.ownResultCalculated != nil {
 		return
 	}
-	if req.msgTx == nil {
+	if req.reqRef == nil {
 		return
 	}
 	rsHash := HashData(req.reqId.Bytes(), op.stateTx.Id().Bytes())
@@ -51,28 +26,48 @@ func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 		// already started
 		return
 	}
-
 	markCalculationInProgress(req, rsHash)
-	go func() {
-		ctx, _ := newResultCalculated(req.msgTx, req.msgIndex, op.stateTx)
-		op.processor.Run(ctx)
-		op.DispatchEvent(ctx)
-	}()
+	go op.processRequest(req)
 }
 
-func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculatedIntern) *pushResultMsg {
+func (op *AssemblyOperator) processRequest(req *request) {
+	var ctx *runtimeContext
+	var err error
+	if req.reqRef.RequestBlock().IsConfigUpdateReq() {
+		ctx, err = newConfigUpdateRuntimeContext(req.reqRef, op.stateTx)
+	} else {
+		ctx, err = newStateUpdateRuntimeContext(req.reqRef, op.stateTx)
+	}
+	if err != nil {
+		log.Warnf("can't create runtime context",
+			"aid", req.reqRef.RequestBlock().AssemblyId().Short(),
+			"req tx", req.reqRef.Tx().Id(),
+			"req id", req.reqRef.Id(),
+			"isConfigUpdate", req.reqRef.RequestBlock().IsConfigUpdateReq(),
+			"err", err,
+		)
+		return
+	}
+	if !req.reqRef.RequestBlock().IsConfigUpdateReq() {
+		// non config updates are passed to processor
+		op.processor.Run(ctx)
+	}
+	op.DispatchEvent(ctx)
+}
+
+func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) *pushResultMsg {
 	sigBlocks := resRec.res.resultTx.Signatures()
 	state, _ := resRec.res.state.State()
 	return &pushResultMsg{
 		SenderIndex:    op.peerIndex(),
-		RequestId:      resRec.res.requestTx.Id(),
+		RequestId:      resRec.res.reqRef.Id(),
 		StateIndex:     state.StateIndex(),
 		MasterDataHash: resRec.masterDataHash,
 		SigBlocks:      sigBlocks,
 	}
 }
 
-func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculatedIntern, peerIndex uint16) {
+func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
 	data, _ := op.encodeMsg(op.pushResultMsgFromResult(res))
 
 	if peerIndex == op.peerIndex() {

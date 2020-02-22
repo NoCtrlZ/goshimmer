@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func (op *AssemblyOperator) sendPullMessages(res *resultCalculatedIntern, haveVotes uint16, maxVotedFor *hashing.HashValue) {
-	reqId := RequestId(res.res.requestTx.Id(), res.res.requestIndex)
+func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, maxVotedFor *hashing.HashValue) {
+	reqId := res.res.reqRef.Id()
 	state, _ := res.res.state.State()
 	msg := &pullResultMsg{
 		SenderIndex: op.peerIndex(),
@@ -14,7 +14,7 @@ func (op *AssemblyOperator) sendPullMessages(res *resultCalculatedIntern, haveVo
 		StateIndex:  state.StateIndex(),
 		HaveVotes:   haveVotes,
 	}
-	reqRec, _ := op.requestFromIdHash(maxVotedFor)
+	reqRec, _ := op.requestFromId(maxVotedFor)
 	lst := reqRec.receivedResultHashes[*maxVotedFor]
 	for idx, rh := range lst {
 		if rh == nil && uint16(idx) != op.peerIndex() {
@@ -45,7 +45,7 @@ func (op *AssemblyOperator) selectRequestToRespondToPullMsg() (*request, uint16)
 	var retPeer uint16
 	var maxVotes uint16
 	for _, req := range op.requests {
-		if req.msgTx == nil {
+		if req.reqRef == nil {
 			continue
 		}
 		if len(req.pullMessages) == 0 {

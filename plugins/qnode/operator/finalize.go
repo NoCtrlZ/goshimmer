@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculatedIntern) error {
+func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 	// aggregates final signature, generates final result and posts to the tangle
 	err := op.aggregateResult(res)
 	if err != nil {
@@ -22,9 +22,9 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculatedIntern) erro
 	return op.comm.PostToValueTangle(vtx)
 }
 
-func (op *AssemblyOperator) aggregateResult(res *resultCalculatedIntern) error {
-	reqId := RequestId(res.res.requestTx.Id(), res.res.requestIndex)
-	reqRec, _ := op.requestFromIdHash(reqId)
+func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
+	reqId := res.res.reqRef.Id()
+	reqRec, _ := op.requestFromId(reqId)
 	rhlst, ok := reqRec.receivedResultHashes[*res.rsHash]
 	if !ok {
 		log.Panic("aggregateResult: inconsistency: no shares found")

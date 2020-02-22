@@ -64,7 +64,7 @@ func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
 const rotateLeaderEveryPeriod = 2 * time.Second
 
 func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
-	if req.msgTx == nil || !req.hasBeenPushedToCurrentLeader {
+	if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
 		return
 	}
 	if time.Since(req.whenLastPushed) > rotateLeaderEveryPeriod {

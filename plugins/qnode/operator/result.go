@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-type resultCalculatedIntern struct {
-	res            *resultCalculated
+type resultCalculated struct {
+	res            *runtimeContext
 	rsHash         *HashValue
 	masterDataHash *HashValue
 	// processing stateTx
@@ -59,7 +59,7 @@ func (op *AssemblyOperator) signTheResultTx(tx sc.Transaction) error {
 // must all be signed block
 func (op *AssemblyOperator) aggregateBlocks(resultBlocks []generic.SignedBlock, ownResultBlock generic.SignedBlock) error {
 	ownSigShare, _ := ownResultBlock.GetSignature()
-	ownAddr := ownResultBlock.Address()
+	ownAddr := ownResultBlock.Account()
 	ownDigest := ownResultBlock.SignedHash()
 
 	tmp, err := op.getKeyData(ownAddr)
@@ -74,7 +74,7 @@ func (op *AssemblyOperator) aggregateBlocks(resultBlocks []generic.SignedBlock, 
 	sigShares = append(sigShares, ownSigShare)
 
 	for _, blk := range resultBlocks {
-		if !blk.Address().Equal(ownAddr) {
+		if !blk.Account().Equal(ownAddr) {
 			return errors.New("aggregateBlocks: signatures with different key ids can't be aggregated")
 		}
 		if !blk.SignedHash().Equal(ownDigest) {
