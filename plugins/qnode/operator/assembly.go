@@ -16,21 +16,19 @@ import (
 
 type AssemblyOperator struct {
 	sync.RWMutex
-	dismissed            bool
-	assemblyId           *HashValue
-	cfgData              *registry.ConfigData
-	processor            vm.Processor
-	stateTx              sc.Transaction
-	requests             map[HashValue]*request
-	inChan               chan interface{}
-	peers                []*net.UDPAddr
-	comm                 messaging.Messaging
-	stopClock            func()
-	clockTickPeriod      time.Duration
-	clockTickPeriodMutex *sync.RWMutex
-	msgCounter           int
-	processedCounter     int
-	rand                 *rand.Rand
+	dismissed        bool
+	assemblyId       *HashValue
+	cfgData          *registry.ConfigData
+	processor        vm.Processor
+	stateTx          sc.Transaction
+	requests         map[HashValue]*request
+	inChan           chan interface{}
+	peers            []*net.UDPAddr
+	comm             messaging.Messaging
+	stopClock        func()
+	msgCounter       int
+	processedCounter int
+	rand             *rand.Rand
 }
 
 // keeps stateTx of the request
@@ -56,14 +54,12 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 	oa, op := comm.GetOwnAddressAndPort()
 
 	ret := &AssemblyOperator{
-		assemblyId:           state.AssemblyId(),
-		processor:            vmimpl.New(),
-		requests:             make(map[HashValue]*request),
-		stateTx:              tx,
-		inChan:               make(chan interface{}, inChanBufLen),
-		comm:                 comm,
-		clockTickPeriodMutex: &sync.RWMutex{},
-		clockTickPeriod:      clockTickPeriod,
+		assemblyId: state.AssemblyId(),
+		processor:  vmimpl.New(),
+		requests:   make(map[HashValue]*request),
+		stateTx:    tx,
+		inChan:     make(chan interface{}, inChanBufLen),
+		comm:       comm,
 	}
 
 	iAmParticipant, err := ret.configure(state.ConfigId(), oa, op)
@@ -134,8 +130,9 @@ func (op *AssemblyOperator) peerIndex() uint16 {
 }
 
 func (op *AssemblyOperator) Dismiss() {
-	op.stopClock()
-
+	if op.stopClock != nil {
+		op.stopClock()
+	}
 	op.Lock()
 	op.dismissed = true
 	close(op.inChan)

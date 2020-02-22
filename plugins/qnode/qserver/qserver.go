@@ -125,11 +125,11 @@ func (q *QServer) processState(tx sc.Transaction, assemblyData *registry.Assembl
 		return
 	}
 	if oper == nil {
-		log.Errorf("processState: this node does not process assembly %s", tx.ShortStr())
+		log.Warnf("processState: this node does not process assembly %s", tx.ShortStr())
 		return
 	}
 	ServerInstance.mustAddOperator(state.AssemblyId(), oper)
-	log.Errorf("processState: new operator created for aid %s", state.AssemblyId().Short())
+	log.Infof("processState: new operator created for aid %s", state.AssemblyId().Short())
 
 }
 

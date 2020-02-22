@@ -82,9 +82,9 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		return
 	}
 	// new result
-	err := op.signTheResultTx(ctx.resultTx)
+	err := op.signResult(ctx.resultTx)
 	if err != nil {
-		log.Errorf("signTheResultTx returned: %v", err)
+		log.Errorf("signResult returned: %v", err)
 		return
 	}
 	reqRec.ownResultCalculated = &resultCalculated{

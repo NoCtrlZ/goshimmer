@@ -39,6 +39,9 @@ func ParseTransaction(vtx value.Transaction) (Transaction, error) {
 }
 
 func NewStateBlock(aid, cid *hashing.HashValue, reqRef *RequestRef) State {
+	if reqRef == nil {
+		return newStateBlock(aid, cid, hashing.NilHash, 0)
+	}
 	return newStateBlock(aid, cid, reqRef.Tx().Id(), reqRef.Index())
 }
 

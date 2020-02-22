@@ -38,7 +38,7 @@ func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
 	return ret, nil
 }
 
-func (op *AssemblyOperator) signTheResultTx(tx sc.Transaction) error {
+func (op *AssemblyOperator) signResult(tx sc.Transaction) error {
 	sigs := tx.Signatures()
 	for addr, sig := range sigs {
 		keyData, err := op.getKeyData(&addr)

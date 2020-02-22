@@ -45,6 +45,13 @@ func (tx *mockScTransaction) AddRequest(req sc.Request) {
 	tx.reqBlocks = append(tx.reqBlocks, req)
 }
 
+func (tx *mockScTransaction) Equal(tx1 sc.Transaction) bool {
+	if sc.Transaction(tx) == tx1 {
+		return true
+	}
+	return tx.Id().Equal(tx1.Id())
+}
+
 func (tx *mockScTransaction) Transfer() value.UTXOTransfer {
 	return tx.transfer
 }

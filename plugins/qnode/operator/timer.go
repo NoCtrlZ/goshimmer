@@ -1,23 +1,9 @@
 package operator
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"time"
 )
-
-// TODO to config parameters
-const clockTickPeriod = 20 * time.Millisecond
-
-func (op *AssemblyOperator) getClockTickPeriod() time.Duration {
-	op.clockTickPeriodMutex.RLock()
-	defer op.clockTickPeriodMutex.RUnlock()
-	return op.clockTickPeriod
-}
-
-func (op *AssemblyOperator) setClockTickPeriod(period time.Duration) {
-	op.clockTickPeriodMutex.Lock()
-	defer op.clockTickPeriodMutex.Unlock()
-	op.clockTickPeriod = period
-}
 
 func (op *AssemblyOperator) startRoutines() {
 	// start msg queue routine
@@ -27,6 +13,9 @@ func (op *AssemblyOperator) startRoutines() {
 		}
 	}()
 	// start clock tick routine
+	if !parameters.TIMER_ON {
+		return
+	}
 	chCancel := make(chan struct{})
 	go func() {
 		index := 0
@@ -34,7 +23,7 @@ func (op *AssemblyOperator) startRoutines() {
 			select {
 			case <-chCancel:
 				return
-			case <-time.After(op.getClockTickPeriod()):
+			case <-time.After(parameters.CLOCK_TICK_PERIOD):
 				op.DispatchEvent(timerMsg(index))
 				index++
 			}

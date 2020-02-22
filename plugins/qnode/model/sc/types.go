@@ -18,6 +18,7 @@ type Transaction interface {
 	ShortStr() string
 	SetState(State)
 	AddRequest(Request)
+	Equal(Transaction) bool
 }
 
 type State interface {

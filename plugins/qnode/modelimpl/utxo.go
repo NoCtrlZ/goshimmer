@@ -1,6 +1,7 @@
 package modelimpl
 
 import (
+	"bytes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
@@ -9,6 +10,7 @@ import (
 )
 
 type mockUTXO struct {
+	id        *hashing.HashValue
 	inputSigs map[hashing.HashValue]generic.SignedBlock
 	inputs    []value.Input
 	outputs   []value.Output
@@ -22,7 +24,19 @@ func newUTXOTransfer() value.UTXOTransfer {
 }
 
 func (tr *mockUTXO) Id() *hashing.HashValue {
-	return hashing.NilHash // TODO
+	if tr.id != nil {
+		return tr.id
+	}
+	var buf bytes.Buffer
+	for _, inp := range tr.inputs {
+		_ = inp.Encode().Write(&buf)
+	}
+	for _, outp := range tr.outputs {
+		_ = outp.Encode().Write(&buf)
+	}
+	// TODO signatures include into ID ????
+	tr.id = hashing.HashData(buf.Bytes())
+	return tr.id
 }
 
 func (tr *mockUTXO) Inputs() []value.Input {

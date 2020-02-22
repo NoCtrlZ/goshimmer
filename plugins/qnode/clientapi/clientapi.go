@@ -28,7 +28,7 @@ const (
 
 func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
-	state := sc.NewStateBlock(par.AssemblyId, par.ConfigId, NilHash, 0)
+	state := sc.NewStateBlock(par.AssemblyId, par.ConfigId, nil)
 	configVars := state.ConfigVars()
 	configVars.SetString(MAP_KEY_STATE_ACCOUNT, par.StateAccount.String())
 	configVars.SetString(MAP_KEY_REQUEST_ACCOUNT, par.RequestAccount.String())
@@ -57,6 +57,7 @@ type NewRequestParams struct {
 func NewRequest(par NewRequestParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
 	tr := ret.Transfer()
+	// create 1i transfer from RequestChainOutput to request account
 	tr.AddInput(value.NewInputFromOutputRef(par.RequestChainOutput))
 	chainOutIndex := tr.AddOutput(value.NewOutput(par.RequestAccount, 1))
 	_, val := value.GetAddrValue(par.RequestChainOutput)
