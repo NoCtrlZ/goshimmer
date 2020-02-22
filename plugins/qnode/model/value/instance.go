@@ -53,25 +53,3 @@ func NewTransaction(transfer UTXOTransfer, payload []byte) Transaction {
 func ParseTransaction(data []byte) (Transaction, error) {
 	return parseTx(data)
 }
-
-type DB interface {
-	GetValueTx(id *hashing.HashValue) Transaction
-	GetTransfer(id *hashing.HashValue) UTXOTransfer
-}
-
-var valuetxdb DB
-
-func SetValuetxDB(db DB) {
-	valuetxdb = db
-}
-
-func GetValueTx(id *hashing.HashValue) Transaction {
-	return valuetxdb.GetValueTx(id)
-}
-
-func GetTransfer(id *hashing.HashValue) UTXOTransfer {
-	if id.Equal(hashing.NilHash) {
-		return nil
-	}
-	return valuetxdb.GetTransfer(id)
-}

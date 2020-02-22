@@ -27,3 +27,8 @@ type Encode interface {
 	Write(w io.Writer) error
 	Read(r io.Reader) error
 }
+
+type OutputRef struct {
+	trid   *HashValue // transfer id
+	outIdx uint16
+}
