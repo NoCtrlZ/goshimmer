@@ -39,7 +39,7 @@ func (op *AssemblyOperator) processRequest(req *request) {
 		ctx, err = newStateUpdateRuntimeContext(req.reqRef, op.stateTx)
 	}
 	if err != nil {
-		log.Warnf("can't create runtime context",
+		log.Warnw("can't create runtime context",
 			"aid", req.reqRef.RequestBlock().AssemblyId().Short(),
 			"req tx", req.reqRef.Tx().Id(),
 			"req id", req.reqRef.Id(),

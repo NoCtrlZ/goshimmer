@@ -8,6 +8,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools/txdb"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/network/udp"
 	"net"
@@ -25,12 +26,15 @@ var operators = []*registry.PortAddr{
 	{4003, "127.0.0.1"},
 }
 
-var srv *udp.UDPServer
-var inCh = make(chan interface{}, 10)
+var (
+	srv  *udp.UDPServer
+	inCh = make(chan *wrapped, 10)
+	ldb  value.DB
+)
 
 type wrapped struct {
-	senderIndex int
-	msg         interface{}
+	senderIndex uint16
+	tx          sc.Transaction
 }
 
 func main() {
@@ -38,14 +42,14 @@ func main() {
 	srv.Events.Start.Attach(events.NewClosure(func() {
 		fmt.Printf("MockTangle ServerInstance started\n")
 	}))
-	srv.Events.Shutdown.Attach(events.NewClosure(func() {
-		fmt.Printf("ServerInstance shutdown event\n")
-	}))
-	srv.Events.ReceiveData.Attach(events.NewClosure(receiveData))
+	srv.Events.ReceiveData.Attach(events.NewClosure(receiveUDPData))
 
 	srv.Events.Error.Attach(events.NewClosure(func(err error) {
 		fmt.Printf("Error: %v\n", err)
 	}))
+	ldb = txdb.NewLocalDb()
+	value.SetValuetxDB(ldb)
+
 	go inLoop()
 
 	fmt.Printf("listen UDP on %s:%d\n", address, port)
@@ -54,44 +58,39 @@ func main() {
 	runWebServer()
 }
 
-func receiveData(updAddr *net.UDPAddr, data []byte) {
+func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 	idx := findSenderIndex(updAddr)
-	msg, err := decodeMsg(data)
+	msg, err := decodeUDPMsg(data)
 	if err != nil {
-		fmt.Printf("decode msg error: %v\n", err)
+		fmt.Printf("decode tx error: %v\n", err)
 		return
 	}
 	postMsg(&wrapped{
 		senderIndex: idx,
-		msg:         msg,
+		tx:          msg,
 	})
 }
 
-func findSenderIndex(updAddr *net.UDPAddr) int {
+func findSenderIndex(updAddr *net.UDPAddr) uint16 {
 	for i, a := range operators {
 		if updAddr.Port == a.Port && updAddr.IP.String() == a.Addr {
-			return i
+			return uint16(i)
 		}
 	}
-	return -1
+	return qserver.MockTangleIdx
 }
 
 func inLoop() {
 	for msg := range inCh {
-		switch msgt := msg.(type) {
-		case *wrapped:
-			processUDPMsg(msgt)
-		case sc.Transaction:
-			processTx(msgt)
-		}
+		processMsg(msg)
 	}
 }
 
-func postMsg(msg interface{}) {
+func postMsg(msg *wrapped) {
 	inCh <- msg
 }
 
-func decodeMsg(data []byte) (sc.Transaction, error) {
+func decodeUDPMsg(data []byte) (sc.Transaction, error) {
 	_, _, _, msg, err := qserver.UnwrapUDPPacket(data)
 	if err != nil {
 		return nil, err
@@ -108,16 +107,16 @@ func decodeMsg(data []byte) (sc.Transaction, error) {
 	return tx, nil
 }
 
-//var suite = bn256.NewSuite()
-
-func processUDPMsg(wrapped *wrapped) {
-}
-
-func processTx(tx sc.Transaction) {
-	fmt.Printf("processTx: id = %s\n", tx.Id().Short())
-	fmt.Printf("%s\n", tx.ShortStr())
+func processMsg(msg *wrapped) {
+	tx := msg.tx
+	fmt.Printf("process sc tx: id = %s from sender %d\n", tx.Id().Short(), msg.senderIndex)
 
 	vtx, _ := tx.ValueTx()
+	if err := ldb.PutTransaction(vtx); err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+
 	var buf bytes.Buffer
 	err := vtx.Encode().Write(&buf)
 	if err != nil {

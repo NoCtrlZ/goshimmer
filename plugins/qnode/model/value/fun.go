@@ -8,7 +8,7 @@ import (
 func GetAddrValue(or *generic.OutputRef) (*hashing.HashValue, uint64) {
 	tr := GetTransfer(or.TransferId())
 	if tr == nil {
-		return hashing.NilHash, 1 // for testing only
+		return hashing.RandomHash(nil), 1 // for testing only
 	}
 	output := tr.Outputs()[or.OutputIndex()]
 	return output.Address(), output.Value()

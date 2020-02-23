@@ -12,7 +12,7 @@ type InputRef struct {
 }
 
 type DB interface {
-	PutTransaction(tx Transaction) bool
+	PutTransaction(tx Transaction) error
 	GetByTransactionId(id *hashing.HashValue) (Transaction, bool)
 	GetByTransferId(id *hashing.HashValue) (Transaction, bool)
 	GetSpendingTransaction(outputRefId *hashing.HashValue) (Transaction, bool)
@@ -32,7 +32,7 @@ func GetTransfer(id *hashing.HashValue) UTXOTransfer {
 	return tx.Transfer()
 }
 
-func PutTransaction(tx Transaction) bool {
+func PutTransaction(tx Transaction) error {
 	return valuetxdb.PutTransaction(tx)
 }
 
@@ -42,8 +42,4 @@ func GetByTransactionId(id *hashing.HashValue) (Transaction, bool) {
 
 func GetByTransferId(id *hashing.HashValue) (Transaction, bool) {
 	return valuetxdb.GetByTransferId(id)
-}
-
-func GetSpendingTransaction(outputRefId *hashing.HashValue) (Transaction, bool) {
-	return valuetxdb.GetSpendingTransaction(outputRefId)
 }

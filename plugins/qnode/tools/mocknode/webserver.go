@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"net/http"
 )
 
@@ -32,22 +33,25 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("cfg request\n")
 		tx, err = newOrigin()
 		if err != nil {
-			_, _ = fmt.Fprintf(w, "error: %v", err)
+			fmt.Printf("error: %v\n", err)
 			return
 		}
 	} else {
 		reqnr := r.FormValue("reqnr")
 		if reqnr == "" {
-			_, _ = fmt.Fprintf(w, "reqnr parameter not provided")
+			fmt.Printf("reqnr parameter not provided")
 			return
 		}
 		fmt.Printf("req request\n")
-		_, _ = fmt.Fprintf(w, "Received reqnr = %s", reqnr)
+		fmt.Printf("Received reqnr = %s\n", reqnr)
 		tx, err = makeReqTx(reqnr)
 		if err != nil {
-			_, _ = fmt.Fprintf(w, "error: %v", err)
+			fmt.Printf("error: %v\n", err)
 			return
 		}
 	}
-	postMsg(tx)
+	postMsg(&wrapped{
+		senderIndex: qserver.MockTangleIdx,
+		tx:          tx,
+	})
 }

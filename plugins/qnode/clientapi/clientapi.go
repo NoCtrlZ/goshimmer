@@ -15,7 +15,7 @@ type NewOriginParams struct {
 	RequestAccount *HashValue
 	OwnerAccount   *HashValue
 	// owner's section
-	OriginOutput *generic.OutputRef // output of 1i owned by the owner
+	OriginOutput *generic.OutputRef // output of 1i to the owner's address
 }
 
 const (
@@ -40,7 +40,7 @@ func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	// the latter will be used to build chain
 	addr, val := value.GetAddrValue(par.OriginOutput)
 	if !addr.Equal(par.OwnerAccount) || val != 1 {
-		return nil, fmt.Errorf("OriginOutput must be exactly 1i from owner's account")
+		return nil, fmt.Errorf("OriginOutput parameter must be exactly 1i to the owner's account")
 	}
 	tr.AddInput(value.NewInputFromOutputRef(par.OriginOutput))
 	tr.AddOutput(value.NewOutput(par.StateAccount, 1))

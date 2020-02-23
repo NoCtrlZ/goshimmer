@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"math/rand"
 )
 
@@ -21,25 +22,41 @@ var accStrings2 = []string{
 	"158284bb4c1f33342681832bed2b807286744f098f7f1c58289169ba7b603415",
 }
 
-var aid, configId, stateAddr, requestAddr, ownerAddr *hashing.HashValue
+var aid, configId, stateAddr, requestAddr, ownerAddr, requestorAddr *hashing.HashValue
 
 func init() {
 	configId, _ = hashing.HashValueFromString(cfgId2)
 	aid = hashing.HashStrings(assemblyDescription)
 	stateAddr, _ = hashing.HashValueFromString(accStrings2[0])
 	requestAddr, _ = hashing.HashValueFromString(accStrings2[0])
+	requestorAddr = hashing.RandomHash(nil)
 	ownerAddr = hashing.NilHash
 }
 
 func newOrigin() (sc.Transaction, error) {
-	return clientapi.NewOriginTransaction(clientapi.NewOriginParams{
+	// create owners's transfer of 1i to owner's address
+	toorig := sc.NewTransaction()
+	trf := toorig.Transfer()
+	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
+	outIdx := trf.AddOutput(value.NewOutput(ownerAddr, 1))
+	vtx, err := toorig.ValueTx()
+	if err != nil {
+		return nil, err
+	}
+	if err := ldb.PutTransaction(vtx); err != nil {
+		return nil, err
+	}
+	origOutRef := generic.NewOutputRef(toorig.Transfer().Id(), outIdx)
+	ret, err := clientapi.NewOriginTransaction(clientapi.NewOriginParams{
 		AssemblyId:     aid,
 		ConfigId:       configId,
 		StateAccount:   stateAddr,
 		RequestAccount: requestAddr,
 		OwnerAccount:   ownerAddr,
-		OriginOutput:   generic.NewOutputRef(hashing.NilHash, 0),
+		OriginOutput:   origOutRef,
 	})
+	// TODO sign it
+	return ret, err
 }
 
 var reqnrseq = 0
@@ -55,10 +72,26 @@ func makeReqTx(reqnr string) (sc.Transaction, error) {
 		"reqnr": reqnrstr,
 		"salt":  fmt.Sprintf("%d", rand.Int()),
 	}
-	return clientapi.NewRequest(clientapi.NewRequestParams{
+	// create owners's transfer of 1i to owner's address
+	toreq := sc.NewTransaction()
+	trf := toreq.Transfer()
+	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
+	outIdx := trf.AddOutput(value.NewOutput(requestAddr, 1))
+	vtx, err := toreq.ValueTx()
+	if err != nil {
+		return nil, err
+	}
+	if err := ldb.PutTransaction(vtx); err != nil {
+		return nil, err
+	}
+	reqChainOut := generic.NewOutputRef(toreq.Transfer().Id(), outIdx)
+
+	ret, err := clientapi.NewRequest(clientapi.NewRequestParams{
 		AssemblyId:         aid,
 		RequestAccount:     requestAddr,
-		RequestChainOutput: generic.NewOutputRef(hashing.NilHash, 0),
+		RequestChainOutput: reqChainOut,
 		Vars:               vars,
 	})
+	// TODO sign it
+	return ret, err
 }

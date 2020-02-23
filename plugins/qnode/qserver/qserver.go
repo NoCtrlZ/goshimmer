@@ -10,6 +10,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools/txdb"
 	"github.com/iotaledger/hive.go/daemon"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/logger"
@@ -23,6 +24,7 @@ type QServer struct {
 	mockTangle  bool
 	mockAddress string
 	mockPort    int
+	txdb        value.DB
 	udpServer   *udp.UDPServer
 	Events      serverEvents
 }
@@ -47,11 +49,16 @@ func StartServer() {
 		log.Errorf("StartServer::LoadAllAssemblyData %v", err)
 		return
 	}
+	// mock the ValueTangle ontology
+	valuetxdb := txdb.NewLocalDb()
+	value.SetValuetxDB(valuetxdb)
+
 	ServerInstance = &QServer{
 		udpPort:     parameter.NodeConfig.GetInt(parameters.UDP_PORT),
 		mockTangle:  true,
 		mockAddress: parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
 		mockPort:    parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),
+		txdb:        valuetxdb,
 		udpServer:   createUDPServer(),
 		operators:   make(map[HashValue]*operator.AssemblyOperator),
 		Events: serverEvents{
@@ -82,12 +89,15 @@ func nodeEventCaller(handler interface{}, params ...interface{}) {
 
 // receiving tx from the Value Tangle ontology/layer
 
-func nodeEventHandler(txval value.Transaction) {
-	log.Info("nodeEventHandler")
-	tx, err := sc.ParseTransaction(txval)
+func nodeEventHandler(vtx value.Transaction) {
+	if err := ServerInstance.txdb.PutTransaction(vtx); err != nil {
+		log.Errorf("nodeEventHandler: %v", err)
+		return
+	}
+	tx, err := sc.ParseTransaction(vtx)
 	if err != nil {
 		log.Errorf("%v", err)
-		// value tx does not parse to sc tx. Ignore
+		// value tx does not parse to sc.tx. Ignore
 		return
 	}
 	if st, ok := tx.State(); ok {
