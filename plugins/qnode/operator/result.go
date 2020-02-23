@@ -24,6 +24,40 @@ type resultCalculated struct {
 	finalizedWhen time.Time
 }
 
+func (op *AssemblyOperator) SignBlock(sigblock generic.SignedBlock) error {
+	keyData, err := op.getKeyData(sigblock.Account())
+	if err != nil {
+		return err
+	}
+	pk := keyData.(*tcrypto.DKShare)
+	signature, err := pk.SignShare(sigblock.SignedHash().Bytes())
+	if err != nil {
+		return fmt.Errorf("signing error: `%v`", err)
+	}
+	sigblock.SetSignature(signature, generic.SIG_TYPE_BLS_SIGSHARE)
+	return nil
+}
+
+func (op *AssemblyOperator) VerifySignature(blk generic.SignedBlock) error {
+	signature, typ := blk.GetSignature()
+	if typ != generic.SIG_TYPE_BLS_SIGSHARE {
+		return errors.New("only BLS sig shares expected")
+	}
+	keyData, err := op.getKeyData(blk.Account())
+	if err != nil {
+		return err
+	}
+	dkshare, ok := keyData.(*tcrypto.DKShare)
+	if !ok {
+		return errors.New("wrong type of key data")
+	}
+	err = dkshare.VerifySigShare(blk.SignedHash().Bytes(), signature)
+	if err != nil {
+		return fmt.Errorf("validatePushMessage: %v", err)
+	}
+	return nil
+}
+
 func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
 	if !op.cfgData.AccountIsDefined(addr) {
 		return nil, fmt.Errorf("account id %s is undefined for this configuration", addr.Short())
@@ -33,26 +67,13 @@ func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, fmt.Errorf("key not found. id = %s", addr.Short())
+		return nil, fmt.Errorf("key not found: %s", addr.Short())
 	}
 	return ret, nil
 }
 
 func (op *AssemblyOperator) signResult(tx sc.Transaction) error {
-	sigs := tx.Signatures()
-	for addr, sig := range sigs {
-		keyData, err := op.getKeyData(&addr)
-		if err != nil {
-			return err
-		}
-		pk := keyData.(*tcrypto.DKShare)
-		signature, err := pk.SignShare(sig.SignedHash().Bytes())
-		if err != nil {
-			return fmt.Errorf("signing error: `%v`", err)
-		}
-		sig.SetSignature(signature, generic.SIG_TYPE_BLS_SIGSHARE)
-	}
-	return nil
+	return sc.SignTransaction(tx, op)
 }
 
 // result blocks must be at least quorum -1

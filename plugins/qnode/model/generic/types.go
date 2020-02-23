@@ -8,9 +8,10 @@ import (
 type SignatureType byte
 
 const (
+	SIG_TYPE_UNDEF        = SignatureType(0)
 	SIG_TYPE_BLS_SIGSHARE = SignatureType(1)
 	SIG_TYPE_BLS_FINAL    = SignatureType(2)
-	SIG_TYPE_FAKE         = SignatureType(3)
+	SIG_TYPE_MOCKED       = SignatureType(3)
 )
 
 type SignedBlock interface {
@@ -31,4 +32,9 @@ type Encode interface {
 type OutputRef struct {
 	trid   *HashValue // transfer id
 	outIdx uint16
+}
+
+type KeyPool interface {
+	SignBlock(SignedBlock) error
+	VerifySignature(SignedBlock) error
 }

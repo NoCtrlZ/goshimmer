@@ -42,13 +42,13 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 
 	ownSignedBlocks := reqRec.ownResultCalculated.res.resultTx.Signatures()
 
-	for addr, sigBlock := range ownSignedBlocks {
+	for i, sigBlock := range ownSignedBlocks {
 		receivedSigBlocks := make([]generic.SignedBlock, 0, op.assemblySize())
 		for _, rh := range rhlst {
-			sb, ok := rh.SigBlocks[addr]
-			if !ok {
-				return fmt.Errorf("unknown address %s", addr.Short())
+			if len(ownSignedBlocks) != len(rh.SigBlocks) {
+				return fmt.Errorf("unexpected different lengths of signature lists")
 			}
+			sb := rh.SigBlocks[i]
 			receivedSigBlocks = append(receivedSigBlocks, sb)
 		}
 		err := op.aggregateBlocks(receivedSigBlocks, sigBlock)

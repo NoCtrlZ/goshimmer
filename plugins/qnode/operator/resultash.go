@@ -3,8 +3,7 @@ package operator
 import (
 	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 )
@@ -13,26 +12,7 @@ func (op *AssemblyOperator) validatePushMessage(msg *pushResultMsg) error {
 	if len(msg.SigBlocks) == 0 {
 		return errors.New("push message with 0 blocks: invalid")
 	}
-	for _, blk := range msg.SigBlocks {
-		signature, typ := blk.GetSignature()
-		if typ != generic.SIG_TYPE_BLS_SIGSHARE {
-			return errors.New("validatePushMessage: only BLS sig shares expected")
-		}
-
-		keyData, err := op.getKeyData(blk.Account())
-		if err != nil {
-			return err
-		}
-		dkshare, ok := keyData.(*tcrypto.DKShare)
-		if !ok {
-			return errors.New("validatePushMessage: wrong type of key data")
-		}
-		err = dkshare.VerifySigShare(blk.SignedHash().Bytes(), signature)
-		if err != nil {
-			return fmt.Errorf("validatePushMessage: %v", err)
-		}
-	}
-	return nil
+	return sc.VerifySignedBlocks(msg.SigBlocks, op)
 }
 
 func (op *AssemblyOperator) accountNewResultHash(msg *pushResultMsg) error {

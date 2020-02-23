@@ -72,8 +72,13 @@ func (tx *mockScTransaction) ShortStr() string {
 	return tx.Id().Short()
 }
 
-func (tx *mockScTransaction) Signatures() map[HashValue]generic.SignedBlock {
-	return tx.Transfer().InputSignatures()
+func (tx *mockScTransaction) Signatures() []generic.SignedBlock {
+	trsigs := tx.Transfer().InputSignatures()
+	ret := make([]generic.SignedBlock, 0, len(trsigs))
+	for _, sigblk := range trsigs {
+		ret = append(ret, sigblk)
+	}
+	return ret
 }
 
 func (tx *mockScTransaction) MasterDataHash() *HashValue {

@@ -18,7 +18,7 @@ type pushResultMsg struct {
 	RequestId      *HashValue
 	MasterDataHash *HashValue
 	StateIndex     uint32
-	SigBlocks      map[HashValue]generic.SignedBlock
+	SigBlocks      []generic.SignedBlock
 }
 
 type pullResultMsg struct {

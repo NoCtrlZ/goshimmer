@@ -103,7 +103,7 @@ func ReadNewSignedBlock(r io.Reader) (generic.SignedBlock, error) {
 	return ret, nil
 }
 
-func WriteSignedBlocks(w io.Writer, blocks map[hashing.HashValue]generic.SignedBlock) error {
+func WriteSignedBlocks(w io.Writer, blocks []generic.SignedBlock) error {
 	err := tools.WriteUint16(w, uint16(len(blocks)))
 	if err != nil {
 		return err
@@ -117,19 +117,19 @@ func WriteSignedBlocks(w io.Writer, blocks map[hashing.HashValue]generic.SignedB
 	return nil
 }
 
-func ReadSignedBlocks(r io.Reader) (map[hashing.HashValue]generic.SignedBlock, error) {
+func ReadSignedBlocks(r io.Reader) ([]generic.SignedBlock, error) {
 	var num uint16
 	err := tools.ReadUint16(r, &num)
 	if err != nil {
 		return nil, err
 	}
-	ret := make(map[hashing.HashValue]generic.SignedBlock)
-	for i := 0; i < int(num); i++ {
+	ret := make([]generic.SignedBlock, num)
+	for i := range ret {
 		sb, err := ReadNewSignedBlock(r)
 		if err != nil {
 			return nil, err
 		}
-		ret[*sb.Account()] = sb
+		ret[i] = sb
 	}
 	return ret, nil
 }
