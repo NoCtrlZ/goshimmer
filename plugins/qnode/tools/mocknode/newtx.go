@@ -39,6 +39,17 @@ func newOrigin() (sc.Transaction, error) {
 	trf := toorig.Transfer()
 	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
 	outIdx := trf.AddOutput(value.NewOutput(ownerAddr, 1))
+
+	keyPool := clientapi.NewDummyKeyPool()
+	err := sc.SignTransaction(toorig, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(toorig.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+
 	vtx, err := toorig.ValueTx()
 	if err != nil {
 		return nil, err
@@ -55,7 +66,16 @@ func newOrigin() (sc.Transaction, error) {
 		OwnerAccount:   ownerAddr,
 		OriginOutput:   origOutRef,
 	})
-	// TODO sign it
+
+	err = sc.SignTransaction(ret, keyPool)
+
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
 	return ret, err
 }
 
@@ -77,6 +97,17 @@ func makeReqTx(reqnr string) (sc.Transaction, error) {
 	trf := toreq.Transfer()
 	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
 	outIdx := trf.AddOutput(value.NewOutput(requestAddr, 1))
+
+	keyPool := clientapi.NewDummyKeyPool()
+	err := sc.SignTransaction(toreq, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(toreq.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+
 	vtx, err := toreq.ValueTx()
 	if err != nil {
 		return nil, err
@@ -92,6 +123,15 @@ func makeReqTx(reqnr string) (sc.Transaction, error) {
 		RequestChainOutput: reqChainOut,
 		Vars:               vars,
 	})
-	// TODO sign it
+
+	err = sc.SignTransaction(ret, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+
 	return ret, err
 }

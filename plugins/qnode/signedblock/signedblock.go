@@ -1,4 +1,4 @@
-package modelimpl
+package signedblock
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -15,7 +15,11 @@ type signedBlock struct {
 	pubKey     []byte
 }
 
-func NewSignedBlock(addr, data *hashing.HashValue) generic.SignedBlock {
+func InitSignedBlockImplementation() {
+	generic.SetSignedBlockConstructor(newSignedBlock)
+}
+
+func newSignedBlock(addr, data *hashing.HashValue) generic.SignedBlock {
 	return &signedBlock{
 		signedHash: data,
 		addr:       addr,
@@ -92,44 +96,4 @@ func (sb *signedBlock) Read(r io.Reader) error {
 	sb.signedHash = &signedHash
 	sb.signature = sig
 	return nil
-}
-
-func ReadNewSignedBlock(r io.Reader) (generic.SignedBlock, error) {
-	ret := &signedBlock{}
-	err := ret.Read(r)
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
-func WriteSignedBlocks(w io.Writer, blocks []generic.SignedBlock) error {
-	err := tools.WriteUint16(w, uint16(len(blocks)))
-	if err != nil {
-		return err
-	}
-	for _, b := range blocks {
-		err = b.Encode().Write(w)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ReadSignedBlocks(r io.Reader) ([]generic.SignedBlock, error) {
-	var num uint16
-	err := tools.ReadUint16(r, &num)
-	if err != nil {
-		return nil, err
-	}
-	ret := make([]generic.SignedBlock, num)
-	for i := range ret {
-		sb, err := ReadNewSignedBlock(r)
-		if err != nil {
-			return nil, err
-		}
-		ret[i] = sb
-	}
-	return ret, nil
 }

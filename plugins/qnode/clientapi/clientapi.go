@@ -18,21 +18,15 @@ type NewOriginParams struct {
 	OriginOutput *generic.OutputRef // output of 1i to the owner's address
 }
 
-const (
-	MAP_KEY_STATE_ACCOUNT   = "state_addr"
-	MAP_KEY_REQUEST_ACCOUNT = "request_addr"
-	MAP_KEY_OWNER_ACCOUNT   = "owner_addr"
-)
-
 // transfer is not signed
 
 func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
 	state := sc.NewStateBlock(par.AssemblyId, par.ConfigId, nil)
 	configVars := state.ConfigVars()
-	configVars.SetString(MAP_KEY_STATE_ACCOUNT, par.StateAccount.String())
-	configVars.SetString(MAP_KEY_REQUEST_ACCOUNT, par.RequestAccount.String())
-	configVars.SetString(MAP_KEY_OWNER_ACCOUNT, par.OwnerAccount.String())
+	configVars.SetString(sc.MAP_KEY_STATE_ACCOUNT, par.StateAccount.String())
+	configVars.SetString(sc.MAP_KEY_REQUEST_ACCOUNT, par.RequestAccount.String())
+	configVars.SetString(sc.MAP_KEY_OWNER_ACCOUNT, par.OwnerAccount.String())
 	ret.SetState(state)
 	tr := ret.Transfer()
 

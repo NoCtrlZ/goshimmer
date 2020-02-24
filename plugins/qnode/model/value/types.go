@@ -20,7 +20,7 @@ type UTXOTransfer interface {
 	Outputs() []Output
 	AddInput(Input) uint16
 	AddOutput(Output) uint16
-	InputSignatures() map[hashing.HashValue]generic.SignedBlock
+	InputSignatures() []generic.SignedBlock
 	DataHash() *hashing.HashValue
 	Encode() generic.Encode
 }

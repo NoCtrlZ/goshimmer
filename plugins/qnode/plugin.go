@@ -5,14 +5,21 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
+	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/signedblock"
 	"github.com/iotaledger/goshimmer/plugins/webapi"
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/node"
 )
+
+func init() {
+	modelimpl.InitModelImplementation()
+	signedblock.InitSignedBlockImplementation()
+}
 
 const name = "Qnode"
 

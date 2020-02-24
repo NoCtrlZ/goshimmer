@@ -39,6 +39,12 @@ type State interface {
 	Encode() generic.Encode
 }
 
+const (
+	MAP_KEY_STATE_ACCOUNT   = "state_addr"
+	MAP_KEY_REQUEST_ACCOUNT = "request_addr"
+	MAP_KEY_OWNER_ACCOUNT   = "owner_addr"
+)
+
 type Request interface {
 	AssemblyId() *HashValue
 	IsConfigUpdateReq() bool

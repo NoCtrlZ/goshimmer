@@ -11,15 +11,6 @@ import (
 
 // implements ValueTransaction and SC transaction interfaces
 
-func init() {
-	sc.SetConstructors(sc.SetConstructorsParams{
-		TxConstructor:           newScTransaction,
-		TxParser:                newFromValueTx,
-		StateBlockConstructor:   newStateBlock,
-		RequestBlockConstructor: newRequestBock,
-	})
-}
-
 type mockScTransaction struct {
 	id         *HashValue
 	vtx        value.Transaction

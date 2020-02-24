@@ -6,8 +6,10 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/signedblock"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools/txdb"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/network/udp"
@@ -38,6 +40,9 @@ type wrapped struct {
 }
 
 func main() {
+	modelimpl.InitModelImplementation()
+	signedblock.InitSignedBlockImplementation()
+
 	srv = udp.NewServer(2048)
 	srv.Events.Start.Attach(events.NewClosure(func() {
 		fmt.Printf("MockTangle ServerInstance started\n")

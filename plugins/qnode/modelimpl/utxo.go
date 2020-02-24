@@ -2,6 +2,7 @@ package modelimpl
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
@@ -11,7 +12,7 @@ import (
 
 type mockUTXO struct {
 	id        *hashing.HashValue
-	inputSigs map[hashing.HashValue]generic.SignedBlock
+	inputSigs []generic.SignedBlock
 	inputs    []value.Input
 	outputs   []value.Output
 }
@@ -34,7 +35,7 @@ func (tr *mockUTXO) Id() *hashing.HashValue {
 	for _, outp := range tr.outputs {
 		_ = outp.Encode().Write(&buf)
 	}
-	// TODO signatures include into ID ????
+	// No signatures included !!!!
 	tr.id = hashing.HashData(buf.Bytes())
 	return tr.id
 }
@@ -47,19 +48,20 @@ func (tr *mockUTXO) Outputs() []value.Output {
 	return tr.outputs
 }
 
-func (tr *mockUTXO) InputSignatures() map[hashing.HashValue]generic.SignedBlock {
-	if tr.inputSigs != nil {
+func (tr *mockUTXO) InputSignatures() []generic.SignedBlock {
+	if len(tr.inputSigs) != 0 {
 		return tr.inputSigs
 	}
 	outputsToSign := tr.collectOutputsToSign()
-	ret := make(map[hashing.HashValue]generic.SignedBlock)
-	for addr, outs := range outputsToSign {
+	ret := make([]generic.SignedBlock, 0, len(outputsToSign))
+	for _, addr := range sortedAccounts(outputsToSign) {
+		outs := outputsToSign[*addr]
 		data := make([][]byte, 0, 2*len(outs))
 		for _, o := range outs {
 			data = append(data, o.TransferId().Bytes())
 			data = append(data, tools.Uint16To2Bytes(o.OutputIndex()))
 		}
-		ret[addr] = NewSignedBlock(addr.Clone(), hashing.HashData(data...))
+		ret = append(ret, generic.NewSignedBlock(addr.Clone(), hashing.HashData(data...)))
 	}
 	tr.inputSigs = ret
 	return ret
@@ -81,11 +83,18 @@ func (tr *mockUTXO) DataHash() *hashing.HashValue {
 }
 
 func (tr *mockUTXO) AddInput(inp value.Input) uint16 {
+	if tr.id != nil {
+		panic("AddInput: can't modify finalized transfer")
+	}
 	tr.inputs = append(tr.inputs, inp)
+	tr.inputSigs = nil
 	return uint16(len(tr.inputs) - 1)
 }
 
 func (tr *mockUTXO) AddOutput(outp value.Output) uint16 {
+	if tr.id != nil {
+		panic("AddInput: can't modify finalized transfer")
+	}
 	tr.outputs = append(tr.outputs, outp)
 	return uint16(len(tr.outputs) - 1)
 }
@@ -106,7 +115,7 @@ func (tr *mockUTXO) collectOutputsToSign() map[hashing.HashValue][]*generic.Outp
 	return ret
 }
 
-func (tr *mockUTXO) sortedAddresses(data map[hashing.HashValue][]*generic.OutputRef) []*hashing.HashValue {
+func sortedAccounts(data map[hashing.HashValue][]*generic.OutputRef) []*hashing.HashValue {
 	ret := make([]*hashing.HashValue, 0, len(data))
 	for addr := range data {
 		ret = append(ret, addr.Clone())
@@ -118,6 +127,9 @@ func (tr *mockUTXO) sortedAddresses(data map[hashing.HashValue][]*generic.Output
 // Encode
 
 func (tr *mockUTXO) Write(w io.Writer) error {
+	if len(tr.inputs) == 0 || len(tr.outputs) == 0 || len(tr.inputSigs) == 0 {
+		return fmt.Errorf("transfer not completed")
+	}
 	err := tools.WriteUint16(w, uint16(len(tr.inputs)))
 	if err != nil {
 		return err
@@ -138,6 +150,10 @@ func (tr *mockUTXO) Write(w io.Writer) error {
 			return err
 		}
 	}
+	err = generic.WriteSignedBlocks(w, tr.inputSigs)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -155,7 +171,6 @@ func (tr *mockUTXO) Read(r io.Reader) error {
 			return err
 		}
 	}
-
 	var numOutp uint16
 	err = tools.ReadUint16(r, &numOutp)
 	if err != nil {
@@ -169,7 +184,13 @@ func (tr *mockUTXO) Read(r io.Reader) error {
 			return err
 		}
 	}
+	sigs, err := generic.ReadSignedBlocks(r)
+	if err != nil {
+		return err
+	}
+
 	tr.outputs = outps
 	tr.inputs = inps
+	tr.inputSigs = sigs
 	return nil
 }

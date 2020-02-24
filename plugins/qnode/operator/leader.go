@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"sort"
 	"time"
 )
@@ -60,14 +61,11 @@ func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
 	return req.leaderPeerIndexList[req.currLeaderSeqIndex]
 }
 
-// TODO to config parameters
-const rotateLeaderEveryPeriod = 2 * time.Second
-
 func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
 	if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
 		return
 	}
-	if time.Since(req.whenLastPushed) > rotateLeaderEveryPeriod {
+	if time.Since(req.whenLastPushed) > parameters.LEADER_ROTATION_PERIOD {
 		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.assemblySize())
 		req.hasBeenPushedToCurrentLeader = false
 		log.Debugw("rotateLeaderIfNeeded: leader rotated", "reqId", req.reqId.Short())

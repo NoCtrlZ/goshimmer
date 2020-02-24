@@ -5,7 +5,6 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 	"io"
@@ -39,7 +38,7 @@ func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
 	buf.Write(msg.RequestId.Bytes())
 	buf.Write(msg.MasterDataHash.Bytes())
 	_ = tools.WriteUint32(buf, msg.StateIndex)
-	_ = modelimpl.WriteSignedBlocks(buf, msg.SigBlocks)
+	_ = generic.WriteSignedBlocks(buf, msg.SigBlocks)
 }
 
 func decodePushResultMsg(senderIndex uint16, data []byte) (*pushResultMsg, error) {
@@ -59,7 +58,7 @@ func decodePushResultMsg(senderIndex uint16, data []byte) (*pushResultMsg, error
 	if err != nil {
 		return nil, err
 	}
-	sigBlocks, err := modelimpl.ReadSignedBlocks(rdr)
+	sigBlocks, err := generic.ReadSignedBlocks(rdr)
 	if err != nil {
 		return nil, err
 	}

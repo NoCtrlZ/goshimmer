@@ -49,7 +49,7 @@ func (st *mockStateBlock) RequestRef() (*HashValue, uint16) {
 }
 
 func (st *mockStateBlock) StateChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString("state_chain_addr")
+	addr, ok := st.configVars.GetString(sc.MAP_KEY_STATE_ACCOUNT)
 	if !ok {
 		return NilHash
 	}
@@ -61,7 +61,7 @@ func (st *mockStateBlock) StateChainAccount() *HashValue {
 }
 
 func (st *mockStateBlock) RequestChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString("request_chain_addr")
+	addr, ok := st.configVars.GetString(sc.MAP_KEY_REQUEST_ACCOUNT)
 	if !ok {
 		return NilHash
 	}
@@ -73,7 +73,7 @@ func (st *mockStateBlock) RequestChainAccount() *HashValue {
 }
 
 func (st *mockStateBlock) OwnerChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString("owner_chain_addr")
+	addr, ok := st.configVars.GetString(sc.MAP_KEY_OWNER_ACCOUNT)
 	if !ok {
 		return NilHash
 	}

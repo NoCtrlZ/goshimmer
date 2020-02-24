@@ -9,16 +9,6 @@ import (
 	"io"
 )
 
-func init() {
-	value.SetConstructors(value.SetConstructorsParams{
-		UTXOConstructor:   newUTXOTransfer,
-		InputConstructor:  newInput,
-		OutputConstructor: newOutput,
-		TxConstructor:     newValueTx,
-		ParseConstructor:  parseValueTx,
-	})
-}
-
 // implements ValueTransaction and SC transaction interfaces
 
 type mockValueTransaction struct {
