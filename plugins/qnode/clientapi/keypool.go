@@ -36,3 +36,7 @@ func (kp *mockKeysPool) VerifySignature(sigBlk generic.SignedBlock) error {
 	}
 	return fmt.Errorf("invalid signature")
 }
+
+func (kp *mockKeysPool) GetKeyData(_ *hashing.HashValue) (interface{}, error) {
+	return nil, nil
+}

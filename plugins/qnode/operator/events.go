@@ -11,8 +11,14 @@ import (
 // called from he main queue
 
 func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
-	log.Debugw("EventRequestMsg", "tx", reqRef.Tx().ShortStr(), "reqIdx", reqRef.Index())
-	op.requestFromMsg(reqRef)
+	reqRec := op.requestFromMsg(reqRef)
+	log.Debugw("EventRequestMsg",
+		"tx", reqRef.Tx().ShortStr(),
+		"reqIdx", reqRef.Index(),
+		"req id", reqRef.Id().Short(),
+		"leader", op.currentLeaderIndex(reqRec),
+		"iAmTheLeader", op.iAmCurrentLeader(reqRec),
+	)
 	op.takeAction()
 }
 
@@ -35,7 +41,11 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	if req.reqRef != nil {
 		duration = fmt.Sprintf("%v", time.Since(req.whenMsgReceived))
 	}
-	log.Infow("RECEIVE STATE UPD", "peer", op.peerIndex(), "tx", tx.ShortStr(), "duration", duration)
+	log.Infow("RECEIVE STATE UPD",
+		"stateIndex", stateUpd.StateIndex(),
+		"peer", op.peerIndex(),
+		"tx", tx.ShortStr(),
+		"duration", duration)
 
 	// delete processed request from buffer
 	delete(op.requests, *reqId)
@@ -59,12 +69,16 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 // triggered from main msg queue whenever calculation of new result is finished
 
 func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
-	log.Debug("EventResultCalculated")
 	reqId := ctx.reqRef.Id()
 	reqRec, _ := op.requestFromId(reqId)
+	log.Debugw("EventResultCalculated",
+		"req id", reqId.Short(),
+		"leader", op.currentLeaderIndex(reqRec),
+		"iAmTheLeader", op.iAmCurrentLeader(reqRec),
+	)
 
-	rsHash := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
-	delete(reqRec.startedCalculation, *rsHash)
+	taskId := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
+	delete(reqRec.startedCalculation, *taskId)
 
 	if !op.resultBelongsToContext(ctx) {
 		// stateTx changed while it was being calculated
@@ -82,15 +96,16 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		return
 	}
 	// new result
-	err := op.signResult(ctx.resultTx)
+	err := sc.SignTransaction(ctx.resultTx, op)
 	if err != nil {
-		log.Errorf("signResult returned: %v", err)
+		log.Errorf("SignTransaction returned: %v", err)
 		return
 	}
+	masterDataHash := ctx.resultTx.MasterDataHash()
 	reqRec.ownResultCalculated = &resultCalculated{
 		res:            ctx,
-		rsHash:         rsHash,
-		masterDataHash: ctx.resultTx.MasterDataHash(),
+		resultHash:     resultHash(ctx.state.MustState().StateIndex(), reqId, masterDataHash),
+		masterDataHash: masterDataHash,
 	}
 	op.takeAction()
 }
@@ -98,10 +113,14 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 // triggered by new result hash received from another operator
 // called from the main queue
 
-func (op *AssemblyOperator) EventPushResultMsg(resHashMsg *pushResultMsg) {
-	log.Debug("EventPushResultMsg")
-	if err := op.accountNewResultHash(resHashMsg); err != nil {
-		log.Errorf("accountNewResultHash returned: %v", err)
+func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
+	log.Debugw("EventPushResultMsg received",
+		"from", pushMsg.SenderIndex,
+		"req id", pushMsg.RequestId.Short(),
+		"state idx", pushMsg.StateIndex,
+	)
+	if err := op.accountNewPushMsg(pushMsg); err != nil {
+		log.Errorf("accountNewPushMsg returned: %v", err)
 		return
 	}
 	op.adjustToContext()

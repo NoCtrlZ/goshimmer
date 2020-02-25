@@ -2,16 +2,15 @@ package operator
 
 import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"time"
 )
 
-func isCalculationInProgress(req *request, resHash *HashValue) bool {
-	_, ok := req.startedCalculation[*resHash]
-	return ok
-}
-
-func markCalculationInProgress(req *request, resHash *HashValue) {
-	req.startedCalculation[*resHash] = time.Now()
+func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue {
+	return HashData(
+		tools.Uint32To4Bytes(stateIndex),
+		reqId.Bytes(),
+		masterDataHash.Bytes())
 }
 
 func (op *AssemblyOperator) asyncCalculateResult(req *request) {
@@ -21,13 +20,11 @@ func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 	if req.reqRef == nil {
 		return
 	}
-	rsHash := HashData(req.reqId.Bytes(), op.stateTx.Id().Bytes())
-	if isCalculationInProgress(req, rsHash) {
-		// already started
-		return
+	taskId := HashData(req.reqId.Bytes(), op.stateTx.Id().Bytes())
+	if _, ok := req.startedCalculation[*taskId]; !ok {
+		req.startedCalculation[*taskId] = time.Now()
+		go op.processRequest(req)
 	}
-	markCalculationInProgress(req, rsHash)
-	go op.processRequest(req)
 }
 
 func (op *AssemblyOperator) processRequest(req *request) {
@@ -68,6 +65,11 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) *p
 }
 
 func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
+	log.Debugw("sendPushResultToPeer",
+		"peer", peerIndex,
+		"req", res.res.reqRef.Id(),
+		"state idx", res.res.state.MustState().StateIndex(),
+	)
 	data, _ := op.encodeMsg(op.pushResultMsgFromResult(res))
 
 	if peerIndex == op.peerIndex() {
@@ -75,7 +77,7 @@ func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerInde
 		return
 	}
 	addr := op.peers[peerIndex]
-	err := op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_RESULT_HASH, addr)
+	err := op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_PUSH_MSG, addr)
 	if err != nil {
 		log.Errorf("SendUDPData returned error: `%v`", err)
 	}

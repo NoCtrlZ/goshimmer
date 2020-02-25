@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"sort"
 	"time"
 )
@@ -54,22 +53,26 @@ func (op *AssemblyOperator) iAmCurrentLeader(req *request) bool {
 }
 
 func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
-	//return 3
-	if req.leaderPeerIndexList == nil {
-		req.leaderPeerIndexList = getPermutation(op.assemblySize(), req.reqId)
-	}
-	return req.leaderPeerIndexList[req.currLeaderSeqIndex]
+	return 3
+	//if req.leaderPeerIndexList == nil {
+	//	req.leaderPeerIndexList = getPermutation(op.assemblySize(), req.reqId)
+	//}
+	//return req.leaderPeerIndexList[req.currLeaderSeqIndex]
 }
 
 func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
-	if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
-		return
-	}
-	if time.Since(req.whenLastPushed) > parameters.LEADER_ROTATION_PERIOD {
-		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.assemblySize())
-		req.hasBeenPushedToCurrentLeader = false
-		log.Debugw("rotateLeaderIfNeeded: leader rotated", "reqId", req.reqId.Short())
-	}
+	return
+
+	//if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
+	//	return
+	//}
+	//if time.Since(req.whenLastPushed) > parameters.LEADER_ROTATION_PERIOD {
+	//	clead := req.currLeaderSeqIndex
+	//	req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.assemblySize())
+	//	req.hasBeenPushedToCurrentLeader = false
+	//	log.Debugf("rotateLeaderIfNeeded: req id %s, leader rotated %d --> %d",
+	//		req.reqId.Short(), clead, req.currLeaderSeqIndex	)
+	//}
 }
 
 func (op *AssemblyOperator) pushIfNeeded(req *request) {

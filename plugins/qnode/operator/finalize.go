@@ -3,6 +3,7 @@ package operator
 import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"time"
 )
 
@@ -12,20 +13,29 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 	if err != nil {
 		return err
 	}
-	log.Infow("finalizeTheRequest POST", "peer", op.peerIndex(), "res tx id", res.res.resultTx.Id().Short())
+	err = sc.VerifySignedBlocks(res.res.resultTx.Signatures(), op)
+	if err != nil {
+		return err
+	}
+
 	res.finalized = true
 	res.finalizedWhen = time.Now()
 	vtx, err := res.res.resultTx.ValueTx()
 	if err != nil {
 		return err
 	}
+	log.Infow("POST result to the ValueTangle",
+		"leader", op.peerIndex(),
+		"req", res.res.reqRef.Id().Short(),
+		"resTx id", res.res.resultTx.Id().Short())
+
 	return op.comm.PostToValueTangle(vtx)
 }
 
 func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 	reqId := res.res.reqRef.Id()
 	reqRec, _ := op.requestFromId(reqId)
-	rhlst, ok := reqRec.receivedResultHashes[*res.rsHash]
+	rhlst, ok := reqRec.receivedResultHashes[*res.resultHash]
 	if !ok {
 		log.Panic("aggregateResult: inconsistency: no shares found")
 	}
@@ -39,19 +49,26 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 		// must be checked before
 		log.Panic("aggregateResult: inconsistency: not enough shares to finalize result")
 	}
-
 	ownSignedBlocks := reqRec.ownResultCalculated.res.resultTx.Signatures()
 
 	for i, sigBlock := range ownSignedBlocks {
 		receivedSigBlocks := make([]generic.SignedBlock, 0, op.assemblySize())
 		for _, rh := range rhlst {
+			if rh == nil {
+				continue
+			}
 			if len(ownSignedBlocks) != len(rh.SigBlocks) {
 				return fmt.Errorf("unexpected different lengths of signature lists")
 			}
-			sb := rh.SigBlocks[i]
-			receivedSigBlocks = append(receivedSigBlocks, sb)
+			receivedSigBlocks = append(receivedSigBlocks, rh.SigBlocks[i])
 		}
-		err := op.aggregateBlocks(receivedSigBlocks, sigBlock)
+		receivedSigBlocks = append(receivedSigBlocks, sigBlock)
+		err := generic.AggregateBLSBlocks(receivedSigBlocks, sigBlock, op)
+		if err != nil {
+			return err
+		}
+		// verify recovered signature (testing)
+		err = op.VerifySignature(sigBlock)
 		if err != nil {
 			return err
 		}

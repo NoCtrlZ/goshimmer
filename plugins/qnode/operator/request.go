@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"sort"
 	"time"
 )
@@ -56,10 +57,10 @@ func (op *AssemblyOperator) requestFromId(reqIdHash *HashValue) (*request, bool)
 }
 
 func maxVotesFromPeers(req *request) (uint16, *HashValue) {
-	var retResHash HashValue
+	var retRsHash HashValue
 	var retNumVotes uint16
 
-	for resHash, rhlst := range req.receivedResultHashes {
+	for rsHash, rhlst := range req.receivedResultHashes {
 		numNotNil := uint16(0)
 		for _, rh := range rhlst {
 			if rh != nil {
@@ -68,14 +69,11 @@ func maxVotesFromPeers(req *request) (uint16, *HashValue) {
 		}
 		if numNotNil > retNumVotes {
 			retNumVotes = numNotNil
-			copy(retResHash.Bytes(), resHash.Bytes())
+			copy(retRsHash.Bytes(), rsHash.Bytes())
 		}
 	}
-	return retNumVotes, &retResHash
+	return retNumVotes, &retRsHash
 }
-
-// TODO to config params
-const numOldest = 5
 
 func (op *AssemblyOperator) pickRequestToPush() *request {
 	// with request message received and not led by me
@@ -98,8 +96,8 @@ func (op *AssemblyOperator) pickRequestToPush() *request {
 	}
 	// select the oldest 5
 	sortRequestsByAge(reqs)
-	if len(reqs) > numOldest {
-		reqs = reqs[:numOldest]
+	if len(reqs) > parameters.NUM_OLDEST_REQESTS {
+		reqs = reqs[:parameters.NUM_OLDEST_REQESTS]
 	}
 	// select the one with minimal id
 	sortRequestsById(reqs)

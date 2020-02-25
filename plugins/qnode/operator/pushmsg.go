@@ -2,9 +2,7 @@ package operator
 
 import (
 	"fmt"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 )
 
@@ -15,18 +13,15 @@ func (op *AssemblyOperator) validatePushMessage(msg *pushResultMsg) error {
 	return sc.VerifySignedBlocks(msg.SigBlocks, op)
 }
 
-func (op *AssemblyOperator) accountNewResultHash(msg *pushResultMsg) error {
+func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 	if err := op.validatePushMessage(msg); err != nil {
 		return err
 	}
-	dataHash := HashData(
-		msg.RequestId.Bytes(),
-		tools.Uint16To2Bytes(msg.SenderIndex),
-		msg.MasterDataHash.Bytes())
+	resultHash := resultHash(msg.StateIndex, msg.RequestId, msg.MasterDataHash)
 	req, _ := op.requestFromId(msg.RequestId)
 
-	if rhlst, ok := req.receivedResultHashes[*dataHash]; !ok {
-		req.receivedResultHashes[*dataHash] = make([]*pushResultMsg, op.assemblySize())
+	if rhlst, ok := req.receivedResultHashes[*resultHash]; !ok {
+		req.receivedResultHashes[*resultHash] = make([]*pushResultMsg, op.assemblySize())
 	} else {
 		if rhlst[msg.SenderIndex] != nil {
 			if !duplicateResultHashMessages(msg, rhlst[msg.SenderIndex]) {
@@ -36,7 +31,7 @@ func (op *AssemblyOperator) accountNewResultHash(msg *pushResultMsg) error {
 		}
 	}
 	// if duplicate, replace the previous
-	req.receivedResultHashes[*dataHash][msg.SenderIndex] = msg
+	req.receivedResultHashes[*resultHash][msg.SenderIndex] = msg
 	return nil
 }
 

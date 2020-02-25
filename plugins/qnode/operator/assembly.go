@@ -47,6 +47,18 @@ type request struct {
 	msgCounter                   int
 }
 
+type resultCalculated struct {
+	res            *runtimeContext
+	resultHash     *HashValue
+	masterDataHash *HashValue
+	// processing stateTx
+	pullSent         bool
+	whenLastPullSent time.Time
+	// finalization
+	finalized     bool
+	finalizedWhen time.Time
+}
+
 const inChanBufLen = 10
 
 func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {

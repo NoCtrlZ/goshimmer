@@ -30,8 +30,8 @@ type pullResultMsg struct {
 type timerMsg int
 
 const (
-	MSG_RESULT_HASH     = byte(1)
-	MSG_PULL_RESULT_MSG = byte(2)
+	MSG_PUSH_MSG = byte(1)
+	MSG_PULL_MSG = byte(2)
 )
 
 func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
@@ -114,10 +114,10 @@ func (op *AssemblyOperator) encodeMsg(msg interface{}) ([]byte, byte) {
 	switch msgt := msg.(type) {
 	case *pushResultMsg:
 		encodePushResultMsg(msgt, &encodedMsg)
-		typ = MSG_RESULT_HASH
+		typ = MSG_PUSH_MSG
 	case *pullResultMsg:
 		encodePullResultMsg(msgt, &encodedMsg)
-		typ = MSG_PULL_RESULT_MSG
+		typ = MSG_PULL_MSG
 	default:
 		panic("wrong message type")
 	}
@@ -148,11 +148,11 @@ func (op *AssemblyOperator) ReceiveUDPData(udpAddr *net.UDPAddr, senderIndex uin
 		return errors.New("invalid sender")
 	}
 	switch msgType {
-	case MSG_RESULT_HASH:
+	case MSG_PUSH_MSG:
 		if msg, err := decodePushResultMsg(senderIndex, msgData); err == nil {
 			op.DispatchEvent(msg)
 		}
-	case MSG_PULL_RESULT_MSG:
+	case MSG_PULL_MSG:
 		if msg, err := decodePullResultMsg(senderIndex, msgData); err == nil {
 			op.DispatchEvent(msg)
 		}

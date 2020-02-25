@@ -37,4 +37,5 @@ type OutputRef struct {
 type KeyPool interface {
 	SignBlock(SignedBlock) error
 	VerifySignature(SignedBlock) error
+	GetKeyData(*HashValue) (interface{}, error)
 }
