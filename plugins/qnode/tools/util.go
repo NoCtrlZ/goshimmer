@@ -105,7 +105,9 @@ func WriteBytes16(w io.Writer, data []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(data)
+	if len(data) != 0 {
+		_, err = w.Write(data)
+	}
 	return err
 }
 
@@ -115,12 +117,15 @@ func ReadBytes16(r io.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]byte, length)
-	_, err = r.Read(ret)
-	if err != nil {
-		return nil, err
+	if length != 0 {
+		ret := make([]byte, length)
+		_, err = r.Read(ret)
+		if err != nil {
+			return nil, err
+		}
+		return ret, nil
 	}
-	return ret, nil
+	return nil, nil
 }
 
 func WriteBytes32(w io.Writer, data []byte) error {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/rogpeppe/go-internal/cache"
 )
 
@@ -27,14 +28,20 @@ func (kp *mockKeysPool) SignBlock(sigBlk generic.SignedBlock) error {
 
 func (kp *mockKeysPool) VerifySignature(sigBlk generic.SignedBlock) error {
 	sig, typ := sigBlk.GetSignature()
-	if typ != generic.SIG_TYPE_MOCKED {
-		return fmt.Errorf("mocked signatire expected")
+	var err error
+	switch typ {
+	case generic.SIG_TYPE_BLS_FINAL:
+		err = tcrypto.VerifyWithPublicKey(sigBlk.SignedHash().Bytes(), sig, sigBlk.GetPublicKey())
+
+	case generic.SIG_TYPE_MOCKED:
+		h := hashing.HashData(sigBlk.SignedHash().Bytes(), sigBlk.Account().Bytes())
+		if bytes.Compare(sig[:cache.HashSize], h.Bytes()) != 0 {
+			err = fmt.Errorf("invalid mocked signature")
+		}
+	default:
+		err = fmt.Errorf("not suported signature type")
 	}
-	h := hashing.HashData(sigBlk.SignedHash().Bytes(), sigBlk.Account().Bytes())
-	if bytes.Compare(sig[:cache.HashSize], h.Bytes()) == 0 {
-		return nil
-	}
-	return fmt.Errorf("invalid signature")
+	return err
 }
 
 func (kp *mockKeysPool) GetKeyData(_ *hashing.HashValue) (interface{}, error) {

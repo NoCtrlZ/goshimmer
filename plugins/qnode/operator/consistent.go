@@ -83,7 +83,7 @@ func (op *AssemblyOperator) pullMsgConsistentWithContext(am *pullResultMsg) bool
 
 func (op *AssemblyOperator) resultBelongsToContext(res *runtimeContext) bool {
 	// result didn't change during calculations
-	return op.stateTx.Equal(res.state)
+	return op.stateTx.MustState().StateIndex() == res.state.MustState().StateIndex()
 }
 
 func (op *AssemblyOperator) selectAdvanced() []*request {

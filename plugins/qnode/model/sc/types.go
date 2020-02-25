@@ -24,7 +24,7 @@ type Transaction interface {
 type State interface {
 	AssemblyId() *HashValue
 	ConfigId() *HashValue
-	RequestRef() (*HashValue, uint16)
+	RequestId() *HashValue
 	StateChainOutputIndex() uint16
 	StateChainAccount() *HashValue
 	RequestChainAccount() *HashValue

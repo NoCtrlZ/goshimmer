@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
@@ -65,14 +66,29 @@ func main() {
 
 func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 	idx := findSenderIndex(updAddr)
-	msg, err := decodeUDPMsg(data)
+	tx, err := decodeUDPMsg(data)
 	if err != nil {
 		fmt.Printf("decode tx error: %v\n", err)
 		return
 	}
+	state, ok := tx.State()
+	if !ok {
+		fmt.Printf("RECEIVED NOT STATE UPDATEfrom %d\n", idx)
+		return
+	}
+
+	fmt.Printf("RECEIVED from %d tx = %s stateIdx = %d\n", idx, tx.Id().Short(), state.StateIndex())
+
+	err = sc.VerifySignedBlocks(tx.Signatures(), clientapi.NewDummyKeyPool())
+	if err != nil {
+		fmt.Printf("VerifySignedBlocks: %v\n", err)
+		return
+	}
+	fmt.Printf("Signatures OK\n")
+
 	postMsg(&wrapped{
 		senderIndex: idx,
-		tx:          msg,
+		tx:          tx,
 	})
 }
 
@@ -114,7 +130,7 @@ func decodeUDPMsg(data []byte) (sc.Transaction, error) {
 
 func processMsg(msg *wrapped) {
 	tx := msg.tx
-	fmt.Printf("process sc tx: id = %s from sender %d\n", tx.Id().Short(), msg.senderIndex)
+	fmt.Printf("processMsg: tx id = %s from sender %d\n", tx.Id().Short(), msg.senderIndex)
 
 	vtx, _ := tx.ValueTx()
 	if err := ldb.PutTransaction(vtx); err != nil {

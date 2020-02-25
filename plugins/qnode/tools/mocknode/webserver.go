@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"net/http"
+	"strconv"
 )
 
 const webport = 2000
@@ -36,22 +37,28 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("error: %v\n", err)
 			return
 		}
-	} else {
-		reqnr := r.FormValue("reqnr")
-		if reqnr == "" {
-			fmt.Printf("reqnr parameter not provided")
-			return
-		}
-		fmt.Printf("req request\n")
-		fmt.Printf("Received reqnr = %s\n", reqnr)
-		tx, err = makeReqTx(reqnr)
+		postMsg(&wrapped{
+			senderIndex: qserver.MockTangleIdx,
+			tx:          tx,
+		})
+		return
+	}
+	reqnr := r.FormValue("reqnr")
+	num, err := strconv.Atoi(reqnr)
+	if err != nil || num == 0 {
+		num = 1
+	}
+	fmt.Printf("send %d requests\n", num)
+	for i := 0; i < num; i++ {
+		tx, err = makeReqTx()
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return
 		}
+		postMsg(&wrapped{
+			senderIndex: qserver.MockTangleIdx,
+			tx:          tx,
+		})
 	}
-	postMsg(&wrapped{
-		senderIndex: qserver.MockTangleIdx,
-		tx:          tx,
-	})
+
 }

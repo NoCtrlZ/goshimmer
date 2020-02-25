@@ -81,17 +81,12 @@ func newOrigin() (sc.Transaction, error) {
 
 var reqnrseq = 0
 
-func makeReqTx(reqnr string) (sc.Transaction, error) {
-	reqnrstr := fmt.Sprintf("#%d", reqnrseq)
-	if reqnr == "_seq" {
-		reqnrseq++
-	} else {
-		reqnrstr = reqnr
-	}
+func makeReqTx() (sc.Transaction, error) {
 	vars := map[string]string{
-		"reqnr": reqnrstr,
+		"reqnr": fmt.Sprintf("#%d", reqnrseq),
 		"salt":  fmt.Sprintf("%d", rand.Int()),
 	}
+	reqnrseq++
 	// create owners's transfer of 1i to owner's address
 	toreq := sc.NewTransaction()
 	trf := toreq.Transfer()

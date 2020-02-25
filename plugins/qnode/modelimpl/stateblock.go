@@ -44,8 +44,8 @@ func (st *mockStateBlock) StateChainOutputIndex() uint16 {
 	return st.stateChainOutputIndex
 }
 
-func (st *mockStateBlock) RequestRef() (*HashValue, uint16) {
-	return st.requestTxId, st.requestBlockIndex
+func (st *mockStateBlock) RequestId() *HashValue {
+	return sc.RequestId(st.requestTxId, st.requestBlockIndex)
 }
 
 func (st *mockStateBlock) StateChainAccount() *HashValue {

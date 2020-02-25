@@ -53,17 +53,17 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 	// check conflicts
 	_, ok := ldb.byTxId[*tx.Id()]
 	if ok {
-		return fmt.Errorf("conflict: another tx with id %s", tx.Id().Short())
+		return fmt.Errorf("++++ conflict: another tx with id %s", tx.Id().Short())
 	}
 	trid := tx.Transfer().Id()
 	_, ok = ldb.byTransferId[*trid]
 	if ok {
-		return fmt.Errorf("conflict: another tx with transfer id %s", trid.Short())
+		return fmt.Errorf("++++ conflict: another tx with transfer id %s", trid.Short())
 	}
 	for _, inp := range tx.Transfer().Inputs() {
 		spendingTx, ok := ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()]
 		if ok {
-			return fmt.Errorf("conflict: doublespend in tx id %s. Conflicts with tx %s",
+			return fmt.Errorf("++++ conflict: doublespend in tx id %s. Conflicts with tx %s",
 				tx.Id().Short(), spendingTx.Id())
 		}
 	}
@@ -73,6 +73,6 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 	for _, inp := range tx.Transfer().Inputs() {
 		ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()] = tx
 	}
-	fmt.Printf("ldb: inserted new tx: id = %s trid = %s\n", tx.Id().Short(), trid.Short())
+	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s\n", tx.Id().Short(), trid.Short())
 	return nil
 }

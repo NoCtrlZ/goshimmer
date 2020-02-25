@@ -23,6 +23,10 @@ func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 	taskId := HashData(req.reqId.Bytes(), op.stateTx.Id().Bytes())
 	if _, ok := req.startedCalculation[*taskId]; !ok {
 		req.startedCalculation[*taskId] = time.Now()
+		log.Debugw("start calculation",
+			"req", req.reqId.Short(),
+			"state idx", op.stateTx.MustState().StateIndex(),
+		)
 		go op.processRequest(req)
 	}
 }
@@ -67,7 +71,7 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) *p
 func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
 	log.Debugw("sendPushResultToPeer",
 		"peer", peerIndex,
-		"req", res.res.reqRef.Id(),
+		"req", res.res.reqRef.Id().Short(),
 		"state idx", res.res.state.MustState().StateIndex(),
 	)
 	data, _ := op.encodeMsg(op.pushResultMsgFromResult(res))

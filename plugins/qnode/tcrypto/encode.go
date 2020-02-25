@@ -100,25 +100,6 @@ func ExistDKShareInRegistry(assemblyId, addr *HashValue) (bool, error) {
 	return dbase.Contains(dbkey)
 }
 
-func LoadDKShares(aid *HashValue, maskPrivate bool) ([]*DKShare, error) {
-	dbase, err := db.Get()
-	if err != nil {
-		return nil, err
-	}
-	ret := make([]*DKShare, 0)
-	pref := dbGroupPrefix(aid)
-	err = dbase.ForEachPrefix(pref, func(entry database.Entry) bool {
-		if dks, err := unmarshalDKShare(entry.Value, maskPrivate); err == nil {
-			ret = append(ret, dks)
-		}
-		return false
-	})
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func unmarshalDKShare(jsonData []byte, maskPrivate bool) (*DKShare, error) {
 	ret := &DKShare{}
 	err := json.Unmarshal(jsonData, ret)

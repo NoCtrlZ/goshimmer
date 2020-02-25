@@ -69,6 +69,14 @@ func (sb *signedBlock) Write(w io.Writer) error {
 		return err
 	}
 	err = tools.WriteBytes16(w, sb.signature)
+	if err != nil {
+		return err
+	}
+	err = tools.WriteBytes16(w, sb.pubKey)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -91,9 +99,14 @@ func (sb *signedBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	pk, err := tools.ReadBytes16(r)
+	if err != nil {
+		return err
+	}
 	sb.sigType = generic.SignatureType(b)
 	sb.addr = &addr
 	sb.signedHash = &signedHash
 	sb.signature = sig
+	sb.pubKey = pk
 	return nil
 }

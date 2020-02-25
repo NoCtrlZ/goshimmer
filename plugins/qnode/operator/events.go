@@ -35,7 +35,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		log.Warnf("wrong sequence of stateTx indices. Ignore the message")
 		return
 	}
-	reqId, _ := stateUpd.RequestRef()
+	reqId := stateUpd.RequestId()
 	req, _ := op.requestFromId(reqId)
 	duration := "unknown"
 	if req.reqRef != nil {
@@ -43,8 +43,8 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	}
 	log.Infow("RECEIVE STATE UPD",
 		"stateIndex", stateUpd.StateIndex(),
-		"peer", op.peerIndex(),
 		"tx", tx.ShortStr(),
+		"req", reqId.Short(),
 		"duration", duration)
 
 	// delete processed request from buffer
@@ -73,8 +73,8 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 	reqRec, _ := op.requestFromId(reqId)
 	log.Debugw("EventResultCalculated",
 		"req id", reqId.Short(),
-		"leader", op.currentLeaderIndex(reqRec),
-		"iAmTheLeader", op.iAmCurrentLeader(reqRec),
+		"state idx", ctx.state.MustState().StateIndex(),
+		"current state idx", op.stateTx.MustState().StateIndex(),
 	)
 
 	taskId := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
@@ -85,7 +85,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		// dismiss the result
 		return
 	}
-	log.Debugw("EventResultCalculated (in context)", "req id", ctx.reqRef.Id().Short())
+	log.Debugw("EventResultCalculated in context", "req", ctx.reqRef.Id().Short())
 
 	if reqRec.ownResultCalculated != nil {
 		// shouldn't be

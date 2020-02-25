@@ -17,13 +17,35 @@
         xhttp.open("GET", "/testreq?reqnr=_seq", true);
         xhttp.send();
     }
+    function sendRequest10() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/testreq?reqnr=10", true);
+        xhttp.send();
+    }
+    function sendRequest50() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/testreq?reqnr=50", true);
+        xhttp.send();
+    }
+    function sendRequest100() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/testreq?reqnr=100", true);
+        xhttp.send();
+    }
 </script>
 
 <button type="button" onclick="sendConfig()" id="config_button">Send config</button>
 <br>
 <br>
-<br>
-<br>
 <button type="button"  onclick="sendRequest()" id="request_button">Send request</button>
+<br>
+<br>
+<button type="button"  onclick="sendRequest10()" id="request_button">Send 10 requests</button>
+<br>
+<br>
+<button type="button"  onclick="sendRequest50()" id="request_button">Send 50 requests</button>
+<br>
+<br>
+<button type="button"  onclick="sendRequest100()" id="request_button">Send 100 requests</button>
 </body>
 </html>
