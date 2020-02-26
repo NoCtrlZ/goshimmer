@@ -5,7 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 )
 
-func InitModelImplementation() {
+func Init() {
 	sc.SetConstructors(sc.SetConstructorsParams{
 		TxConstructor:           newScTransaction,
 		TxParser:                newFromValueTx,

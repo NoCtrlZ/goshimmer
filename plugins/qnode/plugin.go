@@ -17,8 +17,8 @@ import (
 )
 
 func init() {
-	modelimpl.InitModelImplementation()
-	signedblock.InitSignedBlockImplementation()
+	modelimpl.Init()
+	signedblock.Init()
 }
 
 const name = "Qnode"

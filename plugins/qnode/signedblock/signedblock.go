@@ -15,7 +15,7 @@ type signedBlock struct {
 	pubKey     []byte
 }
 
-func InitSignedBlockImplementation() {
+func Init() {
 	generic.SetSignedBlockConstructor(newSignedBlock)
 }
 
