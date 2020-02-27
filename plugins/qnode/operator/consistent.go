@@ -19,17 +19,16 @@ func (op *AssemblyOperator) adjustToContext() {
 // delete all records from request which do not correspond to the new config id or stateTx id
 func (op *AssemblyOperator) adjustToContextReq(req *request) {
 	if req.ownResultCalculated != nil {
-		resState, _ := req.ownResultCalculated.res.state.State()
-		resStateIndex := resState.StateIndex()
-		curState, _ := op.stateTx.State()
-		curStateIndex := curState.StateIndex()
+		resStateIndex := req.ownResultCalculated.res.state.MustState().StateIndex()
+		curStateIndex := op.stateTx.MustState().StateIndex()
 		if resStateIndex != curStateIndex {
 			req.ownResultCalculated = nil
 			req.hasBeenPushedToCurrentLeader = false
 		}
 	}
+	// delete push messages which are not from the current context
 	ktd1 := make([]*hashing.HashValue, 0)
-	for pushMsg, lst := range req.receivedResultHashes {
+	for pushMsg, lst := range req.pushMessages {
 		for _, rh := range lst {
 			if rh != nil && !op.pushMsgConsistentWithContext(rh) {
 				ktd1 = append(ktd1, pushMsg.Clone())
@@ -37,8 +36,9 @@ func (op *AssemblyOperator) adjustToContextReq(req *request) {
 		}
 	}
 	for _, k := range ktd1 {
-		delete(req.receivedResultHashes, *k)
+		delete(req.pushMessages, *k)
 	}
+	// delete pull messages which are not from the current context
 	ktd2 := make([]uint16, 0)
 	for k, v := range req.pullMessages {
 		if !op.pullMsgConsistentWithContext(v) {
@@ -55,16 +55,16 @@ func (op *AssemblyOperator) consistentState() error {
 		if req.ownResultCalculated != nil && !op.resultBelongsToContext(req.ownResultCalculated.res) {
 			return fmt.Errorf("request result out of context")
 		}
-		for _, rhlist := range req.receivedResultHashes {
+		for _, rhlist := range req.pushMessages {
 			for _, rh := range rhlist {
 				if rh != nil && !op.pushMsgConsistentWithContext(rh) {
-					return fmt.Errorf("request hash out of context")
+					return fmt.Errorf("push msg out of context")
 				}
 			}
 		}
 		for _, am := range req.pullMessages {
 			if !op.pullMsgConsistentWithContext(am) {
-				return fmt.Errorf("pull message out of context")
+				return fmt.Errorf("pull msg out of context")
 			}
 		}
 	}
@@ -72,19 +72,21 @@ func (op *AssemblyOperator) consistentState() error {
 }
 
 func (op *AssemblyOperator) pushMsgConsistentWithContext(rh *pushResultMsg) bool {
-	curState, _ := op.stateTx.State()
-	return rh.StateIndex >= curState.StateIndex()
+	return rh.StateIndex >= op.stateTx.MustState().StateIndex()
 }
 
 func (op *AssemblyOperator) pullMsgConsistentWithContext(am *pullResultMsg) bool {
-	curState, _ := op.stateTx.State()
-	return am.StateIndex >= curState.StateIndex()
+	return am.StateIndex >= op.stateTx.MustState().StateIndex()
 }
 
 func (op *AssemblyOperator) resultBelongsToContext(res *runtimeContext) bool {
 	// result didn't change during calculations
 	return op.stateTx.MustState().StateIndex() == res.state.MustState().StateIndex()
 }
+
+// "advanced" are reqeuest record which:
+//  - has recorded request message
+//  - has some votes from peers
 
 func (op *AssemblyOperator) selectAdvanced() []*request {
 	ret := make([]*request, 0)
@@ -105,22 +107,20 @@ func (op *AssemblyOperator) selectAdvanced() []*request {
 func (op *AssemblyOperator) getStateSnapshot() tools.StatMap {
 	ret := make(tools.StatMap)
 	ret.Set("msgCounter", op.msgCounter)
-	ret.Set("numProcessed", op.processedCounter)
+	ret.Set("numRequestsProcessed", len(op.processedRequests))
 	ret.Set("numPendingRequests", len(op.requests))
+
+	if len(op.processedRequests) == 11 && len(op.requests) > 0 {
+		log.Debugw("kuku")
+	}
 
 	for _, req := range op.requests {
 		if req.ownResultCalculated != nil {
-			ret.Inc("numNotResultCalculated")
+			ret.Inc("numResultCalculated")
 		}
 		numRhLst := getNumsResultHashes(req)
 		if len(numRhLst) > 0 {
 			ret.Inc("numWithResultHashes")
-		}
-		if len(numRhLst) > 1 {
-			ret.Inc("numWithMoreThan1ResultHash")
-		}
-		if len(req.pullMessages) > 0 {
-			ret.Inc("numWithPullMsgs")
 		}
 	}
 	advanced := op.selectAdvanced()
@@ -156,9 +156,9 @@ func (op *AssemblyOperator) getStateSnapshot() tools.StatMap {
 }
 
 func getNumsResultHashes(req *request) []int {
-	ret := make([]int, len(req.receivedResultHashes))
+	ret := make([]int, len(req.pushMessages))
 	i := 0
-	for _, rhlst := range req.receivedResultHashes {
+	for _, rhlst := range req.pushMessages {
 		for _, rh := range rhlst {
 			if rh != nil {
 				ret[i]++

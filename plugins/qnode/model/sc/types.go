@@ -25,7 +25,7 @@ type State interface {
 	AssemblyId() *HashValue
 	ConfigId() *HashValue
 	RequestId() *HashValue
-	StateChainOutputIndex() uint16
+	StateChainOutputIndex() uint16 // TODO maybe just select first or any with 1i output to the StateChainAccount
 	StateChainAccount() *HashValue
 	RequestChainAccount() *HashValue
 	OwnerChainAccount() *HashValue
@@ -35,7 +35,7 @@ type State interface {
 	WithStateIndex(uint32) State
 	WithConfigVars(generic.ValueMap) State
 	WithStateVars(generic.ValueMap) State
-	WithSetStateChainOutputIndex(uint16) State
+	WithStateChainOutputIndex(uint16) State
 	Encode() generic.Encode
 }
 
@@ -49,7 +49,7 @@ type Request interface {
 	AssemblyId() *HashValue
 	IsConfigUpdateReq() bool
 	Vars() generic.ValueMap
-	RequestChainOutputIndex() uint16
+	RequestChainOutputIndex() uint16 // TODO maybe just select first or any with 1i output to the RequestChainAccount
 	Encode() generic.Encode
 }
 

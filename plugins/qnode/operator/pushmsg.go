@@ -20,8 +20,8 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 	resultHash := resultHash(msg.StateIndex, msg.RequestId, msg.MasterDataHash)
 	req, _ := op.requestFromId(msg.RequestId)
 
-	if rhlst, ok := req.receivedResultHashes[*resultHash]; !ok {
-		req.receivedResultHashes[*resultHash] = make([]*pushResultMsg, op.assemblySize())
+	if rhlst, ok := req.pushMessages[*resultHash]; !ok {
+		req.pushMessages[*resultHash] = make([]*pushResultMsg, op.assemblySize())
 	} else {
 		if rhlst[msg.SenderIndex] != nil {
 			if !duplicateResultHashMessages(msg, rhlst[msg.SenderIndex]) {
@@ -31,7 +31,7 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 		}
 	}
 	// if duplicate, replace the previous
-	req.receivedResultHashes[*resultHash][msg.SenderIndex] = msg
+	req.pushMessages[*resultHash][msg.SenderIndex] = msg
 	return nil
 }
 

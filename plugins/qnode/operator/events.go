@@ -1,7 +1,6 @@
 package operator
 
 import (
-	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"time"
@@ -36,10 +35,14 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		return
 	}
 	reqId := stateUpd.RequestId()
-	req, _ := op.requestFromId(reqId)
-	duration := "unknown"
+	req, ok := op.requestFromId(reqId)
+	if !ok {
+		// already processed
+		return
+	}
+	duration := time.Duration(0)
 	if req.reqRef != nil {
-		duration = fmt.Sprintf("%v", time.Since(req.whenMsgReceived))
+		duration = time.Since(req.whenMsgReceived)
 	}
 	log.Infow("RECEIVE STATE UPD",
 		"stateIndex", stateUpd.StateIndex(),
@@ -48,8 +51,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		"duration", duration)
 
 	// delete processed request from buffer
-	delete(op.requests, *reqId)
-	op.processedCounter++
+	op.markRequestProcessed(reqId, duration)
 
 	if !state.ConfigId().Equal(stateUpd.ConfigId()) {
 		// configuration changed
@@ -70,7 +72,11 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 
 func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 	reqId := ctx.reqRef.Id()
-	reqRec, _ := op.requestFromId(reqId)
+	reqRec, ok := op.requestFromId(reqId)
+	if !ok {
+		// processed
+		return
+	}
 	log.Debugw("EventResultCalculated",
 		"req id", reqId.Short(),
 		"state idx", ctx.state.MustState().StateIndex(),
@@ -119,6 +125,9 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 		"req id", pushMsg.RequestId.Short(),
 		"state idx", pushMsg.StateIndex,
 	)
+	if _, ok := op.requestFromId(pushMsg.RequestId); !ok {
+		return // already processed
+	}
 	if err := op.accountNewPushMsg(pushMsg); err != nil {
 		log.Errorf("accountNewPushMsg returned: %v", err)
 		return
@@ -129,7 +138,10 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 	log.Debug("EventPullResultMsg")
-	req, _ := op.requestFromId(msg.RequestId)
+	req, ok := op.requestFromId(msg.RequestId)
+	if !ok {
+		return // already processed
+	}
 	req.pullMessages[msg.SenderIndex] = msg
 	op.takeAction()
 }

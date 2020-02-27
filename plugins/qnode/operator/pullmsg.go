@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, maxVotedFor *hashing.HashValue) {
+func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, maxVotedForResultHash *hashing.HashValue) {
 	reqId := res.res.reqRef.Id()
 	state, _ := res.res.state.State()
 	msg := &pullResultMsg{
@@ -14,8 +14,11 @@ func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes ui
 		StateIndex:  state.StateIndex(),
 		HaveVotes:   haveVotes,
 	}
-	reqRec, _ := op.requestFromId(maxVotedFor)
-	lst := reqRec.receivedResultHashes[*maxVotedFor]
+	reqRec, ok := op.requestFromId(reqId)
+	if !ok {
+		log.Panic("inconsistency: no request found")
+	}
+	lst := reqRec.pushMessages[*maxVotedForResultHash]
 	for idx, rh := range lst {
 		if rh == nil && uint16(idx) != op.peerIndex() {
 			err := op.sendMsgToPeer(msg, int16(idx))

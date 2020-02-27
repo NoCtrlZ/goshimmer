@@ -78,7 +78,7 @@ func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transa
 		WithStateIndex(state.StateIndex() + 1).
 		WithConfigVars(state.ConfigVars()).
 		WithStateVars(state.StateVars()).
-		WithSetStateChainOutputIndex(chainOutIdx)
+		WithStateChainOutputIndex(chainOutIdx)
 
 	tx.SetState(nextState)
 	return tx, nil

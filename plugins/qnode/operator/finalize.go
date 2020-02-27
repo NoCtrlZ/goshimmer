@@ -34,8 +34,11 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 
 func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 	reqId := res.res.reqRef.Id()
-	reqRec, _ := op.requestFromId(reqId)
-	rhlst, ok := reqRec.receivedResultHashes[*res.resultHash]
+	reqRec, ok := op.requestFromId(reqId)
+	if !ok {
+		log.Panic("aggregateResult: no request found")
+	}
+	rhlst, ok := reqRec.pushMessages[*res.resultHash]
 	if !ok {
 		log.Panic("aggregateResult: inconsistency: no shares found")
 	}

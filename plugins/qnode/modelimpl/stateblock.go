@@ -115,7 +115,7 @@ func (st *mockStateBlock) WithStateVars(vars generic.ValueMap) sc.State {
 	return st
 }
 
-func (st *mockStateBlock) WithSetStateChainOutputIndex(idx uint16) sc.State {
+func (st *mockStateBlock) WithStateChainOutputIndex(idx uint16) sc.State {
 	st.stateChainOutputIndex = idx
 	return st
 }

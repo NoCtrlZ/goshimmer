@@ -16,19 +16,19 @@ import (
 
 type AssemblyOperator struct {
 	sync.RWMutex
-	dismissed        bool
-	assemblyId       *HashValue
-	cfgData          *registry.ConfigData
-	processor        vm.Processor
-	stateTx          sc.Transaction
-	requests         map[HashValue]*request
-	inChan           chan interface{}
-	peers            []*net.UDPAddr
-	comm             messaging.Messaging
-	stopClock        func()
-	msgCounter       int
-	processedCounter int
-	rand             *rand.Rand
+	dismissed         bool
+	assemblyId        *HashValue
+	cfgData           *registry.ConfigData
+	processor         vm.Processor
+	stateTx           sc.Transaction
+	requests          map[HashValue]*request
+	processedRequests map[HashValue]time.Duration
+	inChan            chan interface{}
+	peers             []*net.UDPAddr
+	comm              messaging.Messaging
+	stopClock         func()
+	msgCounter        int
+	rand              *rand.Rand
 }
 
 // keeps stateTx of the request
@@ -36,9 +36,9 @@ type request struct {
 	reqId                        *HashValue
 	whenMsgReceived              time.Time
 	reqRef                       *sc.RequestRef
-	receivedResultHashes         map[HashValue][]*pushResultMsg // by result hash. Some result hashes may be from future context
-	ownResultCalculated          *resultCalculated              // can be nil or the record with config and stateTx equal to the current
+	pushMessages                 map[HashValue][]*pushResultMsg // by result hash. Some result hashes may be from future context
 	pullMessages                 map[uint16]*pullResultMsg
+	ownResultCalculated          *resultCalculated       // can be nil or the record with config and stateTx equal to the current
 	startedCalculation           map[HashValue]time.Time // by result hash. Flag inidcates asyn calculation started
 	leaderPeerIndexList          []uint16
 	whenLastPushed               time.Time
@@ -66,12 +66,13 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 	oa, op := comm.GetOwnAddressAndPort()
 
 	ret := &AssemblyOperator{
-		assemblyId: state.AssemblyId(),
-		processor:  vmimpl.New(),
-		requests:   make(map[HashValue]*request),
-		stateTx:    tx,
-		inChan:     make(chan interface{}, inChanBufLen),
-		comm:       comm,
+		assemblyId:        state.AssemblyId(),
+		processor:         vmimpl.New(),
+		requests:          make(map[HashValue]*request),
+		processedRequests: make(map[HashValue]time.Duration),
+		stateTx:           tx,
+		inChan:            make(chan interface{}, inChanBufLen),
+		comm:              comm,
 	}
 
 	iAmParticipant, err := ret.configure(state.ConfigId(), oa, op)
