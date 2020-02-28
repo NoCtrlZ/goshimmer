@@ -20,19 +20,27 @@ import (
 const (
 	address = "127.0.0.1"
 	port    = 1000
+	firstN  = 4
 )
 
-var operators = []*registry.PortAddr{
+var operatorsAll = []*registry.PortAddr{
 	{4000, "127.0.0.1"},
 	{4001, "127.0.0.1"},
 	{4002, "127.0.0.1"},
 	{4003, "127.0.0.1"},
+	{4004, "127.0.0.1"},
+	{4005, "127.0.0.1"},
+	{4006, "127.0.0.1"},
+	{4007, "127.0.0.1"},
+	{4008, "127.0.0.1"},
+	{4009, "127.0.0.1"},
 }
 
 var (
-	srv  *udp.UDPServer
-	inCh = make(chan *wrapped, 10)
-	ldb  value.DB
+	operators = operatorsAll[:firstN]
+	srv       *udp.UDPServer
+	inCh      = make(chan *wrapped, 10)
+	ldb       value.DB
 )
 
 type wrapped struct {

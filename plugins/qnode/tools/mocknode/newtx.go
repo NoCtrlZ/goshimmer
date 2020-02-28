@@ -15,6 +15,7 @@ const (
 	N                   = uint16(4)
 	T                   = uint16(3)
 	cfgId2              = "74ca4be8414a6d787dd54d2452364b59c88c11b23a768b8d12810a057fb9a777" // 2 accounts
+	cfgId10             = "d129cdd27f69df6d12f6bf8d4df377966ea410d22484c4addf3dcbc7080de30c" // 2 accounts
 )
 
 var accStrings2 = []string{
@@ -22,13 +23,17 @@ var accStrings2 = []string{
 	"158284bb4c1f33342681832bed2b807286744f098f7f1c58289169ba7b603415",
 }
 
-var aid, configId, assemblyAccount, ownerAddr, requestorAddr *hashing.HashValue
+var accStringsN10 = []string{
+	"ceb5579e21e651dd48c47eea42fa7e6ddd0732e3df9ef8de127d693b977ea4e1",
+	"60ef310872f2b4d09cb2fa43e843b514fc21d3ea72b268a39d822b8ca9d5fd19",
+}
+
+var aid, configId, assemblyAccount, ownerAddr *hashing.HashValue
 
 func init() {
 	configId, _ = hashing.HashValueFromString(cfgId2)
 	aid = hashing.HashStrings(assemblyDescription)
 	assemblyAccount, _ = hashing.HashValueFromString(accStrings2[0])
-	requestorAddr = hashing.RandomHash(nil)
 	ownerAddr = hashing.NilHash
 }
 

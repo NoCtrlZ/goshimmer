@@ -27,10 +27,10 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 		req.pushMessages[*resultHash] = make([]*pushResultMsg, op.assemblySize())
 	} else {
 		if rhlst[msg.SenderIndex] != nil {
-			if !duplicateResultHashMessages(msg, rhlst[msg.SenderIndex]) {
-				return fmt.Errorf("duplicate result hash has been received")
+			if !duplicatePushMessages(msg, rhlst[msg.SenderIndex]) {
+				return fmt.Errorf("duplicate push msg has been received")
 			}
-			log.Error("duplicate result hash ignored")
+			log.Error("repeating push msg ignored")
 		}
 	}
 	// if duplicate, replace the previous
@@ -38,7 +38,7 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 	return nil
 }
 
-func duplicateResultHashMessages(msg1, msg2 *pushResultMsg) bool {
+func duplicatePushMessages(msg1, msg2 *pushResultMsg) bool {
 	switch {
 	case msg1 == msg2:
 		return true

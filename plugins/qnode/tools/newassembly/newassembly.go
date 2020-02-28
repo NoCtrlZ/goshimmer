@@ -7,16 +7,27 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 )
 
-var hosts = []registry.PortAddr{
+var hostsAll = []*registry.PortAddr{
 	{9090, "127.0.0.1"},
 	{9091, "127.0.0.1"},
 	{9092, "127.0.0.1"},
 	{9093, "127.0.0.1"},
+	{9094, "127.0.0.1"},
+	{9095, "127.0.0.1"},
+	{9096, "127.0.0.1"},
+	{9097, "127.0.0.1"},
+	{9098, "127.0.0.1"},
+	{9099, "127.0.0.1"},
 }
 
-const assemblyDescription = "test assembly 1"
+var hosts []*registry.PortAddr
+
+const firstN = 10
+
+const assemblyDescription = "test assembly 2"
 
 func main() {
+	hosts := hostsAll[:firstN]
 	assemblyId := hashing.HashStrings(assemblyDescription)
 	ownerPk := hashing.HashStrings("dummy").String() // for testing only
 
