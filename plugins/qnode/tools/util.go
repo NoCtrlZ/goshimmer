@@ -172,3 +172,12 @@ func ReadBoolByte(r io.Reader, cond *bool) error {
 	}
 	return nil
 }
+
+func Uint16InList(v uint16, lst []uint16) bool {
+	for _, vl := range lst {
+		if v == vl {
+			return true
+		}
+	}
+	return false
+}

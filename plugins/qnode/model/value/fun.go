@@ -3,6 +3,7 @@ package value
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
 func GetAddrValue(or *generic.OutputRef) (*hashing.HashValue, uint64) {
@@ -19,9 +20,12 @@ func OutputCanBeChained(or *generic.OutputRef, chainAccount *hashing.HashValue) 
 	return val == 1 && addr.Equal(chainAccount)
 }
 
-func SumOutputsToAddress(transfer UTXOTransfer, addr *hashing.HashValue) uint64 {
+func SumOutputsToAddress(transfer UTXOTransfer, addr *hashing.HashValue, except []uint16) uint64 {
 	var ret uint64
-	for _, outp := range transfer.Outputs() {
+	for i, outp := range transfer.Outputs() {
+		if tools.Uint16InList(uint16(i), except) {
+			continue
+		}
 		if outp.Address().Equal(addr) {
 			ret += outp.Value()
 		}

@@ -11,8 +11,9 @@ import (
 // check if the request message is well formed
 func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
-	sum := value.SumOutputsToAddress(reqRef.Tx().Transfer(), cfg.AssemblyAccount())
-	if sum < cfg.MinimumReward()+1 {
+	chainOutIdx, _, _ := reqRef.RequestBlock().OutputIndices()
+	sum := value.SumOutputsToAddress(reqRef.Tx().Transfer(), cfg.AssemblyAccount(), []uint16{chainOutIdx})
+	if sum < cfg.MinimumReward() {
 		return fmt.Errorf("reward %d iotas is less than required minimum of %d", sum, cfg.MinimumReward()+1)
 	}
 	return nil

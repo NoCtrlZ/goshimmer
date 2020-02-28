@@ -45,15 +45,19 @@ type Config interface {
 }
 
 const (
-	MAP_KEY_ASSEMBLY_ACCOUNT = "assembly_account"
-	MAP_KEY_OWNER_ACCOUNT    = "owner_account"
+	MAP_KEY_ASSEMBLY_ACCOUNT  = "assembly_account"
+	MAP_KEY_OWNER_ACCOUNT     = "owner_account"
+	MAP_KEY_CHAIN_OUT_INDEX   = "chain_out_idx"
+	MAP_KEY_REWARD_OUT_INDEX  = "reward_out_idx"
+	MAP_KEY_DEPOSIT_OUT_INDEX = "chain_out_idx"
 )
 
 type Request interface {
 	AssemblyId() *HashValue
 	IsConfigUpdateReq() bool
 	Vars() generic.ValueMap
-	RequestChainOutputIndex() uint16 // TODO maybe just select first or any with 1i output to the RequestChainAccount
+	OutputIndices() (uint16, uint16, uint16)
+	WithOutputIndices(chainIdx, rewardIdx, depositIdx uint16) Request
 	Encode() generic.Encode
 }
 

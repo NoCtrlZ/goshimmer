@@ -56,7 +56,8 @@ func NewRequest(par NewRequestParams) (sc.Transaction, error) {
 	if val != 1 {
 		return nil, fmt.Errorf("request chain output must have value exactly 1i")
 	}
-	reqBlk := sc.NewRequestBlock(par.AssemblyId, false, chainOutIndex)
+	reqBlk := sc.NewRequestBlock(par.AssemblyId, false).WithOutputIndices(chainOutIndex, 0, 0)
+
 	vars := reqBlk.Vars()
 	for k, v := range par.Vars {
 		vars.SetString(generic.VarName(k), v)

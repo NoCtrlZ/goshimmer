@@ -11,15 +11,20 @@ import (
 type mockRequestBlock struct {
 	assemblyId        *HashValue
 	isConfigUpdateReq bool
-	chainOutputIndex  uint16
 	vars              generic.ValueMap
 }
 
-func newRequestBock(aid *HashValue, isConfig bool, chainOutputIndex uint16) sc.Request {
+func (req *mockRequestBlock) WithOutputIndices(chainIdx, rewardIdx, depositIdx uint16) sc.Request {
+	req.vars.SetInt(sc.MAP_KEY_CHAIN_OUT_INDEX, int(chainIdx))
+	req.vars.SetInt(sc.MAP_KEY_REWARD_OUT_INDEX, int(chainIdx))
+	req.vars.SetInt(sc.MAP_KEY_DEPOSIT_OUT_INDEX, int(chainIdx))
+	return req
+}
+
+func newRequestBock(aid *HashValue, isConfig bool) sc.Request {
 	return &mockRequestBlock{
 		assemblyId:        aid,
 		isConfigUpdateReq: isConfig,
-		chainOutputIndex:  chainOutputIndex,
 		vars:              generic.NewFlatValueMap(),
 	}
 }
@@ -40,8 +45,11 @@ func (req *mockRequestBlock) Vars() generic.ValueMap {
 	return req.vars
 }
 
-func (req *mockRequestBlock) RequestChainOutputIndex() uint16 {
-	return req.chainOutputIndex
+func (req *mockRequestBlock) OutputIndices() (uint16, uint16, uint16) {
+	chain, _ := req.vars.GetInt(sc.MAP_KEY_CHAIN_OUT_INDEX)
+	reward, _ := req.vars.GetInt(sc.MAP_KEY_REWARD_OUT_INDEX)
+	deposit, _ := req.vars.GetInt(sc.MAP_KEY_DEPOSIT_OUT_INDEX)
+	return uint16(chain), uint16(reward), uint16(deposit)
 }
 
 // Encode
@@ -52,10 +60,6 @@ func (req *mockRequestBlock) Write(w io.Writer) error {
 		return err
 	}
 	err = tools.WriteBoolByte(w, req.isConfigUpdateReq)
-	if err != nil {
-		return err
-	}
-	err = tools.WriteUint16(w, req.chainOutputIndex)
 	if err != nil {
 		return err
 	}
@@ -74,11 +78,6 @@ func (req *mockRequestBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	var chainOutputIndex uint16
-	err = tools.ReadUint16(r, &chainOutputIndex)
-	if err != nil {
-		return err
-	}
 	vars := generic.NewFlatValueMap()
 	err = vars.Encode().Read(r)
 	if err != nil {
@@ -86,7 +85,6 @@ func (req *mockRequestBlock) Read(r io.Reader) error {
 	}
 	req.assemblyId = &aid
 	req.isConfigUpdateReq = isConfig
-	req.chainOutputIndex = chainOutputIndex
 	req.vars = vars
 	return nil
 }

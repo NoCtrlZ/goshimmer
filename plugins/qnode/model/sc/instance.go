@@ -13,14 +13,14 @@ var (
 	newTransaction  func() Transaction
 	newFromValueTx  func(value.Transaction) (Transaction, error)
 	newStateBlock   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
-	newRequestBlock func(*hashing.HashValue, bool, uint16) Request
+	newRequestBlock func(*hashing.HashValue, bool) Request
 )
 
 type SetConstructorsParams struct {
 	TxConstructor           func() Transaction
 	TxParser                func(value.Transaction) (Transaction, error)
 	StateBlockConstructor   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
-	RequestBlockConstructor func(*hashing.HashValue, bool, uint16) Request
+	RequestBlockConstructor func(*hashing.HashValue, bool) Request
 }
 
 func SetConstructors(c SetConstructorsParams) {
@@ -45,8 +45,8 @@ func NewStateBlock(aid, cid *hashing.HashValue, reqRef *RequestRef) State {
 	return newStateBlock(aid, cid, reqRef.Tx().Id(), reqRef.Index())
 }
 
-func NewRequestBlock(aid *hashing.HashValue, isConfig bool, chainOutputIndex uint16) Request {
-	return newRequestBlock(aid, isConfig, chainOutputIndex)
+func NewRequestBlock(aid *hashing.HashValue, isConfig bool) Request {
+	return newRequestBlock(aid, isConfig)
 }
 
 func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transaction, error) {
@@ -57,7 +57,8 @@ func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transa
 	reqBlock := reqRef.RequestBlock()
 	// check if request block points to valid chain output
 	// which can be used as request->result chain
-	requestChainOutputRef := generic.NewOutputRef(reqRef.Tx().Transfer().Id(), reqBlock.RequestChainOutputIndex())
+	requestChainOutputIdx, _, _ := reqBlock.OutputIndices()
+	requestChainOutputRef := generic.NewOutputRef(reqRef.Tx().Transfer().Id(), requestChainOutputIdx)
 	if !value.OutputCanBeChained(requestChainOutputRef, state.Config().AssemblyAccount()) {
 		return nil, fmt.Errorf("invalid request chain output")
 	}
