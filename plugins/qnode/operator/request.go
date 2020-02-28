@@ -1,17 +1,22 @@
 package operator
 
 import (
-	"bytes"
+	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
-	"sort"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"time"
 )
 
-// find existing request based on msg parameters or creates new one
-// always returns request struct.
-// returns flag if request message is new and other operators must be notified
+// check if the request message is well formed
+func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
+	cfg := op.stateTx.MustState().Config()
+	sum := value.SumOutputsToAddress(reqRef.Tx().Transfer(), cfg.AssemblyAccount())
+	if sum < cfg.MinimumReward()+1 {
+		return fmt.Errorf("reward %d iotas is less than required minimum of %d", sum, cfg.MinimumReward()+1)
+	}
+	return nil
+}
 
 func newRequest(reqId *HashValue) *request {
 	return &request{
@@ -70,88 +75,4 @@ func (op *AssemblyOperator) markRequestProcessed(reqId *HashValue, duration time
 	if sum != sum1 {
 		log.Panicf("WTF!!!!!!")
 	}
-}
-
-func maxVotesFromPeers(req *request) (uint16, *HashValue) {
-	var retRsHash HashValue
-	var retNumVotes uint16
-
-	for rsHash, rhlst := range req.pushMessages {
-		numNotNil := uint16(0)
-		for _, rh := range rhlst {
-			if rh != nil {
-				numNotNil++
-			}
-		}
-		if numNotNil > retNumVotes {
-			retNumVotes = numNotNil
-			copy(retRsHash.Bytes(), rsHash.Bytes())
-		}
-	}
-	return retNumVotes, &retRsHash
-}
-
-func (op *AssemblyOperator) pickRequestToPush() *request {
-	// with request message received and not led by me
-	reqs := make([]*request, 0, len(op.requests))
-	for _, req := range op.requests {
-		if req.reqRef == nil {
-			continue
-		}
-		if op.iAmCurrentLeader(req) {
-			continue
-		}
-		if req.hasBeenPushedToCurrentLeader {
-			// only one is pushed each moment
-			return nil
-		}
-		reqs = append(reqs, req)
-	}
-	if len(reqs) == 0 {
-		return nil
-	}
-	// select the oldest 5
-	sortRequestsByAge(reqs)
-	if len(reqs) > parameters.NUM_OLDEST_REQESTS {
-		reqs = reqs[:parameters.NUM_OLDEST_REQESTS]
-	}
-	// select the one with minimal id
-	sortRequestsById(reqs)
-	return reqs[0]
-}
-
-type sortByAge []*request
-
-func (s sortByAge) Len() int {
-	return len(s)
-}
-
-func (s sortByAge) Less(i, j int) bool {
-	return s[i].whenMsgReceived.Before(s[j].whenMsgReceived)
-}
-
-func (s sortByAge) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func sortRequestsByAge(reqs []*request) {
-	sort.Sort(sortByAge(reqs))
-}
-
-type sortById []*request
-
-func (s sortById) Len() int {
-	return len(s)
-}
-
-func (s sortById) Less(i, j int) bool {
-	return bytes.Compare(s[i].reqId.Bytes(), s[j].reqId.Bytes()) < 0
-}
-
-func (s sortById) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func sortRequestsById(reqs []*request) {
-	sort.Sort(sortById(reqs))
 }

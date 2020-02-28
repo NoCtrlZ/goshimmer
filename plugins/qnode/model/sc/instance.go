@@ -58,7 +58,7 @@ func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transa
 	// check if request block points to valid chain output
 	// which can be used as request->result chain
 	requestChainOutputRef := generic.NewOutputRef(reqRef.Tx().Transfer().Id(), reqBlock.RequestChainOutputIndex())
-	if !value.OutputCanBeChained(requestChainOutputRef, state.RequestChainAccount()) {
+	if !value.OutputCanBeChained(requestChainOutputRef, state.Config().AssemblyAccount()) {
 		return nil, fmt.Errorf("invalid request chain output")
 	}
 	tx := NewTransaction()
@@ -66,20 +66,19 @@ func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transa
 	// add request chain link
 	// transfer 1i from RequestChainAddress to itself
 	tr.AddInput(value.NewInputFromOutputRef(requestChainOutputRef))
-	tr.AddOutput(value.NewOutput(state.RequestChainAccount(), 1))
+	tr.AddOutput(value.NewOutput(state.Config().AssemblyAccount(), 1))
 
 	// add state chain link
 	// transfer 1i from StateChainAddress to itself
 	tr.AddInput(value.NewInput(stateTx.Transfer().Id(), state.StateChainOutputIndex()))
-	chainOutIdx := tr.AddOutput(value.NewOutput(state.StateChainAccount(), 1))
+	chainOutIdx := tr.AddOutput(value.NewOutput(state.Config().AssemblyAccount(), 1))
 
-	nextState := NewStateBlock(state.AssemblyId(), state.ConfigId(), reqRef)
+	nextState := NewStateBlock(state.AssemblyId(), state.Config().Id(), reqRef)
 	nextState.
 		WithStateIndex(state.StateIndex() + 1).
-		WithConfigVars(state.ConfigVars()).
-		WithStateVars(state.StateVars()).
+		WithVars(state.Vars()).
 		WithStateChainOutputIndex(chainOutIdx)
-
+	nextState.Config().With(state.Config())
 	tx.SetState(nextState)
 	return tx, nil
 }

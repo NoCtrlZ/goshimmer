@@ -139,7 +139,7 @@ func newFromValueTx(vtx value.Transaction) (sc.Transaction, error) {
 		return nil, err
 	}
 	if hasState {
-		tx.stateBlock = &mockStateBlock{}
+		tx.stateBlock = newStateBlock(nil, nil, nil, 0)
 		err = tx.stateBlock.Encode().Read(buf)
 		if err != nil {
 			return nil, err

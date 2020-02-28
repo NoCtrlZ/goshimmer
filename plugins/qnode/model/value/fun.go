@@ -18,3 +18,13 @@ func OutputCanBeChained(or *generic.OutputRef, chainAccount *hashing.HashValue) 
 	addr, val := GetAddrValue(or)
 	return val == 1 && addr.Equal(chainAccount)
 }
+
+func SumOutputsToAddress(transfer UTXOTransfer, addr *hashing.HashValue) uint64 {
+	var ret uint64
+	for _, outp := range transfer.Outputs() {
+		if outp.Address().Equal(addr) {
+			ret += outp.Value()
+		}
+	}
+	return ret
+}

@@ -9,11 +9,10 @@ import (
 )
 
 type NewOriginParams struct {
-	AssemblyId     *HashValue
-	ConfigId       *HashValue
-	StateAccount   *HashValue
-	RequestAccount *HashValue
-	OwnerAccount   *HashValue
+	AssemblyId      *HashValue
+	ConfigId        *HashValue
+	AssemblyAccount *HashValue
+	OwnerAccount    *HashValue
 	// owner's section
 	OriginOutput *generic.OutputRef // output of 1i to the owner's address
 }
@@ -23,9 +22,8 @@ type NewOriginParams struct {
 func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
 	state := sc.NewStateBlock(par.AssemblyId, par.ConfigId, nil)
-	configVars := state.ConfigVars()
-	configVars.SetString(sc.MAP_KEY_STATE_ACCOUNT, par.StateAccount.String())
-	configVars.SetString(sc.MAP_KEY_REQUEST_ACCOUNT, par.RequestAccount.String())
+	configVars := state.Config().Vars()
+	configVars.SetString(sc.MAP_KEY_ASSEMBLY_ACCOUNT, par.AssemblyAccount.String())
 	configVars.SetString(sc.MAP_KEY_OWNER_ACCOUNT, par.OwnerAccount.String())
 	ret.SetState(state)
 	tr := ret.Transfer()
@@ -37,13 +35,13 @@ func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 		return nil, fmt.Errorf("OriginOutput parameter must be exactly 1i to the owner's account")
 	}
 	tr.AddInput(value.NewInputFromOutputRef(par.OriginOutput))
-	tr.AddOutput(value.NewOutput(par.StateAccount, 1))
+	tr.AddOutput(value.NewOutput(par.AssemblyAccount, 1))
 	return ret, nil
 }
 
 type NewRequestParams struct {
 	AssemblyId         *HashValue
-	RequestAccount     *HashValue
+	AssemblyAccount    *HashValue
 	RequestChainOutput *generic.OutputRef // output of 1i owned by the request originator
 	Vars               map[string]string
 }
@@ -53,7 +51,7 @@ func NewRequest(par NewRequestParams) (sc.Transaction, error) {
 	tr := ret.Transfer()
 	// create 1i transfer from RequestChainOutput to request account
 	tr.AddInput(value.NewInputFromOutputRef(par.RequestChainOutput))
-	chainOutIndex := tr.AddOutput(value.NewOutput(par.RequestAccount, 1))
+	chainOutIndex := tr.AddOutput(value.NewOutput(par.AssemblyAccount, 1))
 	_, val := value.GetAddrValue(par.RequestChainOutput)
 	if val != 1 {
 		return nil, fmt.Errorf("request chain output must have value exactly 1i")

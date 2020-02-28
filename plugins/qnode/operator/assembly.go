@@ -75,7 +75,7 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 		comm:              comm,
 	}
 
-	iAmParticipant, err := ret.configure(state.ConfigId(), oa, op)
+	iAmParticipant, err := ret.configure(state.Config().Id(), oa, op)
 
 	if err != nil {
 		return nil, err

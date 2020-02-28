@@ -17,14 +17,14 @@ func (ctx *runtimeContext) InputVars() generic.ValueMap {
 }
 
 func (ctx *runtimeContext) OutputVars() generic.ValueMap {
-	return ctx.resultTx.MustState().StateVars()
+	return ctx.resultTx.MustState().Vars()
 }
 
 // creates context with skeleton resulting transaction
 // not signed
 
 func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
-	ownerAccount := curStateTx.MustState().OwnerChainAccount()
+	ownerAccount := curStateTx.MustState().Config().OwnerAccount()
 	if !sc.AuthorizedForAddress(reqRef.Tx(), ownerAccount) {
 		return nil, fmt.Errorf("config update request is not authorized")
 	}
@@ -34,7 +34,7 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 		return nil, err
 	}
 	// just updates config variables
-	resTx.MustState().WithConfigVars(reqRef.RequestBlock().Vars())
+	resTx.MustState().WithVars(reqRef.RequestBlock().Vars())
 
 	return &runtimeContext{
 		reqRef:   reqRef,

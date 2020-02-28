@@ -23,26 +23,30 @@ type Transaction interface {
 
 type State interface {
 	AssemblyId() *HashValue
-	ConfigId() *HashValue
 	RequestId() *HashValue
-	StateChainOutputIndex() uint16 // TODO maybe just select first or any with 1i output to the StateChainAccount
-	StateChainAccount() *HashValue
-	RequestChainAccount() *HashValue
-	OwnerChainAccount() *HashValue
-	ConfigVars() generic.ValueMap
-	StateVars() generic.ValueMap
 	StateIndex() uint32
+	Vars() generic.ValueMap
+	StateChainOutputIndex() uint16
 	WithStateIndex(uint32) State
-	WithConfigVars(generic.ValueMap) State
-	WithStateVars(generic.ValueMap) State
+	WithVars(generic.ValueMap) State
 	WithStateChainOutputIndex(uint16) State
+	Config() Config
 	Encode() generic.Encode
 }
 
+type Config interface {
+	Id() *HashValue
+	Vars() generic.ValueMap
+	AssemblyAccount() *HashValue
+	OwnerAccount() *HashValue
+	MinimumReward() uint64
+	OwnersMargin() byte // owner's take in percents
+	With(Config) Config
+}
+
 const (
-	MAP_KEY_STATE_ACCOUNT   = "state_addr"
-	MAP_KEY_REQUEST_ACCOUNT = "request_addr"
-	MAP_KEY_OWNER_ACCOUNT   = "owner_addr"
+	MAP_KEY_ASSEMBLY_ACCOUNT = "assembly_account"
+	MAP_KEY_OWNER_ACCOUNT    = "owner_account"
 )
 
 type Request interface {

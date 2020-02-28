@@ -10,34 +10,95 @@ import (
 
 type mockStateBlock struct {
 	assemblyId            *HashValue
-	configId              *HashValue
+	config                *mockConfig
 	stateIndex            uint32
 	stateChainOutputIndex uint16
-	configVars            generic.ValueMap
-	stateVars             generic.ValueMap
+	vars                  generic.ValueMap
 	requestTxId           *HashValue
 	requestBlockIndex     uint16
 }
 
+type mockConfig struct {
+	state        *mockStateBlock
+	id           *HashValue
+	vars         generic.ValueMap
+	minReward    uint64
+	ownersMargin byte
+}
+
+func newConfig(id *HashValue, state *mockStateBlock, minReward uint64, ownersMargin byte) *mockConfig {
+	return &mockConfig{
+		state:        state,
+		id:           id,
+		vars:         generic.NewFlatValueMap(),
+		minReward:    minReward,
+		ownersMargin: ownersMargin,
+	}
+}
+
+func (cfg *mockConfig) Id() *HashValue {
+	return cfg.id
+}
+
+func (cfg *mockConfig) Vars() generic.ValueMap {
+	return cfg.vars
+}
+
+func (cfg *mockConfig) AssemblyAccount() *HashValue {
+	addr, ok := cfg.vars.GetString(sc.MAP_KEY_ASSEMBLY_ACCOUNT)
+	if !ok {
+		return NilHash
+	}
+	ret, err := HashValueFromString(addr)
+	if err != nil {
+		return NilHash
+	}
+	return ret
+}
+
+func (cfg *mockConfig) OwnerAccount() *HashValue {
+	addr, ok := cfg.vars.GetString(sc.MAP_KEY_OWNER_ACCOUNT)
+	if !ok {
+		return NilHash
+	}
+	ret, err := HashValueFromString(addr)
+	if err != nil {
+		return NilHash
+	}
+	return ret
+}
+
+func (cfg *mockConfig) MinimumReward() uint64 {
+	return cfg.minReward
+}
+
+func (cfg *mockConfig) OwnersMargin() byte {
+	return cfg.ownersMargin
+}
+
+func (cfg *mockConfig) With(config sc.Config) sc.Config {
+	cfg.id = config.Id()
+	cfg.ownersMargin = config.OwnersMargin()
+	cfg.minReward = config.MinimumReward()
+	cfg.vars = config.Vars().Clone()
+	return cfg
+}
+
 func newStateBlock(aid, cid, reqId *HashValue, reqIdx uint16) sc.State {
-	return &mockStateBlock{
+	ret := &mockStateBlock{
 		assemblyId:        aid,
-		configId:          cid,
 		requestTxId:       reqId,
 		requestBlockIndex: reqIdx,
-		configVars:        generic.NewFlatValueMap(),
-		stateVars:         generic.NewFlatValueMap(),
+		vars:              generic.NewFlatValueMap(),
 	}
+	ret.config = newConfig(cid, ret, 0, 0)
+	return ret
 }
 
 // state
 
 func (st *mockStateBlock) AssemblyId() *HashValue {
 	return st.assemblyId
-}
-
-func (st *mockStateBlock) ConfigId() *HashValue {
-	return st.configId
 }
 
 func (st *mockStateBlock) StateChainOutputIndex() uint16 {
@@ -48,48 +109,8 @@ func (st *mockStateBlock) RequestId() *HashValue {
 	return sc.RequestId(st.requestTxId, st.requestBlockIndex)
 }
 
-func (st *mockStateBlock) StateChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString(sc.MAP_KEY_STATE_ACCOUNT)
-	if !ok {
-		return NilHash
-	}
-	ret, err := HashValueFromString(addr)
-	if err != nil {
-		return NilHash
-	}
-	return ret
-}
-
-func (st *mockStateBlock) RequestChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString(sc.MAP_KEY_REQUEST_ACCOUNT)
-	if !ok {
-		return NilHash
-	}
-	ret, err := HashValueFromString(addr)
-	if err != nil {
-		return NilHash
-	}
-	return ret
-}
-
-func (st *mockStateBlock) OwnerChainAccount() *HashValue {
-	addr, ok := st.configVars.GetString(sc.MAP_KEY_OWNER_ACCOUNT)
-	if !ok {
-		return NilHash
-	}
-	ret, err := HashValueFromString(addr)
-	if err != nil {
-		return NilHash
-	}
-	return ret
-}
-
-func (st *mockStateBlock) ConfigVars() generic.ValueMap {
-	return st.configVars
-}
-
-func (st *mockStateBlock) StateVars() generic.ValueMap {
-	return st.stateVars
+func (st *mockStateBlock) Vars() generic.ValueMap {
+	return st.vars
 }
 
 func (st *mockStateBlock) StateIndex() uint32 {
@@ -100,18 +121,17 @@ func (st *mockStateBlock) Encode() generic.Encode {
 	return st
 }
 
+func (st *mockStateBlock) Config() sc.Config {
+	return st.config
+}
+
 func (st *mockStateBlock) WithStateIndex(idx uint32) sc.State {
 	st.stateIndex = idx
 	return st
 }
 
-func (st *mockStateBlock) WithConfigVars(vars generic.ValueMap) sc.State {
-	st.configVars = vars.Clone()
-	return st
-}
-
-func (st *mockStateBlock) WithStateVars(vars generic.ValueMap) sc.State {
-	st.stateVars = vars.Clone()
+func (st *mockStateBlock) WithVars(vars generic.ValueMap) sc.State {
+	st.vars = vars.Clone()
 	return st
 }
 
@@ -126,10 +146,6 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(st.configId.Bytes())
-	if err != nil {
-		return err
-	}
 	err = tools.WriteUint32(w, st.stateIndex)
 	if err != nil {
 		return err
@@ -138,11 +154,7 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = st.configVars.Encode().Write(w)
-	if err != nil {
-		return err
-	}
-	err = st.stateVars.Encode().Write(w)
+	err = st.vars.Encode().Write(w)
 	if err != nil {
 		return err
 	}
@@ -151,17 +163,30 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 		return err
 	}
 	err = tools.WriteUint16(w, st.requestBlockIndex)
+	if err != nil {
+		return err
+	}
+
+	// config
+	_, err = w.Write(st.config.id.Bytes())
+	if err != nil {
+		return err
+	}
+	err = tools.WriteUint64(w, st.config.minReward)
+	if err != nil {
+		return err
+	}
+	err = tools.WriteByte(w, st.config.ownersMargin)
+	if err != nil {
+		return err
+	}
+	err = st.config.vars.Encode().Write(w)
 	return err
 }
 
 func (st *mockStateBlock) Read(r io.Reader) error {
 	var assemblyId HashValue
 	_, err := r.Read(assemblyId.Bytes())
-	if err != nil {
-		return err
-	}
-	var configId HashValue
-	_, err = r.Read(configId.Bytes())
 	if err != nil {
 		return err
 	}
@@ -175,13 +200,8 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	cfgVars := generic.NewFlatValueMap()
-	err = cfgVars.Encode().Read(r)
-	if err != nil {
-		return err
-	}
-	stateVars := generic.NewFlatValueMap()
-	err = stateVars.Encode().Read(r)
+	vars := generic.NewFlatValueMap()
+	err = vars.Encode().Read(r)
 	if err != nil {
 		return err
 	}
@@ -195,12 +215,36 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	// config
+	var configId HashValue
+	_, err = r.Read(configId.Bytes())
+	if err != nil {
+		return err
+	}
+	var minReward uint64
+	err = tools.ReadUint64(r, &minReward)
+	if err != nil {
+		return err
+	}
+	var ownersMargin byte
+	ownersMargin, err = tools.ReadByte(r)
+	if err != nil {
+		return err
+	}
+	cfgVars := generic.NewFlatValueMap()
+	err = cfgVars.Encode().Read(r)
+	if err != nil {
+		return err
+	}
+
 	st.assemblyId = &assemblyId
-	st.configId = &configId
+	st.config.id = &configId
+	st.config.minReward = minReward
+	st.config.ownersMargin = ownersMargin
+	st.config.vars = cfgVars
 	st.stateIndex = stateIndex
 	st.stateChainOutputIndex = stateChainOutputIndex
-	st.configVars = cfgVars
-	st.stateVars = stateVars
+	st.vars = vars
 	st.requestTxId = &requestTxId
 	st.requestBlockIndex = requestBlockIndex
 	return nil

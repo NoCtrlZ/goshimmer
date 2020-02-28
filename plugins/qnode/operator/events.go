@@ -10,6 +10,13 @@ import (
 // called from he main queue
 
 func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
+	if err := op.validateRequest(reqRef); err != nil {
+		log.Errorw("invalid request message received",
+			"req", reqRef.Id().Short(),
+			"err", err,
+		)
+		return
+	}
 	reqRec := op.requestFromMsg(reqRef)
 	log.Debugw("EventRequestMsg",
 		"tx", reqRef.Tx().ShortStr(),
@@ -53,10 +60,10 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	// delete processed request from buffer
 	op.markRequestProcessed(reqId, duration)
 
-	if !state.ConfigId().Equal(stateUpd.ConfigId()) {
+	if !state.Config().Id().Equal(stateUpd.Config().Id()) {
 		// configuration changed
 		ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
-		iAmParticipant, err := op.configure(stateUpd.ConfigId(), ownAddr, ownPort)
+		iAmParticipant, err := op.configure(stateUpd.Config().Id(), ownAddr, ownPort)
 		if err != nil || !iAmParticipant {
 			op.Dismiss()
 			return

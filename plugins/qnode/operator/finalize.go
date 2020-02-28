@@ -2,10 +2,30 @@ package operator
 
 import (
 	"fmt"
+	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"time"
 )
+
+func maxVotesFromPeers(req *request) (uint16, *HashValue) {
+	var retRsHash HashValue
+	var retNumVotes uint16
+
+	for rsHash, rhlst := range req.pushMessages {
+		numNotNil := uint16(0)
+		for _, rh := range rhlst {
+			if rh != nil {
+				numNotNil++
+			}
+		}
+		if numNotNil > retNumVotes {
+			retNumVotes = numNotNil
+			copy(retRsHash.Bytes(), rsHash.Bytes())
+		}
+	}
+	return retNumVotes, &retRsHash
+}
 
 func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 	// aggregates final signature, generates final result and posts to the tangle

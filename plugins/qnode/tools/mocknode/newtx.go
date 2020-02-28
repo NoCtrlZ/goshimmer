@@ -22,13 +22,12 @@ var accStrings2 = []string{
 	"158284bb4c1f33342681832bed2b807286744f098f7f1c58289169ba7b603415",
 }
 
-var aid, configId, stateAddr, requestAddr, ownerAddr, requestorAddr *hashing.HashValue
+var aid, configId, assemblyAccount, ownerAddr, requestorAddr *hashing.HashValue
 
 func init() {
 	configId, _ = hashing.HashValueFromString(cfgId2)
 	aid = hashing.HashStrings(assemblyDescription)
-	stateAddr, _ = hashing.HashValueFromString(accStrings2[0])
-	requestAddr, _ = hashing.HashValueFromString(accStrings2[0])
+	assemblyAccount, _ = hashing.HashValueFromString(accStrings2[0])
 	requestorAddr = hashing.RandomHash(nil)
 	ownerAddr = hashing.NilHash
 }
@@ -59,12 +58,11 @@ func newOrigin() (sc.Transaction, error) {
 	}
 	origOutRef := generic.NewOutputRef(toorig.Transfer().Id(), outIdx)
 	ret, err := clientapi.NewOriginTransaction(clientapi.NewOriginParams{
-		AssemblyId:     aid,
-		ConfigId:       configId,
-		StateAccount:   stateAddr,
-		RequestAccount: requestAddr,
-		OwnerAccount:   ownerAddr,
-		OriginOutput:   origOutRef,
+		AssemblyId:      aid,
+		ConfigId:        configId,
+		AssemblyAccount: assemblyAccount,
+		OwnerAccount:    ownerAddr,
+		OriginOutput:    origOutRef,
 	})
 
 	err = sc.SignTransaction(ret, keyPool)
@@ -91,7 +89,7 @@ func makeReqTx() (sc.Transaction, error) {
 	toreq := sc.NewTransaction()
 	trf := toreq.Transfer()
 	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
-	outIdx := trf.AddOutput(value.NewOutput(requestAddr, 1))
+	outIdx := trf.AddOutput(value.NewOutput(assemblyAccount, 1))
 
 	keyPool := clientapi.NewDummyKeyPool()
 	err := sc.SignTransaction(toreq, keyPool)
@@ -114,7 +112,7 @@ func makeReqTx() (sc.Transaction, error) {
 
 	ret, err := clientapi.NewRequest(clientapi.NewRequestParams{
 		AssemblyId:         aid,
-		RequestAccount:     requestAddr,
+		AssemblyAccount:    assemblyAccount,
 		RequestChainOutput: reqChainOut,
 		Vars:               vars,
 	})
