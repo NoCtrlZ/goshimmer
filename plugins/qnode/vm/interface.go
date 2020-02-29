@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 )
 
@@ -15,7 +15,9 @@ type RuntimeContext interface {
 	ConfigVars() generic.ValueMap
 	SetError(error)
 	Error() error
-	RequestTransferId() *hashing.HashValue
+	RequestTransferId() *HashValue
 	GetDepositOutput() (uint16, uint64)
 	Signature() []byte
+	SendFundsToAddress([]*generic.OutputRef, *HashValue, uint64) // TODO parameters
+	AddRequestToSelf(uint16)
 }

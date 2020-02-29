@@ -82,19 +82,20 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 		ctx.StateVars().SetInt("locked_pot", pot)
 		ctx.StateVars().SetInt("num_bets", 0)
 
-		// TODO add Play request to itself
+		ctx.AddRequestToSelf(REQ_TYPE_PLAY)
 
 	case REQ_TYPE_PLAY:
 		if lockedBets == "" {
 			ctx.SetError(fmt.Errorf("no locked bets to play"))
 			return
 		}
-		winner, pot, err := runLottery(lockedBets, signature)
+		winner, pot, outputs, err := runLottery(lockedBets, signature)
 		if err != nil {
 			ctx.SetError(err)
 			return
 		}
-		// TODO transfer pot -> winner
+		ctx.SendFundsToAddress(outputs, winner, pot)
+
 		ctx.StateVars().SetString("locked_bets", "")
 		ctx.StateVars().SetString("winning_address", winner.String())
 		ctx.StateVars().SetInt("payout", int(pot))
@@ -107,16 +108,16 @@ type betData struct {
 	payoutAddr *hashing.HashValue
 }
 
-func scanBetData(lockedBets string) (map[hashing.HashValue]uint64, uint64, error) {
+func scanBetData(lockedBets string) ([]*generic.OutputRef, map[hashing.HashValue]uint64, uint64, error) {
 	splittedBets := strings.Split(lockedBets, "|")
 	if len(splittedBets) == 0 {
-		return nil, 0, fmt.Errorf("no locked bets found")
+		return nil, nil, 0, fmt.Errorf("no locked bets found")
 	}
 	bets := make([]*betData, 0, len(splittedBets))
 	for _, betStr := range splittedBets {
 		betParts := strings.Split(betStr, ",")
 		if len(betParts) != 4 {
-			return nil, 0, fmt.Errorf("internal inconsistency I")
+			return nil, nil, 0, fmt.Errorf("internal inconsistency I")
 		}
 		transferIdStr := betParts[0]
 		depoOutIdxStr := betParts[1]
@@ -125,19 +126,19 @@ func scanBetData(lockedBets string) (map[hashing.HashValue]uint64, uint64, error
 
 		transferId, err := hashing.HashValueFromString(transferIdStr)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		depoOutIdx, err := strconv.Atoi(depoOutIdxStr)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		payoutAddr, err := hashing.HashValueFromString(payoutAddrStr)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		value, err := strconv.ParseInt(depoValueStr, 10, 64)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, 0, err
 		}
 		bets = append(bets, &betData{
 			outRef:     generic.NewOutputRef(transferId, uint16(depoOutIdx)),
@@ -152,7 +153,11 @@ func scanBetData(lockedBets string) (map[hashing.HashValue]uint64, uint64, error
 		ret[*bd.payoutAddr] = v + bd.value
 		pot += bd.value
 	}
-	return ret, pot, nil
+	retOutputs := make([]*generic.OutputRef, len(bets))
+	for i := range retOutputs {
+		retOutputs[i] = bets[i].outRef
+	}
+	return retOutputs, ret, pot, nil
 }
 
 type arrToSort []*betData
@@ -183,17 +188,17 @@ func sortByPayout(bets map[hashing.HashValue]uint64) []*betData {
 	return toSort
 }
 
-func runLottery(lockedBets, signature string) (*hashing.HashValue, uint64, error) {
+func runLottery(lockedBets, signature string) (*hashing.HashValue, uint64, []*generic.OutputRef, error) {
 	// assert signature != ""
-	byPayout, pot, err := scanBetData(lockedBets)
+	outputs, byPayout, pot, err := scanBetData(lockedBets)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 	sortedByPayout := sortByPayout(byPayout)
 	// calculate random uint64
 	sigBin, err := hex.DecodeString(signature)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 	h := hashing.HashData(sigBin)
 	// rnd < pot, uniformly distributed [0,pot)
@@ -202,9 +207,9 @@ func runLottery(lockedBets, signature string) (*hashing.HashValue, uint64, error
 	var runSum uint64
 	for _, bd := range sortedByPayout {
 		if runSum <= rnd && rnd <= runSum+bd.value {
-			return bd.payoutAddr, pot, nil
+			return bd.payoutAddr, pot, outputs, nil
 		}
 		runSum += bd.value
 	}
-	return nil, 0, fmt.Errorf("runLottery: inconsistency")
+	return nil, 0, nil, fmt.Errorf("runLottery: inconsistency")
 }

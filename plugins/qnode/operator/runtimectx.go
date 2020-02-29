@@ -2,6 +2,7 @@ package operator
 
 import (
 	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
@@ -53,6 +54,17 @@ func (ctx *runtimeContext) GetDepositOutput() (uint16, uint64) {
 	return depoIdx, depoOut.Value()
 }
 
+func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue, value uint64) {
+	_ = clientapi.SendOutputsToAddress(ctx.resultTx, outputs, addr, value)
+}
+
+func (ctx *runtimeContext) AddRequestToSelf(reqNr uint16) {
+	//ctx.resultTx.Transfer().AddInput(value.NewInputFromOutputRef(outRef))
+	//return tr.AddOutput(NewOutput(addr, 1))
+	// TODO
+
+}
+
 // creates context with skeleton resulting transaction
 // not signed
 
@@ -62,7 +74,7 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 		return nil, fmt.Errorf("config update request is not authorized")
 	}
 
-	resTx, err := sc.NextStateUpdateTransaction(curStateTx, reqRef)
+	resTx, err := clientapi.NextStateUpdateTransaction(curStateTx, reqRef)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +89,7 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 }
 
 func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
-	resTx, err := sc.NextStateUpdateTransaction(curStateTx, reqRef)
+	resTx, err := clientapi.NextStateUpdateTransaction(curStateTx, reqRef)
 	if err != nil {
 		return nil, err
 	}

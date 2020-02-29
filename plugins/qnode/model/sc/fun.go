@@ -8,7 +8,7 @@ import (
 
 func AuthorizedForAddress(tx Transaction, account *hashing.HashValue) bool {
 	for _, inp := range tx.Transfer().Inputs() {
-		addr, _ := value.GetAddrValue(inp.OutputRef())
+		addr, _ := value.MustGetOutputAddrValue(inp.OutputRef())
 		if addr.Equal(account) {
 			return true
 		}

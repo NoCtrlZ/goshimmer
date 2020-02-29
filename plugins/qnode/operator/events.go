@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"time"
@@ -100,7 +101,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 
 	if ctx.err != nil {
 		var err error
-		ctx.resultTx, err = sc.ErrorTransaction(ctx.state, ctx.reqRef, ctx.err)
+		ctx.resultTx, err = clientapi.ErrorTransaction(ctx.reqRef, ctx.state.MustState().Config(), ctx.err)
 		if err != nil {
 			log.Errorw("EventResultCalculated: error while processing error state",
 				"req id", reqId.Short(),
