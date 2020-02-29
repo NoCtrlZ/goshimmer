@@ -1,6 +1,7 @@
 package modelimpl
 
 import (
+	"errors"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
@@ -11,6 +12,7 @@ import (
 type mockStateBlock struct {
 	assemblyId            *HashValue
 	config                *mockConfig
+	err                   error
 	stateIndex            uint32
 	stateChainOutputIndex uint16
 	vars                  generic.ValueMap
@@ -125,6 +127,15 @@ func (st *mockStateBlock) Config() sc.Config {
 	return st.config
 }
 
+func (st *mockStateBlock) Error() error {
+	return st.err
+}
+
+func (st *mockStateBlock) WithError(err error) sc.State {
+	st.err = err
+	return st
+}
+
 func (st *mockStateBlock) WithStateIndex(idx uint32) sc.State {
 	st.stateIndex = idx
 	return st
@@ -146,6 +157,29 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = w.Write(st.config.id.Bytes())
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(st.requestTxId.Bytes())
+	if err != nil {
+		return err
+	}
+	err = tools.WriteUint16(w, st.requestBlockIndex)
+	if err != nil {
+		return err
+	}
+	isError := st.err != nil
+	err = tools.WriteBoolByte(w, isError)
+	if err != nil {
+		return err
+	}
+	if isError {
+		return tools.WriteBytes16(w, []byte(st.err.Error()))
+	}
+
+	// nen error state
+
 	err = tools.WriteUint32(w, st.stateIndex)
 	if err != nil {
 		return err
@@ -158,20 +192,8 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(st.requestTxId.Bytes())
-	if err != nil {
-		return err
-	}
-	err = tools.WriteUint16(w, st.requestBlockIndex)
-	if err != nil {
-		return err
-	}
 
 	// config
-	_, err = w.Write(st.config.id.Bytes())
-	if err != nil {
-		return err
-	}
 	err = tools.WriteUint64(w, st.config.minReward)
 	if err != nil {
 		return err
@@ -190,6 +212,42 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	var configId HashValue
+	_, err = r.Read(configId.Bytes())
+	if err != nil {
+		return err
+	}
+	var requestTxId HashValue
+	_, err = r.Read(requestTxId.Bytes())
+	if err != nil {
+		return err
+	}
+	var requestBlockIndex uint16
+	err = tools.ReadUint16(r, &requestBlockIndex)
+	if err != nil {
+		return err
+	}
+	var isError bool
+	err = tools.ReadBoolByte(r, &isError)
+	if err != nil {
+		return err
+	}
+	if isError {
+		errTxt, err := tools.ReadBytes16(r)
+		if err != nil {
+			return err
+		}
+		st.assemblyId = &assemblyId
+		st.config.id = &configId
+		st.err = errors.New(string(errTxt))
+		st.config.vars = nil
+		st.stateIndex = 0
+		st.stateChainOutputIndex = 0
+		st.vars = nil
+		st.requestTxId = &requestTxId
+		st.requestBlockIndex = requestBlockIndex
+		return nil
+	}
 	var stateIndex uint32
 	err = tools.ReadUint32(r, &stateIndex)
 	if err != nil {
@@ -205,22 +263,7 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	var requestTxId HashValue
-	_, err = r.Read(requestTxId.Bytes())
-	if err != nil {
-		return err
-	}
-	var requestBlockIndex uint16
-	err = tools.ReadUint16(r, &requestBlockIndex)
-	if err != nil {
-		return err
-	}
 	// config
-	var configId HashValue
-	_, err = r.Read(configId.Bytes())
-	if err != nil {
-		return err
-	}
 	var minReward uint64
 	err = tools.ReadUint64(r, &minReward)
 	if err != nil {
@@ -239,6 +282,7 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 
 	st.assemblyId = &assemblyId
 	st.config.id = &configId
+	st.err = nil
 	st.config.minReward = minReward
 	st.config.ownersMargin = ownersMargin
 	st.config.vars = cfgVars

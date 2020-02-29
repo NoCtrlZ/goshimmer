@@ -46,7 +46,13 @@ func Uint32From4Bytes(b []byte) uint32 {
 		panic("len(b) != 4")
 	}
 	return binary.LittleEndian.Uint32(b[:])
+}
 
+func Uint64From8Bytes(b []byte) uint64 {
+	if len(b) != 8 {
+		panic("len(b) != 8")
+	}
+	return binary.LittleEndian.Uint64(b[:])
 }
 
 func Uint64To8Bytes(val uint64) []byte {

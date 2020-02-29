@@ -10,10 +10,12 @@ type Processor interface {
 }
 
 type RuntimeContext interface {
-	InputVars() generic.ValueMap
-	OutputVars() generic.ValueMap
+	RequestVars() generic.ValueMap
+	StateVars() generic.ValueMap
+	ConfigVars() generic.ValueMap
 	SetError(error)
+	Error() error
 	RequestTransferId() *hashing.HashValue
 	GetDepositOutput() (uint16, uint64)
-	GetRandom() uint32
+	Signature() []byte
 }

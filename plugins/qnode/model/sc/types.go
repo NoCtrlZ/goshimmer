@@ -25,8 +25,10 @@ type State interface {
 	AssemblyId() *HashValue
 	RequestId() *HashValue
 	StateIndex() uint32
+	Error() error
 	Vars() generic.ValueMap
 	StateChainOutputIndex() uint16
+	WithError(error) State
 	WithStateIndex(uint32) State
 	WithVars(generic.ValueMap) State
 	WithStateChainOutputIndex(uint16) State

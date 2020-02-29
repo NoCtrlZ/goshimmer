@@ -34,6 +34,11 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	log.Debugw("EventStateUpdate", "tx", tx.ShortStr())
 
 	stateUpd := tx.MustState()
+	if stateUpd.Error() != nil {
+		log.Warnf("Ignore the state update with error: '%v'", stateUpd.Error())
+		return
+	}
+
 	state := op.stateTx.MustState()
 
 	if stateUpd.StateIndex() <= state.StateIndex() {
@@ -93,6 +98,19 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 	taskId := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
 	delete(reqRec.startedCalculation, *taskId)
 
+	if ctx.err != nil {
+		var err error
+		ctx.resultTx, err = sc.ErrorTransaction(ctx.state, ctx.reqRef, ctx.err)
+		if err != nil {
+			log.Errorw("EventResultCalculated: error while processing error state",
+				"req id", reqId.Short(),
+				"state idx", ctx.state.MustState().StateIndex(),
+				"current state idx", op.stateTx.MustState().StateIndex(),
+				"error", err,
+			)
+			return
+		}
+	}
 	if !op.resultBelongsToContext(ctx) {
 		// stateTx changed while it was being calculated
 		// dismiss the result

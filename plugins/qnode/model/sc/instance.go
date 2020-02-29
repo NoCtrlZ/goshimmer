@@ -83,3 +83,29 @@ func NextStateUpdateTransaction(stateTx Transaction, reqRef *RequestRef) (Transa
 	tx.SetState(nextState)
 	return tx, nil
 }
+
+func ErrorTransaction(stateTx Transaction, reqRef *RequestRef, err error) (Transaction, error) {
+	state, ok := stateTx.State()
+	if !ok {
+		return nil, fmt.Errorf("NextStateUpdateTransaction: state block not found")
+	}
+	reqBlock := reqRef.RequestBlock()
+	// check if request block points to valid chain output
+	// which can be used as request->result chain
+	requestChainOutputIdx, _, _ := reqBlock.OutputIndices()
+	requestChainOutputRef := generic.NewOutputRef(reqRef.Tx().Transfer().Id(), requestChainOutputIdx)
+	if !value.OutputCanBeChained(requestChainOutputRef, state.Config().AssemblyAccount()) {
+		return nil, fmt.Errorf("invalid request chain output")
+	}
+	tx := NewTransaction()
+	tr := tx.Transfer()
+	// add request chain link
+	// transfer 1i from RequestChainAddress to itself
+	tr.AddInput(value.NewInputFromOutputRef(requestChainOutputRef))
+	tr.AddOutput(value.NewOutput(state.Config().AssemblyAccount(), 1))
+
+	// don't add state chain link
+	errState := NewStateBlock(state.AssemblyId(), state.Config().Id(), reqRef).WithError(err)
+	tx.SetState(errState)
+	return tx, nil
+}

@@ -12,6 +12,6 @@ func New() vm.Processor {
 }
 
 func (_ *inctest) Run(ctx vm.RuntimeContext) {
-	reqNr, _ := ctx.InputVars().GetInt("req#")
-	ctx.OutputVars().SetInt("req#", reqNr)
+	reqNr, _ := ctx.RequestVars().GetInt("req#")
+	ctx.StateVars().SetInt("req#", reqNr)
 }

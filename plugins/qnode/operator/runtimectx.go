@@ -5,7 +5,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
 type runtimeContext struct {
@@ -15,23 +14,30 @@ type runtimeContext struct {
 	err      error
 }
 
-// BLS threshold signature is provably random
-func (ctx *runtimeContext) GetRandom() uint32 {
-	sig, _ := ctx.state.Signatures()[0].GetSignature()
-	hsig := hashing.HashData(sig)
-	return tools.Uint32From4Bytes(hsig.Bytes()[:4])
-}
-
-func (ctx *runtimeContext) InputVars() generic.ValueMap {
+func (ctx *runtimeContext) RequestVars() generic.ValueMap {
 	return ctx.reqRef.RequestBlock().Vars()
 }
 
-func (ctx *runtimeContext) OutputVars() generic.ValueMap {
+func (ctx *runtimeContext) StateVars() generic.ValueMap {
 	return ctx.resultTx.MustState().Vars()
+}
+
+func (ctx *runtimeContext) ConfigVars() generic.ValueMap {
+	return ctx.state.MustState().Config().Vars()
+}
+
+// BLS threshold signature. To use it as random value
+func (ctx *runtimeContext) Signature() []byte {
+	sig, _ := ctx.state.Signatures()[0].GetSignature()
+	return sig
 }
 
 func (ctx *runtimeContext) SetError(err error) {
 	ctx.err = err
+}
+
+func (ctx *runtimeContext) Error() error {
+	return ctx.err
 }
 
 func (ctx *runtimeContext) RequestTransferId() *hashing.HashValue {
