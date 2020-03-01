@@ -58,7 +58,7 @@ type Request interface {
 	AssemblyId() *HashValue
 	IsConfigUpdateReq() bool
 	Vars() generic.ValueMap
-	OutputIndices() (uint16, uint16, uint16)
+	MainOutputs(Transaction) [3]*generic.OutputRefWithValue
 	WithOutputIndices(chainIdx, rewardIdx, depositIdx uint16) Request
 	Encode() generic.Encode
 }

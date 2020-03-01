@@ -15,9 +15,9 @@ type RuntimeContext interface {
 	ConfigVars() generic.ValueMap
 	SetError(error)
 	Error() error
+	MainRequestOutputs() [3]*generic.OutputRefWithValue
 	RequestTransferId() *HashValue
-	GetDepositOutput() (uint16, uint64)
 	Signature() []byte
-	SendFundsToAddress([]*generic.OutputRef, *HashValue, uint64) // TODO parameters
+	SendFundsToAddress([]*generic.OutputRefWithValue, *HashValue) // TODO parameters
 	AddRequestToSelf(uint16)
 }

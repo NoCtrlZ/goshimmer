@@ -59,13 +59,17 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(fmt.Errorf("'payout_addr' undefined"))
 			return
 		}
-		depoOutIdx, depositValue := ctx.GetDepositOutput()
-		if int(depositValue) < minimumBet {
+		depositOutput := ctx.MainRequestOutputs()[2]
+
+		if int(depositOutput.Value) < minimumBet {
 			ctx.SetError(fmt.Errorf("bet is too small, taken as a donation"))
 			return
 		}
-		bets += fmt.Sprintf("%s,%d,%d,%s|", ctx.RequestTransferId().String(), depoOutIdx, depositValue, payoutAddr)
-		pot += int(depositValue) // TODO not correct with types !!!
+		// TODO not finished
+		bets += fmt.Sprintf("%s,%d,%d,%s|",
+			ctx.RequestTransferId().String(), depositOutput.OutputRef.OutputIndex(), depositOutput.Value, payoutAddr)
+
+		pot += int(depositOutput.Value) // TODO not correct with types !!!
 		ctx.StateVars().SetInt("num_bets", numBets+1)
 		ctx.StateVars().SetInt("pot", pot)
 		ctx.StateVars().SetString("bets", bets)
@@ -94,7 +98,7 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(err)
 			return
 		}
-		ctx.SendFundsToAddress(outputs, winner, pot)
+		ctx.SendFundsToAddress(outputs, winner)
 
 		ctx.StateVars().SetString("locked_bets", "")
 		ctx.StateVars().SetString("winning_address", winner.String())
@@ -108,7 +112,7 @@ type betData struct {
 	payoutAddr *hashing.HashValue
 }
 
-func scanBetData(lockedBets string) ([]*generic.OutputRef, map[hashing.HashValue]uint64, uint64, error) {
+func scanBetData(lockedBets string) ([]*generic.OutputRefWithValue, map[hashing.HashValue]uint64, uint64, error) {
 	splittedBets := strings.Split(lockedBets, "|")
 	if len(splittedBets) == 0 {
 		return nil, nil, 0, fmt.Errorf("no locked bets found")
@@ -153,9 +157,12 @@ func scanBetData(lockedBets string) ([]*generic.OutputRef, map[hashing.HashValue
 		ret[*bd.payoutAddr] = v + bd.value
 		pot += bd.value
 	}
-	retOutputs := make([]*generic.OutputRef, len(bets))
+	retOutputs := make([]*generic.OutputRefWithValue, len(bets))
 	for i := range retOutputs {
-		retOutputs[i] = bets[i].outRef
+		retOutputs[i] = &generic.OutputRefWithValue{
+			OutputRef: *bets[i].outRef,
+			Value:     bets[i].value,
+		}
 	}
 	return retOutputs, ret, pot, nil
 }
@@ -188,7 +195,7 @@ func sortByPayout(bets map[hashing.HashValue]uint64) []*betData {
 	return toSort
 }
 
-func runLottery(lockedBets, signature string) (*hashing.HashValue, uint64, []*generic.OutputRef, error) {
+func runLottery(lockedBets, signature string) (*hashing.HashValue, uint64, []*generic.OutputRefWithValue, error) {
 	// assert signature != ""
 	outputs, byPayout, pot, err := scanBetData(lockedBets)
 	if err != nil {

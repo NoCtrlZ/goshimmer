@@ -34,6 +34,11 @@ type OutputRef struct {
 	outIdx uint16
 }
 
+type OutputRefWithValue struct {
+	OutputRef
+	Value uint64
+}
+
 type KeyPool interface {
 	SignBlock(SignedBlock) error
 	VerifySignature(SignedBlock) error

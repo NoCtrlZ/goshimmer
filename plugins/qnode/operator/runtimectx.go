@@ -45,23 +45,17 @@ func (ctx *runtimeContext) RequestTransferId() *hashing.HashValue {
 	return ctx.reqRef.Tx().Transfer().Id()
 }
 
-// return deposit output index and value
-
-func (ctx *runtimeContext) GetDepositOutput() (uint16, uint64) {
-	reqBlock := ctx.reqRef.RequestBlock()
-	_, _, depoIdx := reqBlock.OutputIndices()
-	depoOut := ctx.reqRef.Tx().Transfer().Outputs()[depoIdx]
-	return depoIdx, depoOut.Value()
+func (ctx *runtimeContext) MainRequestOutputs() [3]*generic.OutputRefWithValue {
+	return ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())
 }
 
-func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue, value uint64) {
-	_ = clientapi.SendOutputsToAddress(ctx.resultTx, outputs, addr, value)
+func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRefWithValue, addr *hashing.HashValue) {
+	_ = clientapi.SendOutputsToAddress(ctx.resultTx, outputs, addr)
 }
 
 func (ctx *runtimeContext) AddRequestToSelf(reqNr uint16) {
-	//ctx.resultTx.Transfer().AddInput(value.NewInputFromOutputRef(outRef))
-	//return tr.AddOutput(NewOutput(addr, 1))
-	// TODO
+	// add chain link to assembly account
+	// select any unspent output which is not already used in the current result tx
 
 }
 

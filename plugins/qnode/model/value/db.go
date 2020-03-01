@@ -2,6 +2,7 @@ package value
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 )
 
 // interface with ValueTangle
@@ -16,6 +17,7 @@ type DB interface {
 	GetByTransactionId(id *hashing.HashValue) (Transaction, bool)
 	GetByTransferId(id *hashing.HashValue) (Transaction, bool)
 	GetSpendingTransaction(outputRefId *hashing.HashValue) (Transaction, bool)
+	GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithValue
 }
 
 var valuetxdb DB
@@ -42,4 +44,8 @@ func GetByTransactionId(id *hashing.HashValue) (Transaction, bool) {
 
 func GetByTransferId(id *hashing.HashValue) (Transaction, bool) {
 	return valuetxdb.GetByTransferId(id)
+}
+
+func GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithValue {
+	return valuetxdb.GetUnspentOutputs(addr)
 }

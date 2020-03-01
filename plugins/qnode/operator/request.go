@@ -4,17 +4,15 @@ import (
 	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"time"
 )
 
 // check if the request message is well formed
 func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
-	chainOutIdx, _, _ := reqRef.RequestBlock().OutputIndices()
-	sum := value.SumOutputsToAddress(reqRef.Tx().Transfer(), cfg.AssemblyAccount(), []uint16{chainOutIdx})
-	if sum < cfg.MinimumReward() {
-		return fmt.Errorf("reward %d iotas is less than required minimum of %d", sum, cfg.MinimumReward()+1)
+	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx())[1]
+	if rewardOutput.Value < cfg.MinimumReward() {
+		return fmt.Errorf("reward %d iotas is less than required minimum of %d", rewardOutput.Value, cfg.MinimumReward()+1)
 	}
 	return nil
 }
