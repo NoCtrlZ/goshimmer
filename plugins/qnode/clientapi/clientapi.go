@@ -30,8 +30,8 @@ func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 
 	// adding owner chain: transfer of 1i from owner's account to the stateAccount
 	// the latter will be used to build chain
-	addr, val := value.MustGetOutputAddrValue(par.OriginOutput)
-	if !addr.Equal(par.OwnerAccount) || val != 1 {
+	oav := value.MustGetOutputAddrValue(par.OriginOutput)
+	if !oav.Addr.Equal(par.OwnerAccount) || oav.Value != 1 {
 		return nil, fmt.Errorf("OriginOutput parameter must be exactly 1i to the owner's account")
 	}
 	tr.AddInput(value.NewInputFromOutputRef(par.OriginOutput))
@@ -52,11 +52,11 @@ func NewRequest(par NewRequestParams) (sc.Transaction, error) {
 	// create 1i transfer from RequestChainOutput to request account
 	tr.AddInput(value.NewInputFromOutputRef(par.RequestChainOutput))
 	chainOutIndex := tr.AddOutput(value.NewOutput(par.AssemblyAccount, 1))
-	_, val := value.MustGetOutputAddrValue(par.RequestChainOutput)
-	if val != 1 {
+	oav := value.MustGetOutputAddrValue(par.RequestChainOutput)
+	if oav.Value != 1 {
 		return nil, fmt.Errorf("request chain output must have value exactly 1i")
 	}
-	reqBlk := sc.NewRequestBlock(par.AssemblyId, false).WithOutputIndices(chainOutIndex, 0, 0)
+	reqBlk := sc.NewRequestBlock(par.AssemblyId, false).WithRequestChainOutputIndex(chainOutIndex)
 
 	vars := reqBlk.Vars()
 	for k, v := range par.Vars {
@@ -120,12 +120,12 @@ func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, err error) (sc.Tr
 	return tx, nil
 }
 
-func SendOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRefWithValue, addr *HashValue) error {
+func SendOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, addr *HashValue) error {
 	sum := uint64(0)
 	for _, outp := range outputs {
-		tx.Transfer().AddInput(value.NewInputFromOutputRef(&outp.OutputRef))
-		_, v := value.MustGetOutputAddrValue(&outp.OutputRef)
-		sum += v
+		tx.Transfer().AddInput(value.NewInputFromOutputRef(outp))
+		oav := value.MustGetOutputAddrValue(outp)
+		sum += oav.Value
 	}
 	tx.Transfer().AddOutput(value.NewOutput(addr, sum))
 	return nil

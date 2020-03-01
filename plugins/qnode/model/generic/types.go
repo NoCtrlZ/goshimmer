@@ -30,13 +30,14 @@ type Encode interface {
 }
 
 type OutputRef struct {
-	trid   *HashValue // transfer id
-	outIdx uint16
+	TransferId  *HashValue `json:"t"`
+	OutputIndex uint16     `json:"o"`
 }
 
-type OutputRefWithValue struct {
+type OutputRefWithAddrValue struct {
 	OutputRef
-	Value uint64
+	Addr  *HashValue `json:"a"`
+	Value uint64     `json:"v"`
 }
 
 type KeyPool interface {

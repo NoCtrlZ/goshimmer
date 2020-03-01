@@ -58,8 +58,8 @@ func (tr *mockUTXO) InputSignatures() []generic.SignedBlock {
 		outs := outputsToSign[*addr]
 		data := make([][]byte, 0, 2*len(outs))
 		for _, o := range outs {
-			data = append(data, o.TransferId().Bytes())
-			data = append(data, tools.Uint16To2Bytes(o.OutputIndex()))
+			data = append(data, o.TransferId.Bytes())
+			data = append(data, tools.Uint16To2Bytes(o.OutputIndex))
 		}
 		ret = append(ret, generic.NewSignedBlock(addr.Clone(), hashing.HashData(data...)))
 	}
@@ -106,7 +106,7 @@ func (tr *mockUTXO) Encode() generic.Encode {
 func (tr *mockUTXO) collectOutputsToSign() map[hashing.HashValue][]*generic.OutputRef {
 	ret := make(map[hashing.HashValue][]*generic.OutputRef)
 	for _, inp := range tr.inputs {
-		addr, _ := value.MustGetOutputAddrValue(inp.OutputRef())
+		addr := value.MustGetOutputAddrValue(inp.OutputRef()).Addr
 		if _, ok := ret[*addr]; !ok {
 			ret[*addr] = make([]*generic.OutputRef, 0)
 		}

@@ -21,22 +21,14 @@ func Hash(e Encode) *hashing.HashValue {
 
 func NewOutputRef(trid *hashing.HashValue, outidx uint16) *OutputRef {
 	return &OutputRef{
-		trid:   trid,
-		outIdx: outidx,
+		TransferId:  trid,
+		OutputIndex: outidx,
 	}
-}
-
-func (or *OutputRef) TransferId() *hashing.HashValue {
-	return or.trid
-}
-
-func (or *OutputRef) OutputIndex() uint16 {
-	return or.outIdx
 }
 
 func (or *OutputRef) Id() *hashing.HashValue {
 	var buf bytes.Buffer
-	_, _ = buf.Write(or.trid.Bytes())
-	_, _ = buf.Write(tools.Uint16To2Bytes(or.outIdx))
+	_, _ = buf.Write(or.TransferId.Bytes())
+	_, _ = buf.Write(tools.Uint16To2Bytes(or.OutputIndex))
 	return hashing.HashData(buf.Bytes())
 }

@@ -14,19 +14,27 @@ type mockRequestBlock struct {
 	vars              generic.ValueMap
 }
 
-func (req *mockRequestBlock) WithOutputIndices(chainIdx, rewardIdx, depositIdx uint16) sc.Request {
-	req.vars.SetInt(sc.MAP_KEY_CHAIN_OUT_INDEX, int(chainIdx))
-	req.vars.SetInt(sc.MAP_KEY_REWARD_OUT_INDEX, int(chainIdx))
-	req.vars.SetInt(sc.MAP_KEY_DEPOSIT_OUT_INDEX, int(chainIdx))
-	return req
-}
-
 func newRequestBock(aid *HashValue, isConfig bool) sc.Request {
 	return &mockRequestBlock{
 		assemblyId:        aid,
 		isConfigUpdateReq: isConfig,
 		vars:              generic.NewFlatValueMap(),
 	}
+}
+
+func (req *mockRequestBlock) WithRequestChainOutputIndex(idx uint16) sc.Request {
+	req.vars.SetInt(sc.MAP_KEY_CHAIN_OUT_INDEX, int(idx))
+	return req
+}
+
+func (req *mockRequestBlock) WithRewardOutputIndex(idx uint16) sc.Request {
+	req.vars.SetInt(sc.MAP_KEY_REWARD_OUT_INDEX, int(idx))
+	return req
+}
+
+func (req *mockRequestBlock) WithDepositOutputIndex(idx uint16) sc.Request {
+	req.vars.SetInt(sc.MAP_KEY_DEPOSIT_OUT_INDEX, int(idx))
+	return req
 }
 
 func (req *mockRequestBlock) Encode() generic.Encode {
@@ -49,24 +57,27 @@ func (req *mockRequestBlock) Vars() generic.ValueMap {
 // 1 reward
 // 2 deposit
 
-func (req *mockRequestBlock) MainOutputs(tx sc.Transaction) [3]*generic.OutputRefWithValue {
-	var ret [3]*generic.OutputRefWithValue
+func (req *mockRequestBlock) MainOutputs(tx sc.Transaction) [3]*generic.OutputRefWithAddrValue {
+	var ret [3]*generic.OutputRefWithAddrValue
 	if chainOutIdx, ok := req.vars.GetInt(sc.MAP_KEY_CHAIN_OUT_INDEX); ok {
-		ret[0] = &generic.OutputRefWithValue{
+		ret[0] = &generic.OutputRefWithAddrValue{
 			OutputRef: *generic.NewOutputRef(tx.Transfer().Id(), uint16(chainOutIdx)),
 			Value:     tx.Transfer().Outputs()[chainOutIdx].Value(),
+			Addr:      tx.Transfer().Outputs()[chainOutIdx].Address(),
 		}
 	}
 	if rewardOutIdx, ok := req.vars.GetInt(sc.MAP_KEY_REWARD_OUT_INDEX); ok {
-		ret[0] = &generic.OutputRefWithValue{
+		ret[0] = &generic.OutputRefWithAddrValue{
 			OutputRef: *generic.NewOutputRef(tx.Transfer().Id(), uint16(rewardOutIdx)),
 			Value:     tx.Transfer().Outputs()[rewardOutIdx].Value(),
+			Addr:      tx.Transfer().Outputs()[rewardOutIdx].Address(),
 		}
 	}
 	if depositOutIdx, ok := req.vars.GetInt(sc.MAP_KEY_DEPOSIT_OUT_INDEX); ok {
-		ret[0] = &generic.OutputRefWithValue{
+		ret[0] = &generic.OutputRefWithAddrValue{
 			OutputRef: *generic.NewOutputRef(tx.Transfer().Id(), uint16(depositOutIdx)),
 			Value:     tx.Transfer().Outputs()[depositOutIdx].Value(),
+			Addr:      tx.Transfer().Outputs()[depositOutIdx].Address(),
 		}
 	}
 	return ret

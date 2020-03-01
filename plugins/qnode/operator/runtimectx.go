@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 )
 
 type runtimeContext struct {
@@ -45,18 +46,23 @@ func (ctx *runtimeContext) RequestTransferId() *hashing.HashValue {
 	return ctx.reqRef.Tx().Transfer().Id()
 }
 
-func (ctx *runtimeContext) MainRequestOutputs() [3]*generic.OutputRefWithValue {
+func (ctx *runtimeContext) MainRequestOutputs() [3]*generic.OutputRefWithAddrValue {
 	return ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())
 }
 
-func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRefWithValue, addr *hashing.HashValue) {
+func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue) {
 	_ = clientapi.SendOutputsToAddress(ctx.resultTx, outputs, addr)
 }
 
-func (ctx *runtimeContext) AddRequestToSelf(reqNr uint16) {
+func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) {
 	// add chain link to assembly account
 	// select any unspent output which is not already used in the current result tx
-
+	reqChainOutput := ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())[0]
+	outIdx := value.AddChainLink(ctx.resultTx.Transfer(), &reqChainOutput.OutputRef, reqChainOutput.Addr)
+	req := sc.NewRequestBlock(ctx.state.MustState().AssemblyId(), false).
+		WithRequestChainOutputIndex(outIdx)
+	req.Vars().SetInt("req_type", int(reqType))
+	ctx.resultTx.AddRequest(req)
 }
 
 // creates context with skeleton resulting transaction

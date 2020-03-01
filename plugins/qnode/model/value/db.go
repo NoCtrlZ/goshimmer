@@ -17,7 +17,7 @@ type DB interface {
 	GetByTransactionId(id *hashing.HashValue) (Transaction, bool)
 	GetByTransferId(id *hashing.HashValue) (Transaction, bool)
 	GetSpendingTransaction(outputRefId *hashing.HashValue) (Transaction, bool)
-	GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithValue
+	GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithAddrValue
 }
 
 var valuetxdb DB
@@ -46,6 +46,6 @@ func GetByTransferId(id *hashing.HashValue) (Transaction, bool) {
 	return valuetxdb.GetByTransferId(id)
 }
 
-func GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithValue {
+func GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithAddrValue {
 	return valuetxdb.GetUnspentOutputs(addr)
 }

@@ -33,7 +33,7 @@ func (or *mockInput) OutputRef() *generic.OutputRef {
 }
 
 func (or *mockInput) GetInputTransfer() value.UTXOTransfer {
-	return value.GetTransfer(or.oref.TransferId())
+	return value.GetTransfer(or.oref.TransferId)
 }
 
 func (or *mockInput) Encode() generic.Encode {
@@ -48,11 +48,11 @@ type mockOutput struct {
 // Encode
 
 func (or *mockInput) Write(w io.Writer) error {
-	_, err := w.Write(or.oref.TransferId().Bytes())
+	_, err := w.Write(or.oref.TransferId.Bytes())
 	if err != nil {
 		return err
 	}
-	err = tools.WriteUint16(w, or.oref.OutputIndex())
+	err = tools.WriteUint16(w, or.oref.OutputIndex)
 	return err
 }
 

@@ -39,7 +39,7 @@ func NewInput(transferId *hashing.HashValue, outputIndex uint16) Input {
 }
 
 func NewInputFromOutputRef(oref *generic.OutputRef) Input {
-	return newInput(oref.TransferId(), oref.OutputIndex())
+	return newInput(oref.TransferId, oref.OutputIndex)
 }
 
 func NewOutput(address *hashing.HashValue, value uint64) Output {

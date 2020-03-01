@@ -6,18 +6,29 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
-func MustGetOutputAddrValue(or *generic.OutputRef) (*hashing.HashValue, uint64) {
-	tr := GetTransfer(or.TransferId())
+func MustGetOutputAddrValue(or *generic.OutputRef) *generic.OutputRefWithAddrValue {
+	tr := GetTransfer(or.TransferId)
+	var addr *hashing.HashValue
+	var value uint64
 	if tr == nil {
-		return hashing.RandomHash(nil), 1 // TODO for testing only
+		addr = hashing.RandomHash(nil)
+		value = 1 // TODO for testing only
+	} else {
+		output := tr.Outputs()[or.OutputIndex]
+		addr = output.Address()
+		value = output.Value()
 	}
-	output := tr.Outputs()[or.OutputIndex()]
-	return output.Address(), output.Value()
+
+	return &generic.OutputRefWithAddrValue{
+		OutputRef: *or,
+		Addr:      addr,
+		Value:     value,
+	}
 }
 
 func OutputCanBeChained(or *generic.OutputRef, chainAccount *hashing.HashValue) bool {
-	addr, val := MustGetOutputAddrValue(or)
-	return val == 1 && addr.Equal(chainAccount)
+	tmp := MustGetOutputAddrValue(or)
+	return tmp.Value == 1 && tmp.Addr.Equal(chainAccount)
 }
 
 func SumOutputsToAddress(transfer UTXOTransfer, addr *hashing.HashValue, except []uint16) uint64 {
