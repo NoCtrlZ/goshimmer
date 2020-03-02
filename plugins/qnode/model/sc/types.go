@@ -62,6 +62,7 @@ type Request interface {
 	WithRequestChainOutputIndex(uint16) Request
 	WithRewardOutputIndex(uint16) Request
 	WithDepositOutputIndex(uint16) Request
+	WithVars(generic.ValueMap) Request
 	Encode() generic.Encode
 }
 

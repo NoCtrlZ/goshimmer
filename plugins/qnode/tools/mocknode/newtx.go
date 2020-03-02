@@ -85,16 +85,12 @@ func newOrigin() (sc.Transaction, error) {
 var reqnrseq = 0
 
 func makeReqTx() (sc.Transaction, error) {
-	vars := map[string]string{
-		"reqnr": fmt.Sprintf("#%d", reqnrseq),
-		"salt":  fmt.Sprintf("%d", rand.Int()),
-	}
 	reqnrseq++
-	reqestorAccount := hashing.RandomHash(nil)
+	requesterAccount := hashing.RandomHash(nil)
 
 	toreq := sc.NewTransaction()
-	toreq.Transfer().AddInput(value.NewInput(reqestorAccount, 0))
-	outIdx := toreq.Transfer().AddOutput(value.NewOutput(reqestorAccount, 1))
+	toreq.Transfer().AddInput(value.NewInput(requesterAccount, 0))
+	toreq.Transfer().AddOutput(value.NewOutput(requesterAccount, 1))
 
 	keyPool := clientapi.NewDummyKeyPool()
 	err := sc.SignTransaction(toreq, keyPool)
@@ -112,9 +108,78 @@ func makeReqTx() (sc.Transaction, error) {
 	if err := ldb.PutTransaction(vtx); err != nil {
 		return nil, err
 	}
-	reqChainOut := generic.NewOutputRef(toreq.Transfer().Id(), outIdx)
+	vars := generic.NewFlatValueMap()
+	vars.SetString("reqnr", fmt.Sprintf("#%d", reqnrseq))
+	vars.SetString("salt", fmt.Sprintf("%d", rand.Int()))
 
-	ret, err := clientapi.NewRequest(clientapi.NewRequestParams{
+	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
+		AssemblyId:       aid,
+		AssemblyAccount:  assemblyAccount,
+		RequesterAccount: requesterAccount,
+		Vars:             vars,
+	})
+
+	err = sc.SignTransaction(ret, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+
+	return ret, err
+}
+
+var playerAddresses []*hashing.HashValue
+var playerDeposits []*generic.OutputRef
+
+const (
+	numPlayers  = 5
+	initDeposit = uint64(10000000)
+)
+
+var curPlayer = 0
+
+func initPlayers() {
+	playerAddresses = make([]*hashing.HashValue, numPlayers)
+	playerDeposits = make([]*generic.OutputRef, numPlayers)
+	for i := range playerAddresses {
+		playerAddresses[i] = hashing.RandomHash(nil)
+	}
+	// deposit fake iotas to addresses owned by playerAddresses
+	keyPool := clientapi.NewDummyKeyPool()
+	for i, addr := range playerAddresses {
+		tx := sc.NewTransaction()
+		tx.Transfer().AddInput(value.NewInput(hashing.NilHash, 0))
+		outIdx := tx.Transfer().AddOutput(value.NewOutput(addr, initDeposit))
+		vtx, err := tx.ValueTx()
+		if err != nil {
+			panic(err)
+		}
+		err = sc.SignTransaction(tx, keyPool)
+		if err != nil {
+			panic(err)
+		}
+		err = sc.VerifySignedBlocks(tx.Signatures(), keyPool)
+		if err != nil {
+			panic(err)
+		}
+		err = ldb.PutTransaction(vtx)
+		if err != nil {
+			panic(err)
+		}
+		playerDeposits[i] = generic.NewOutputRef(tx.Transfer().Id(), outIdx)
+	}
+}
+
+func makeBetRequestTx(bet uint64) (sc.Transaction, error) {
+	playerIdx := curPlayer
+	curPlayer++
+	betSum := uint64(100000)
+	reward := uint64(2000)
+
+	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
 		AssemblyId:         aid,
 		AssemblyAccount:    assemblyAccount,
 		RequestChainOutput: reqChainOut,
@@ -131,67 +196,5 @@ func makeReqTx() (sc.Transaction, error) {
 	}
 
 	return ret, err
+
 }
-
-var players []*hashing.HashValue
-
-const numPlayers = 5
-
-var curPlayer = 0
-
-func init() {
-	players = make([]*hashing.HashValue, numPlayers)
-	for i := range players {
-		players[i] = hashing.RandomHash(nil)
-	}
-}
-
-//
-//func makeBetRequestTx(bet uint64) (sc.Transaction, error){
-//	playersAddr := players[curPlayer]
-//	curPlayer++
-//	betSum := uint64(1000000)
-//	reward := uint64(2000)
-//
-//	// create requestor's output for the sum
-//	toreq := sc.NewTransaction()
-//	toreq.Transfer().AddInput(value.NewInput(hashing.NilHash, 0))
-//	outIdx := toreq.Transfer().AddOutput(value.NewOutput(playersAddr, betSum+reward+1))
-//
-//	keyPool := clientapi.NewDummyKeyPool()
-//	err := sc.SignTransaction(toreq, keyPool)
-//	if err != nil {
-//		return nil, err
-//	}
-//	err = sc.VerifySignedBlocks(toreq.Signatures(), keyPool)
-//	if err != nil {
-//		panic(err)
-//	}
-//	vtx, err := toreq.ValueTx()
-//	if err != nil {
-//		return nil, err
-//	}
-//	if err := ldb.PutTransaction(vtx); err != nil {
-//		return nil, err
-//	}
-//	reqChainOut := generic.NewOutputRef(toreq.Transfer().Id(), outIdx)
-//
-//	ret, err := clientapi.NewRequest(clientapi.NewRequestParams{
-//		AssemblyId:         aid,
-//		AssemblyAccount:    assemblyAccount,
-//		RequestChainOutput: reqChainOut,
-//		Vars:               vars,
-//	})
-//
-//	err = sc.SignTransaction(ret, keyPool)
-//	if err != nil {
-//		return nil, err
-//	}
-//	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return ret, err
-//
-//}

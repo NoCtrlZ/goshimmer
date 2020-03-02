@@ -51,6 +51,7 @@ type wrapped struct {
 func main() {
 	modelimpl.Init()
 	signedblock.Init()
+	initPlayers()
 
 	srv = udp.NewServer(2048)
 	srv.Events.Start.Attach(events.NewClosure(func() {

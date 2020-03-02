@@ -51,7 +51,7 @@ func (ctx *runtimeContext) MainRequestOutputs() [3]*generic.OutputRefWithAddrVal
 }
 
 func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue) {
-	_ = clientapi.SendOutputsToAddress(ctx.resultTx, outputs, addr)
+	_ = clientapi.SendAllOutputsToAddress(ctx.resultTx, outputs, addr)
 }
 
 func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) {

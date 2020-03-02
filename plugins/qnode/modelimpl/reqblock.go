@@ -37,6 +37,10 @@ func (req *mockRequestBlock) WithDepositOutputIndex(idx uint16) sc.Request {
 	return req
 }
 
+func (req *mockRequestBlock) WithVars(vars generic.ValueMap) sc.Request {
+	req.vars = vars
+}
+
 func (req *mockRequestBlock) Encode() generic.Encode {
 	return req
 }

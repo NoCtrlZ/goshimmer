@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"sort"
 )
 
 type NewOriginParams struct {
@@ -40,27 +41,37 @@ func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 }
 
 type NewRequestParams struct {
-	AssemblyId         *HashValue
-	AssemblyAccount    *HashValue
-	RequestChainOutput *generic.OutputRef // output of 1i owned by the request originator
-	Vars               map[string]string
+	AssemblyId       *HashValue
+	AssemblyAccount  *HashValue
+	RequesterAccount *HashValue
+	Reward           uint64
+	Deposit          uint64
+	Vars             generic.ValueMap
 }
 
-func NewRequest(par NewRequestParams) (sc.Transaction, error) {
+func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
-	tr := ret.Transfer()
-	// create 1i transfer from RequestChainOutput to request account
-	tr.AddInput(value.NewInputFromOutputRef(par.RequestChainOutput))
-	chainOutIndex := tr.AddOutput(value.NewOutput(par.AssemblyAccount, 1))
-	oav := value.MustGetOutputAddrValue(par.RequestChainOutput)
-	if oav.Value != 1 {
-		return nil, fmt.Errorf("request chain output must have value exactly 1i")
+	amounts := []uint64{1}
+	if par.Reward > 0 {
+		amounts = append(amounts, par.Reward)
 	}
-	reqBlk := sc.NewRequestBlock(par.AssemblyId, false).WithRequestChainOutputIndex(chainOutIndex)
-
-	vars := reqBlk.Vars()
-	for k, v := range par.Vars {
-		vars.SetString(generic.VarName(k), v)
+	if par.Deposit > 0 {
+		amounts = append(amounts, par.Deposit)
+	}
+	outIndices, err := MoveFundsFromToAddress(ret, par.RequesterAccount, par.AssemblyAccount, amounts)
+	if err != nil {
+		return nil, err
+	}
+	reqBlk := sc.NewRequestBlock(par.AssemblyId, false)
+	reqBlk.WithRequestChainOutputIndex(outIndices[0])
+	if par.Reward > 0 {
+		reqBlk.WithRewardOutputIndex(outIndices[1])
+	}
+	if par.Deposit > 0 {
+		reqBlk.WithDepositOutputIndex(outIndices[1])
+	}
+	if par.Vars != nil {
+		reqBlk.WithVars(par.Vars)
 	}
 	ret.AddRequest(reqBlk)
 	return ret, nil
@@ -121,7 +132,7 @@ func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, resultErr error) 
 	return tx, nil
 }
 
-func SendOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, addr *HashValue) error {
+func SendAllOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, addr *HashValue) error {
 	sum := uint64(0)
 	for _, outp := range outputs {
 		tx.Transfer().AddInput(value.NewInputFromOutputRef(outp))
@@ -130,4 +141,58 @@ func SendOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, addr 
 	}
 	tx.Transfer().AddOutput(value.NewOutput(addr, sum))
 	return nil
+}
+
+type outputsByValue []*generic.OutputRefWithAddrValue
+
+func (s outputsByValue) Len() int {
+	return len(s)
+}
+
+func (s outputsByValue) Less(i, j int) bool {
+	return s[i].Value < s[j].Value
+}
+
+func (s outputsByValue) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func MoveFundsFromToAddress(tx sc.Transaction, addrFrom, addrTo *HashValue, amounts []uint64) ([]uint16, error) {
+	uos := value.GetUnspentOutputs(addrFrom)
+	sort.Sort(outputsByValue(uos))
+	sumToSend := uint64(0)
+	for _, s := range amounts {
+		sumToSend += s
+	}
+	if sumToSend == 0 {
+		return nil, fmt.Errorf("wrong params")
+	}
+	minimumNeededOutputs := make([]*generic.OutputRefWithAddrValue, 0)
+	sum := uint64(0)
+	for _, uo := range uos {
+		if sum >= sumToSend {
+			break
+		}
+		minimumNeededOutputs = append(minimumNeededOutputs, uo)
+		sum += uo.Value
+	}
+	if sum < sumToSend {
+		return nil, fmt.Errorf("not enough funds")
+	}
+	for _, outp := range minimumNeededOutputs {
+		tx.Transfer().AddInput(value.NewInputFromOutputRef(&outp.OutputRef))
+	}
+	ret := make([]uint16, 0, len(minimumNeededOutputs))
+	for _, amountToSend := range amounts {
+		outIdx := tx.Transfer().AddOutput(value.NewOutput(addrTo, amountToSend))
+		ret = append(ret, outIdx)
+	}
+	reminder := sum - sumToSend
+	if reminder != 0 {
+		tx.Transfer().AddOutput(value.NewOutput(addrFrom, reminder))
+	}
+	if len(amounts) != len(ret) {
+		panic("len(amounts) != len(ret)")
+	}
+	return ret, nil
 }
