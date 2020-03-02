@@ -44,10 +44,28 @@ func (vm flatValueMap) GetInt(name VarName) (int, bool) {
 	if !ok {
 		return 0, false
 	}
-	ret, ok := ret1.(int)
-	if !ok {
-		return 0, false
+	var ret int
+	switch rett := ret1.(type) {
+	case int:
+		ret = rett
+	case int16:
+		ret = int(rett)
+	case uint16:
+		ret = int(rett)
+	case int32:
+		ret = int(rett)
+	case uint32:
+		ret = int(rett)
+	case int64:
+		ret = int(rett)
+	case uint64:
+		ret = int(rett)
+	case float32:
+		ret = int(rett)
+	case float64:
+		ret = int(rett)
 	}
+	vm[name] = ret
 	return ret, true
 }
 

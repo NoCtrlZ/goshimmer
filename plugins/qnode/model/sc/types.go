@@ -51,7 +51,7 @@ const (
 	MAP_KEY_OWNER_ACCOUNT     = "owner_account"
 	MAP_KEY_CHAIN_OUT_INDEX   = "chain_out_idx"
 	MAP_KEY_REWARD_OUT_INDEX  = "reward_out_idx"
-	MAP_KEY_DEPOSIT_OUT_INDEX = "chain_out_idx"
+	MAP_KEY_DEPOSIT_OUT_INDEX = "deposit_out_idx"
 )
 
 type Request interface {

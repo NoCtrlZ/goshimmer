@@ -10,8 +10,12 @@ import (
 // check if the request message is well formed
 func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
+	reward := uint64(0)
 	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx())[1]
-	if rewardOutput.Value < cfg.MinimumReward() {
+	if rewardOutput != nil {
+		reward = rewardOutput.Value
+	}
+	if reward < cfg.MinimumReward() {
 		return fmt.Errorf("reward %d iotas is less than required minimum of %d", rewardOutput.Value, cfg.MinimumReward()+1)
 	}
 	return nil
