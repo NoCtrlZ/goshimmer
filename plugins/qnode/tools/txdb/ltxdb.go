@@ -59,19 +59,21 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 		return fmt.Errorf("++++ conflict: another tx with id %s", tx.Id().Short())
 	}
 	trid := tx.Transfer().Id()
-	_, ok = ldb.byTransferId[*trid]
-	if ok {
-		return fmt.Errorf("++++ conflict: another tx with transfer id %s", trid.Short())
-	}
-	for _, inp := range tx.Transfer().Inputs() {
-		spendingTx, ok := ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()]
+	if !trid.Equal(NilHash) {
+		_, ok = ldb.byTransferId[*trid]
 		if ok {
-			return fmt.Errorf("++++ conflict: doublespend in tx id %s. Conflicts with tx %s",
-				tx.Id().Short(), spendingTx.Id())
+			return fmt.Errorf("++++ conflict: another tx with transfer id %s", trid.Short())
 		}
+		for _, inp := range tx.Transfer().Inputs() {
+			spendingTx, ok := ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()]
+			if ok {
+				return fmt.Errorf("++++ conflict: doublespend in tx id %s. Conflicts with tx %s",
+					tx.Id().Short(), spendingTx.Id())
+			}
+		}
+		ldb.byTransferId[*trid] = tx
 	}
 	ldb.byTxId[*tx.Id()] = tx
-	ldb.byTransferId[*trid] = tx
 	// register each input as spent
 	for _, inp := range tx.Transfer().Inputs() {
 		ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()] = tx

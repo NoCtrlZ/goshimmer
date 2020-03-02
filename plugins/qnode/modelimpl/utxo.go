@@ -2,7 +2,6 @@ package modelimpl
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
@@ -27,6 +26,9 @@ func newUTXOTransfer() value.UTXOTransfer {
 func (tr *mockUTXO) Id() *hashing.HashValue {
 	if tr.id != nil {
 		return tr.id
+	}
+	if len(tr.inputs) == 0 && len(tr.outputs) == 0 {
+		return hashing.NilHash
 	}
 	var buf bytes.Buffer
 	for _, inp := range tr.inputs {
@@ -127,9 +129,9 @@ func sortedAccounts(data map[hashing.HashValue][]*generic.OutputRef) []*hashing.
 // Encode
 
 func (tr *mockUTXO) Write(w io.Writer) error {
-	if len(tr.inputs) == 0 || len(tr.outputs) == 0 || len(tr.inputSigs) == 0 {
-		return fmt.Errorf("transfer not completed")
-	}
+	//if len(tr.inputs) == 0 || len(tr.outputs) == 0 || len(tr.inputSigs) == 0 {
+	//	return fmt.Errorf("transfer not completed")
+	//}
 	err := tools.WriteUint16(w, uint16(len(tr.inputs)))
 	if err != nil {
 		return err

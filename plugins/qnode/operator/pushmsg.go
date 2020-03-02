@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
-	"github.com/pkg/errors"
 	"sort"
 )
 
 func (op *AssemblyOperator) validatePushMessage(msg *pushResultMsg) error {
-	if len(msg.SigBlocks) == 0 {
-		return errors.New("push message with 0 blocks: invalid")
-	}
+	//if len(msg.SigBlocks) == 0 {
+	//	return errors.New("push message with 0 blocks: invalid")
+	//}
 	return sc.VerifySignedBlocks(msg.SigBlocks, op)
 }
 

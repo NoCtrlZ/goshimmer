@@ -7,11 +7,8 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
-	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/signedblock"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools/txdb"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/network/udp"
 	"net"
@@ -40,7 +37,6 @@ var (
 	operators = operatorsAll[:firstN]
 	srv       *udp.UDPServer
 	inCh      = make(chan *wrapped, 10)
-	ldb       value.DB
 )
 
 type wrapped struct {
@@ -49,9 +45,7 @@ type wrapped struct {
 }
 
 func main() {
-	modelimpl.Init()
-	signedblock.Init()
-	initPlayers()
+	initGlobals()
 
 	srv = udp.NewServer(2048)
 	srv.Events.Start.Attach(events.NewClosure(func() {
@@ -62,8 +56,6 @@ func main() {
 	srv.Events.Error.Attach(events.NewClosure(func(err error) {
 		fmt.Printf("Error: %v\n", err)
 	}))
-	ldb = txdb.NewLocalDb()
-	value.SetValuetxDB(ldb)
 
 	go inLoop()
 
@@ -98,6 +90,12 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 		return
 	}
 	fmt.Printf("Signatures OK\n")
+
+	vtx, _ := tx.ValueTx()
+	if err := ldb.PutTransaction(vtx); err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
 
 	postMsg(&wrapped{
 		senderIndex: idx,
@@ -143,13 +141,10 @@ func decodeUDPMsg(data []byte) (sc.Transaction, error) {
 
 func processMsg(msg *wrapped) {
 	tx := msg.tx
-	fmt.Printf("processMsg: tx id = %s from sender %d\n", tx.Id().Short(), msg.senderIndex)
+	fmt.Printf("processMsg: tx id = %s trid = %s from sender %d\n",
+		tx.Id().Short(), tx.Transfer().Id().Short(), msg.senderIndex)
 
 	vtx, _ := tx.ValueTx()
-	if err := ldb.PutTransaction(vtx); err != nil {
-		fmt.Printf("%v\n", err)
-		return
-	}
 
 	var buf bytes.Buffer
 	err := vtx.Encode().Write(&buf)

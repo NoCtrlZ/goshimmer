@@ -63,15 +63,16 @@ func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
 		return nil, err
 	}
 	reqBlk := sc.NewRequestBlock(par.AssemblyId, false)
+	if par.Vars != nil {
+		// must be before setting indices
+		reqBlk.WithVars(par.Vars)
+	}
 	reqBlk.WithRequestChainOutputIndex(outIndices[0])
 	if par.Reward > 0 {
 		reqBlk.WithRewardOutputIndex(outIndices[1])
 	}
 	if par.Deposit > 0 {
 		reqBlk.WithDepositOutputIndex(outIndices[1])
-	}
-	if par.Vars != nil {
-		reqBlk.WithVars(par.Vars)
 	}
 	ret.AddRequest(reqBlk)
 	return ret, nil
@@ -122,10 +123,8 @@ func NextStateUpdateTransaction(prevStateTx sc.Transaction, reqRef *sc.RequestRe
 }
 
 func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, resultErr error) (sc.Transaction, error) {
-	tx, err := NewResultTransaction(reqRef, config)
-	if err != nil {
-		return nil, err
-	}
+	tx := sc.NewTransaction()
+	// with empty transfer
 	errState := sc.NewStateBlock(reqRef.RequestBlock().AssemblyId(), config.Id(), reqRef).
 		WithError(resultErr)
 	tx.SetState(errState)
