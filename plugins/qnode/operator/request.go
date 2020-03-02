@@ -71,11 +71,6 @@ func (op *AssemblyOperator) isRequestProcessed(reqid *HashValue) (time.Duration,
 }
 
 func (op *AssemblyOperator) markRequestProcessed(reqId *HashValue, duration time.Duration) {
-	sum := len(op.processedRequests) + len(op.requests)
 	op.processedRequests[*reqId] = duration
 	delete(op.requests, *reqId)
-	sum1 := len(op.processedRequests) + len(op.requests)
-	if sum != sum1 {
-		log.Panicf("WTF!!!!!!")
-	}
 }

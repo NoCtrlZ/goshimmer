@@ -68,7 +68,7 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 			numNotNil++
 		}
 	}
-	if numNotNil+1 < op.requiredQuorum() {
+	if numNotNil+1 < op.assemblyQuorum() {
 		// must be checked before
 		log.Panic("aggregateResult: inconsistency: not enough shares to finalize result")
 	}

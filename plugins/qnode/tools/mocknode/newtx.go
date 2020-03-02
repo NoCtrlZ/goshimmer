@@ -90,11 +90,11 @@ func makeReqTx() (sc.Transaction, error) {
 		"salt":  fmt.Sprintf("%d", rand.Int()),
 	}
 	reqnrseq++
-	// create owners's transfer of 1i to owner's address
+	reqestorAccount := hashing.RandomHash(nil)
+
 	toreq := sc.NewTransaction()
-	trf := toreq.Transfer()
-	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
-	outIdx := trf.AddOutput(value.NewOutput(assemblyAccount, 1))
+	toreq.Transfer().AddInput(value.NewInput(reqestorAccount, 0))
+	outIdx := toreq.Transfer().AddOutput(value.NewOutput(reqestorAccount, 1))
 
 	keyPool := clientapi.NewDummyKeyPool()
 	err := sc.SignTransaction(toreq, keyPool)
@@ -105,7 +105,6 @@ func makeReqTx() (sc.Transaction, error) {
 	if err != nil {
 		panic(err)
 	}
-
 	vtx, err := toreq.ValueTx()
 	if err != nil {
 		return nil, err
@@ -133,3 +132,66 @@ func makeReqTx() (sc.Transaction, error) {
 
 	return ret, err
 }
+
+var players []*hashing.HashValue
+
+const numPlayers = 5
+
+var curPlayer = 0
+
+func init() {
+	players = make([]*hashing.HashValue, numPlayers)
+	for i := range players {
+		players[i] = hashing.RandomHash(nil)
+	}
+}
+
+//
+//func makeBetRequestTx(bet uint64) (sc.Transaction, error){
+//	playersAddr := players[curPlayer]
+//	curPlayer++
+//	betSum := uint64(1000000)
+//	reward := uint64(2000)
+//
+//	// create requestor's output for the sum
+//	toreq := sc.NewTransaction()
+//	toreq.Transfer().AddInput(value.NewInput(hashing.NilHash, 0))
+//	outIdx := toreq.Transfer().AddOutput(value.NewOutput(playersAddr, betSum+reward+1))
+//
+//	keyPool := clientapi.NewDummyKeyPool()
+//	err := sc.SignTransaction(toreq, keyPool)
+//	if err != nil {
+//		return nil, err
+//	}
+//	err = sc.VerifySignedBlocks(toreq.Signatures(), keyPool)
+//	if err != nil {
+//		panic(err)
+//	}
+//	vtx, err := toreq.ValueTx()
+//	if err != nil {
+//		return nil, err
+//	}
+//	if err := ldb.PutTransaction(vtx); err != nil {
+//		return nil, err
+//	}
+//	reqChainOut := generic.NewOutputRef(toreq.Transfer().Id(), outIdx)
+//
+//	ret, err := clientapi.NewRequest(clientapi.NewRequestParams{
+//		AssemblyId:         aid,
+//		AssemblyAccount:    assemblyAccount,
+//		RequestChainOutput: reqChainOut,
+//		Vars:               vars,
+//	})
+//
+//	err = sc.SignTransaction(ret, keyPool)
+//	if err != nil {
+//		return nil, err
+//	}
+//	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	return ret, err
+//
+//}

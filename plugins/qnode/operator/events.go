@@ -35,14 +35,9 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	log.Debugw("EventStateUpdate", "tx", tx.ShortStr())
 
 	stateUpd := tx.MustState()
-	if stateUpd.Error() != nil {
-		log.Warnf("Ignore the state update with error: '%v'", stateUpd.Error())
-		return
-	}
-
 	state := op.stateTx.MustState()
 
-	if stateUpd.StateIndex() <= state.StateIndex() {
+	if stateUpd.Error() == nil && stateUpd.StateIndex() <= state.StateIndex() {
 		// wrong sequence of stateTx indices. Ignore the message
 		log.Warnf("wrong sequence of stateTx indices. Ignore the message")
 		return
@@ -61,22 +56,28 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		"stateIndex", stateUpd.StateIndex(),
 		"tx", tx.ShortStr(),
 		"req", reqId.Short(),
-		"duration", duration)
+		"duration", duration,
+		"err", stateUpd.Error(),
+	)
 
 	// delete processed request from buffer
 	op.markRequestProcessed(reqId, duration)
 
-	if !state.Config().Id().Equal(stateUpd.Config().Id()) {
-		// configuration changed
-		ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
-		iAmParticipant, err := op.configure(stateUpd.Config().Id(), ownAddr, ownPort)
-		if err != nil || !iAmParticipant {
-			op.Dismiss()
-			return
+	if stateUpd.Error() == nil {
+		if !state.Config().Id().Equal(stateUpd.Config().Id()) {
+			// configuration changed
+			ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
+			iAmParticipant, err := op.configure(stateUpd.Config().Id(), ownAddr, ownPort)
+			if err != nil || !iAmParticipant {
+				op.Dismiss()
+				return
+			}
 		}
+		// update current state
+		op.stateTx = tx
+	} else {
+		log.Warnf("State update with error ignored: '%v'", stateUpd.Error())
 	}
-	// update current state
-	op.stateTx = tx
 	op.adjustToContext()
 	op.takeAction()
 }
@@ -94,6 +95,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		"req id", reqId.Short(),
 		"state idx", ctx.state.MustState().StateIndex(),
 		"current state idx", op.stateTx.MustState().StateIndex(),
+		"resultErr", ctx.err,
 	)
 
 	taskId := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())

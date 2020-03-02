@@ -46,7 +46,7 @@ func (op *AssemblyOperator) sendPull() {
 			continue
 		}
 		votes, votedHash := maxVotesFromPeers(req)
-		if 0 < votes && votes < op.requiredQuorum()-1 {
+		if 0 < votes && votes < op.assemblyQuorum()-1 {
 			op.sendPullMessages(req.ownResultCalculated, votes, votedHash)
 		}
 	}
@@ -65,7 +65,7 @@ func (op *AssemblyOperator) checkQuorum() {
 			// maybe voted from the future, the skip
 			continue
 		}
-		if maxVotes+1 < op.requiredQuorum() {
+		if maxVotes+1 < op.assemblyQuorum() {
 			continue
 		}
 		// quorum reached for the current calculated result

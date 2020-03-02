@@ -110,12 +110,13 @@ func NextStateUpdateTransaction(prevStateTx sc.Transaction, reqRef *sc.RequestRe
 	return tx, nil
 }
 
-func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, err error) (sc.Transaction, error) {
+func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, resultErr error) (sc.Transaction, error) {
 	tx, err := NewResultTransaction(reqRef, config)
 	if err != nil {
 		return nil, err
 	}
-	errState := sc.NewStateBlock(reqRef.RequestBlock().AssemblyId(), config.Id(), reqRef).WithError(err)
+	errState := sc.NewStateBlock(reqRef.RequestBlock().AssemblyId(), config.Id(), reqRef).
+		WithError(resultErr)
 	tx.SetState(errState)
 	return tx, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
-	"github.com/iotaledger/goshimmer/plugins/qnode/vm/vmimpl"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairlottery"
 	"github.com/pkg/errors"
 	"math/rand"
 	"net"
@@ -67,7 +67,7 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 
 	ret := &AssemblyOperator{
 		assemblyId:        state.AssemblyId(),
-		processor:         vmimpl.New(),
+		processor:         fairlottery.New(),
 		requests:          make(map[HashValue]*request),
 		processedRequests: make(map[HashValue]time.Duration),
 		stateTx:           tx,
@@ -130,7 +130,7 @@ func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort
 	return ret, nil
 }
 
-func (op *AssemblyOperator) requiredQuorum() uint16 {
+func (op *AssemblyOperator) assemblyQuorum() uint16 {
 	return op.cfgData.T
 }
 
