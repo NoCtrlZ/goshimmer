@@ -54,11 +54,17 @@ const (
 	MAP_KEY_DEPOSIT_OUT_INDEX = "deposit_out_idx"
 )
 
+type MainRequestOutputs struct {
+	RequestChainOutput *generic.OutputRefWithAddrValue
+	RewardOutput       *generic.OutputRefWithAddrValue
+	DepositOutput      *generic.OutputRefWithAddrValue
+}
+
 type Request interface {
 	AssemblyId() *HashValue
 	IsConfigUpdateReq() bool
 	Vars() generic.ValueMap
-	MainOutputs(Transaction) [3]*generic.OutputRefWithAddrValue
+	MainOutputs(Transaction) MainRequestOutputs
 	WithRequestChainOutputIndex(uint16) Request
 	WithRewardOutputIndex(uint16) Request
 	WithDepositOutputIndex(uint16) Request

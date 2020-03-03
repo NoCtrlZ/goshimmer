@@ -14,6 +14,7 @@ func runWebServer() {
 	fmt.Printf("Web server is running on port %d\n", webport)
 	http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/testreq", testreqHandler)
+	http.HandleFunc("/lottery", lotteryHandler)
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", webport), nil))
 }
 
@@ -80,4 +81,38 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+}
+
+func lotteryHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
+		return
+	}
+	betStr := r.FormValue("bet")
+	if betStr != "" {
+		bet, err := strconv.Atoi(betStr)
+		if err != nil {
+			fmt.Printf("wrong bet amount '%s'\n", betStr)
+			return
+		}
+		fmt.Printf("Bet request received for %d iotas\n", bet)
+		tx, err := makeBetRequestTx(uint64(bet))
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return
+		}
+		vtx, err := tx.ValueTx()
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return
+		}
+		if err := ldb.PutTransaction(vtx); err != nil {
+			fmt.Printf("%v\n", err)
+			return
+		}
+		postMsg(&wrapped{
+			senderIndex: qserver.MockTangleIdx,
+			tx:          tx,
+		})
+	}
 }

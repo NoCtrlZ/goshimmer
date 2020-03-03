@@ -49,3 +49,12 @@ func GetByTransferId(id *hashing.HashValue) (Transaction, bool) {
 func GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithAddrValue {
 	return valuetxdb.GetUnspentOutputs(addr)
 }
+
+func GetBalance(addr *hashing.HashValue) uint64 {
+	uos := valuetxdb.GetUnspentOutputs(addr)
+	ret := uint64(0)
+	for _, uo := range uos {
+		ret += uo.Value
+	}
+	return ret
+}

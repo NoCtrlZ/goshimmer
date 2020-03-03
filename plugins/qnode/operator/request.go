@@ -11,7 +11,7 @@ import (
 func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
 	reward := uint64(0)
-	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx())[1]
+	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx()).RewardOutput
 	if rewardOutput != nil {
 		reward = rewardOutput.Value
 	}

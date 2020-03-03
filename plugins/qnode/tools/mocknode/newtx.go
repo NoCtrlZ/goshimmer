@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairlottery"
 	"math/rand"
 )
 
@@ -106,6 +107,38 @@ func makeReqTx() (sc.Transaction, error) {
 		panic(err)
 	}
 
+	return ret, err
+}
+
+func makeBetRequestTx(betSum uint64) (sc.Transaction, error) {
+	playerIdx := curPlayer
+	curPlayer = (curPlayer + 1) % numPlayers
+	reward := uint64(2000)
+	requesterAccount := requesterAddresses[playerIdx]
+
+	fmt.Printf("+++ Balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
+
+	vars := generic.NewFlatValueMap()
+	vars.SetInt("req_type", fairlottery.REQ_TYPE_BET)
+
+	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
+		AssemblyId:       aid,
+		AssemblyAccount:  assemblyAccount,
+		RequesterAccount: requesterAccount,
+		Reward:           reward,
+		Deposit:          betSum,
+		Vars:             vars,
+	})
+
+	err = sc.SignTransaction(ret, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("+++ bet tansaction created for sum %d account %s\n", betSum, requesterAccount.Short())
 	return ret, err
 }
 

@@ -7,12 +7,14 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/hive.go/logger"
 )
 
 type runtimeContext struct {
 	reqRef   *sc.RequestRef
 	state    sc.Transaction
 	resultTx sc.Transaction
+	log      *logger.Logger
 	err      error
 }
 
@@ -46,7 +48,7 @@ func (ctx *runtimeContext) RequestTransferId() *hashing.HashValue {
 	return ctx.reqRef.Tx().Transfer().Id()
 }
 
-func (ctx *runtimeContext) MainRequestOutputs() [3]*generic.OutputRefWithAddrValue {
+func (ctx *runtimeContext) MainRequestOutputs() sc.MainRequestOutputs {
 	return ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())
 }
 
@@ -57,12 +59,16 @@ func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr
 func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) {
 	// add chain link to assembly account
 	// select any unspent output which is not already used in the current result tx
-	reqChainOutput := ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())[0]
+	reqChainOutput := ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx()).RequestChainOutput
 	outIdx := value.AddChainLink(ctx.resultTx.Transfer(), &reqChainOutput.OutputRef, reqChainOutput.Addr)
 	req := sc.NewRequestBlock(ctx.state.MustState().AssemblyId(), false).
 		WithRequestChainOutputIndex(outIdx)
 	req.Vars().SetInt("req_type", int(reqType))
 	ctx.resultTx.AddRequest(req)
+}
+
+func (ctx *runtimeContext) Log() *logger.Logger {
+	return ctx.log
 }
 
 // creates context with skeleton resulting transaction
@@ -85,6 +91,7 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 		reqRef:   reqRef,
 		state:    curStateTx,
 		resultTx: resTx,
+		log:      logger.NewLogger("VM"),
 	}, nil
 }
 
@@ -97,5 +104,6 @@ func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transacti
 		reqRef:   reqRef,
 		state:    curStateTx,
 		resultTx: resTx,
+		log:      logger.NewLogger("VM"),
 	}, nil
 }

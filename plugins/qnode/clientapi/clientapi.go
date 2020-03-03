@@ -72,7 +72,7 @@ func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
 		reqBlk.WithRewardOutputIndex(outIndices[1])
 	}
 	if par.Deposit > 0 {
-		reqBlk.WithDepositOutputIndex(outIndices[1])
+		reqBlk.WithDepositOutputIndex(outIndices[2])
 	}
 	ret.AddRequest(reqBlk)
 	return ret, nil
@@ -82,7 +82,7 @@ func NewResultTransaction(reqRef *sc.RequestRef, config sc.Config) (sc.Transacti
 	reqBlock := reqRef.RequestBlock()
 	// check if request block points to valid chain output
 	// which can be used as request->result chain
-	requestChainOutput := reqBlock.MainOutputs(reqRef.Tx())[0]
+	requestChainOutput := reqBlock.MainOutputs(reqRef.Tx()).RequestChainOutput
 	if requestChainOutput == nil {
 		return nil, fmt.Errorf("can't find request chain output in the request transaction")
 	}

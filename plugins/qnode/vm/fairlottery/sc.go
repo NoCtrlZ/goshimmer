@@ -35,19 +35,25 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 	// as hex encoded json marshaled list of deposit outputs
 	// of BET requests
 	betsStr, _ := ctx.StateVars().GetString("bets")
+	ctx.Log().Debugw("", "betStr", betsStr)
+
 	bets := make([]*generic.OutputRefWithAddrValue, 0)
-	if err := json.Unmarshal([]byte(betsStr), &bets); err != nil {
-		ctx.SetError(err)
-		return
+	if betsStr != "" {
+		if err := json.Unmarshal([]byte(betsStr), &bets); err != nil {
+			ctx.SetError(err)
+			return
+		}
 	}
 
 	// locked bets are stored as string in variable 'locked_bets'
 	// as hex encoded json marshaled list of deposit outputs
 	lockedBetsStr, _ := ctx.StateVars().GetString("locked_bets")
 	lockedBets := make([]*generic.OutputRefWithAddrValue, 0)
-	if err := json.Unmarshal([]byte(lockedBetsStr), &lockedBets); err != nil {
-		ctx.SetError(err)
-		return
+	if lockedBetsStr != "" {
+		if err := json.Unmarshal([]byte(lockedBetsStr), &lockedBets); err != nil {
+			ctx.SetError(err)
+			return
+		}
 	}
 
 	// 'num_bets' is a counter of not locked yet bets
@@ -66,7 +72,7 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 	case REQ_TYPE_BET:
 		// bet request
 		// adds nre bet to the list unlocked yet bets
-		depositOutput := ctx.MainRequestOutputs()[2]
+		depositOutput := ctx.MainRequestOutputs().DepositOutput
 		if depositOutput == nil {
 			ctx.SetError(fmt.Errorf("deposit not found"))
 			return
@@ -81,7 +87,7 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(err)
 			return
 		}
-		ctx.StateVars().SetString("bets", hex.EncodeToString(betsBin))
+		ctx.StateVars().SetString("bets", string(betsBin))
 		ctx.StateVars().SetInt("num_bets", numBets+1)
 
 	case REQ_TYPE_LOCK:

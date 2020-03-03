@@ -27,9 +27,14 @@
         xhttp.open("GET", "/testreq?reqnr=50", true);
         xhttp.send();
     }
-    function sendRequest100() {
+    function bet1000() {
         var xhttp = new XMLHttpRequest();
-        xhttp.open("GET", "/testreq?reqnr=100", true);
+        xhttp.open("GET", "/lottery?bet=1000", true);
+        xhttp.send();
+    }
+    function bet10000() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/lottery?bet=10000", true);
         xhttp.send();
     }
 </script>
@@ -46,6 +51,9 @@
 <button type="button"  onclick="sendRequest50()" id="request_button">Send 50 requests</button>
 <br>
 <br>
-<button type="button"  onclick="sendRequest100()" id="request_button">Send 100 requests</button>
+<button type="button"  onclick="bet1000()" id="bet_button">Bet 1000</button>
+<br>
+<br>
+<button type="button"  onclick="bet10000()" id="bet_button">Bet 10000</button>
 </body>
 </html>
