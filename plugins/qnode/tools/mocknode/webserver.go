@@ -65,6 +65,15 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("error: %v\n", err)
 			return
 		}
+		vtx, err := tx.ValueTx()
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return
+		}
+		if err := ldb.PutTransaction(vtx); err != nil {
+			fmt.Printf("%v\n", err)
+			return
+		}
 		postMsg(&wrapped{
 			senderIndex: qserver.MockTangleIdx,
 			tx:          tx,
