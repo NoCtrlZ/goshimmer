@@ -23,7 +23,7 @@ const (
 
 func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 	// request type is taken from the request variable 'req_type'
-	vtype, ok := ctx.RequestVars().GetInt("req_type")
+	reqType, ok := ctx.RequestVars().GetInt("req_type")
 	if !ok {
 		ctx.SetError(fmt.Errorf("'req_type' undefined"))
 		return
@@ -35,7 +35,6 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 	// as hex encoded json marshaled list of deposit outputs
 	// of BET requests
 	betsStr, _ := ctx.StateVars().GetString("bets")
-	ctx.Log().Debugw("", "betStr", betsStr)
 
 	bets := make([]*generic.OutputRefWithAddrValue, 0)
 	if betsStr != "" {
@@ -60,15 +59,25 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 	numBets, _ := ctx.StateVars().GetInt("num_bets")
 	// 'signature' is signature saved next request right after lock request
 	// if not locked and right after lock request it is == ""
-	signature, _ := ctx.StateVars().GetString("lock_signature")
+	signature, _ := ctx.StateVars().GetString("locked_signature")
+
+	ctx.Log().Debugw("FairLottery",
+		"req_type", reqType,
+		"betsStr", betsStr,
+		"lockedBetsStr", lockedBetsStr,
+		"minimumBet", minimumBet,
+		"numBets", numBets,
+		"lockedSignature", signature,
+	)
+
 	if len(lockedBets) != 0 && signature == "" {
 		// lockedBets != "" and signature != "" next state update after the lock up of bets
 		// this way 'signature' contains signature of state update, produced by the LOCK request
 		signature = hex.EncodeToString(ctx.Signature())
-		ctx.StateVars().SetString("signature", signature)
+		ctx.StateVars().SetString("locked_signature", signature)
 	}
 
-	switch vtype {
+	switch reqType {
 	case REQ_TYPE_BET:
 		// bet request
 		// adds nre bet to the list unlocked yet bets
@@ -103,7 +112,7 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(err)
 			return
 		}
-		ctx.StateVars().SetString("locked_bets", hex.EncodeToString(lockedBetsBin))
+		ctx.StateVars().SetString("locked_bets", string(lockedBetsBin))
 		ctx.StateVars().SetString("locked_signature", "")
 		ctx.StateVars().SetString("bets", "")
 		ctx.StateVars().SetInt("num_bets", 0)
@@ -133,8 +142,9 @@ func (_ *fairLottery) Run(ctx vm.RuntimeContext) {
 		ctx.StateVars().SetString("locked_bets", "")
 		ctx.StateVars().SetString("winning_address", winner.String())
 		ctx.StateVars().SetInt("payout", int(pot))
+
 	default:
-		ctx.SetError(fmt.Errorf("wrong request type"))
+		ctx.SetError(fmt.Errorf("wrong request type %d", reqType))
 		return
 	}
 }

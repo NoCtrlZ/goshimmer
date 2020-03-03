@@ -116,7 +116,7 @@ func makeBetRequestTx(betSum uint64) (sc.Transaction, error) {
 	reward := uint64(2000)
 	requesterAccount := requesterAddresses[playerIdx]
 
-	fmt.Printf("+++ Balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
+	fmt.Printf("+++ makeBetRequestTx: balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
 
 	vars := generic.NewFlatValueMap()
 	vars.SetInt("req_type", fairlottery.REQ_TYPE_BET)
@@ -139,32 +139,34 @@ func makeBetRequestTx(betSum uint64) (sc.Transaction, error) {
 		panic(err)
 	}
 	fmt.Printf("+++ bet tansaction created for sum %d account %s\n", betSum, requesterAccount.Short())
-	return ret, err
+	return ret, nil
 }
 
-//
-//func makeBetRequestTx(bet uint64) (sc.Transaction, error) {
-//	playerIdx := curPlayer
-//	curPlayer++
-//	betSum := uint64(100000)
-//	reward := uint64(2000)
-//
-//	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
-//		AssemblyId:         aid,
-//		AssemblyAccount:    assemblyAccount,
-//		RequestChainOutput: reqChainOut,
-//		Vars:               vars,
-//	})
-//
-//	err = sc.SignTransaction(ret, keyPool)
-//	if err != nil {
-//		return nil, err
-//	}
-//	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	return ret, err
-//
-//}
+func makeLockRequestTx() (sc.Transaction, error) {
+	playerIdx := curPlayer
+	curPlayer = (curPlayer + 1) % numPlayers
+	reward := uint64(2000)
+	requesterAccount := requesterAddresses[playerIdx]
+
+	vars := generic.NewFlatValueMap()
+	vars.SetInt("req_type", fairlottery.REQ_TYPE_LOCK)
+
+	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
+		AssemblyId:       aid,
+		AssemblyAccount:  assemblyAccount,
+		RequesterAccount: requesterAccount,
+		Reward:           reward,
+		Vars:             vars,
+	})
+
+	err = sc.SignTransaction(ret, keyPool)
+	if err != nil {
+		return nil, err
+	}
+	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("+++ makeLockRequestTx: balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
+	return ret, nil
+}

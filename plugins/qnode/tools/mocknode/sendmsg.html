@@ -29,31 +29,39 @@
     }
     function bet1000() {
         var xhttp = new XMLHttpRequest();
-        xhttp.open("GET", "/lottery?bet=1000", true);
+        xhttp.open("GET", "/lottery/bet?sum=1000", true);
         xhttp.send();
     }
     function bet10000() {
         var xhttp = new XMLHttpRequest();
-        xhttp.open("GET", "/lottery?bet=10000", true);
+        xhttp.open("GET", "/lottery/bet?sum=10000", true);
+        xhttp.send();
+    }
+    function lockBets() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("GET", "/lottery/lock", true);
         xhttp.send();
     }
 </script>
 
-<button type="button" onclick="sendConfig()" id="config_button">Send config</button>
+<button type="button" onclick="sendConfig()">Send config</button>
 <br>
 <br>
-<button type="button"  onclick="sendRequest()" id="request_button">Send request</button>
+<button type="button"  onclick="sendRequest()">Send request</button>
 <br>
 <br>
-<button type="button"  onclick="sendRequest10()" id="request_button">Send 10 requests</button>
+<button type="button"  onclick="sendRequest10()">Send 10 requests</button>
 <br>
 <br>
-<button type="button"  onclick="sendRequest50()" id="request_button">Send 50 requests</button>
+<button type="button"  onclick="sendRequest50()">Send 50 requests</button>
 <br>
 <br>
-<button type="button"  onclick="bet1000()" id="bet_button">Bet 1000</button>
+<button type="button"  onclick="bet1000()">Bet 1000</button>
 <br>
 <br>
-<button type="button"  onclick="bet10000()" id="bet_button">Bet 10000</button>
+<button type="button"  onclick="bet10000()">Bet 10000</button>
+<br>
+<br>
+<button type="button"  onclick="lockBets()">Lock bets</button>
 </body>
 </html>

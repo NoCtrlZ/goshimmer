@@ -37,6 +37,9 @@ func (ctx *runtimeContext) Signature() []byte {
 }
 
 func (ctx *runtimeContext) SetError(err error) {
+	if ctx.log != nil {
+		ctx.log.Errorf("SetError: %v", err)
+	}
 	ctx.err = err
 }
 
