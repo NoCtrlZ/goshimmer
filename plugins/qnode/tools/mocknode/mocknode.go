@@ -74,7 +74,7 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 	}
 	state, ok := tx.State()
 	if !ok {
-		fmt.Printf("RECEIVED NOT STATE UPDATEfrom %d\n", idx)
+		fmt.Printf("RECEIVED NOT STATE UPDATE from %d\n", idx)
 		return
 	}
 
@@ -96,7 +96,6 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 		fmt.Printf("%v\n", err)
 		return
 	}
-
 	postMsg(&wrapped{
 		senderIndex: idx,
 		tx:          tx,

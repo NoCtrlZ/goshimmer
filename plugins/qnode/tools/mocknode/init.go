@@ -39,27 +39,31 @@ func initGlobals() {
 		requesterAddresses[i] = hashing.RandomHash(nil)
 	}
 	// deposit fake iotas to addresses owned by requesterAddresses
-	keyPool := clientapi.NewDummyKeyPool()
+	keyPool = clientapi.NewDummyKeyPool()
 	for i, addr := range requesterAddresses {
-		tx := sc.NewTransaction()
-		tx.Transfer().AddInput(value.NewInput(hashing.RandomHash(nil), 0))
-		outIdx := tx.Transfer().AddOutput(value.NewOutput(addr, initDeposit))
-		vtx, err := tx.ValueTx()
-		if err != nil {
-			panic(err)
-		}
-		err = sc.SignTransaction(tx, keyPool)
-		if err != nil {
-			panic(err)
-		}
-		err = sc.VerifySignedBlocks(tx.Signatures(), keyPool)
-		if err != nil {
-			panic(err)
-		}
-		err = ldb.PutTransaction(vtx)
-		if err != nil {
-			panic(err)
-		}
-		requesterDeposits[i] = generic.NewOutputRef(tx.Transfer().Id(), outIdx)
+		requesterDeposits[i] = generateAccountWithDeposit(addr, initDeposit)
 	}
+}
+
+func generateAccountWithDeposit(addr *hashing.HashValue, deposit uint64) *generic.OutputRef {
+	tx := sc.NewTransaction()
+	tx.Transfer().AddInput(value.NewInput(hashing.RandomHash(nil), 0))
+	outIdx := tx.Transfer().AddOutput(value.NewOutput(addr, deposit))
+	vtx, err := tx.ValueTx()
+	if err != nil {
+		panic(err)
+	}
+	err = sc.SignTransaction(tx, keyPool)
+	if err != nil {
+		panic(err)
+	}
+	err = sc.VerifySignedBlocks(tx.Signatures(), keyPool)
+	if err != nil {
+		panic(err)
+	}
+	err = ldb.PutTransaction(vtx)
+	if err != nil {
+		panic(err)
+	}
+	return generic.NewOutputRef(tx.Transfer().Id(), outIdx)
 }

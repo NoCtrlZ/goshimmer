@@ -1,0 +1,19 @@
+#account{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+    /*border: 1px solid #c2c2d6 ;*/
+}
+
+#balance{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+    /*border: 1px solid #c2c2d6 ;*/
+}
+
+.just_text{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+}

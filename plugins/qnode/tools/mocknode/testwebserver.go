@@ -12,15 +12,20 @@ const webport = 2000
 
 func runWebServer() {
 	fmt.Printf("Web server is running on port %d\n", webport)
-	http.HandleFunc("/", defaultHandler)
+	//http.HandleFunc("/", defaultHandler)
+	http.HandleFunc("/testbuttons", testButtonsHandler)
 	http.HandleFunc("/testreq", testreqHandler)
 	http.HandleFunc("/lottery/bet", betHandler)
 	http.HandleFunc("/lottery/lock", lockHandler)
+
+	http.HandleFunc("/static/", staticPageHandler)
+	http.HandleFunc("/state", getStateHandler)
+	http.HandleFunc("/newaccount", newAccountHandler)
+
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", webport), nil))
 }
 
-func defaultHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("defaultHandler\n")
+func testButtonsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "C:/Users/evaldas/Documents/proj/Go/src/github.com/lunfardo314/goshimmer/plugins/qnode/tools/mocknode/sendmsg.html")
 }
 
