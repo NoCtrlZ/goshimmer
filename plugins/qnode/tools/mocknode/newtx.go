@@ -110,13 +110,9 @@ func makeReqTx() (sc.Transaction, error) {
 	return ret, err
 }
 
-func makeBetRequestTx(betSum uint64, color int) (sc.Transaction, error) {
-	playerIdx := curPlayer
-	curPlayer = (curPlayer + 1) % numPlayers
-	reward := uint64(2000)
-	requesterAccount := requesterAddresses[playerIdx]
+func makeBetRequestTx(fromAccount *hashing.HashValue, betSum uint64, color int, reward uint64) (sc.Transaction, error) {
 
-	fmt.Printf("+++ makeBetRequestTx: balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
+	fmt.Printf("+++ makeBetRequestTx: balance of %s is %d\n", fromAccount.Short(), value.GetBalance(fromAccount))
 
 	vars := generic.NewFlatValueMap()
 	vars.SetInt("req_type", fairroulette.REQ_TYPE_BET)
@@ -125,7 +121,7 @@ func makeBetRequestTx(betSum uint64, color int) (sc.Transaction, error) {
 	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
 		AssemblyId:       aid,
 		AssemblyAccount:  assemblyAccount,
-		RequesterAccount: requesterAccount,
+		RequesterAccount: fromAccount,
 		Reward:           reward,
 		Deposit:          betSum,
 		Vars:             vars,
@@ -139,7 +135,7 @@ func makeBetRequestTx(betSum uint64, color int) (sc.Transaction, error) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("+++ bet tansaction created for sum %d account %s\n", betSum, requesterAccount.Short())
+	fmt.Printf("+++ bet tansaction created for sum %d account %s\n", betSum, fromAccount.Short())
 	return ret, nil
 }
 

@@ -17,11 +17,12 @@ func runWebServer() {
 	//http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/testbuttons", testButtonsHandler)
 	http.HandleFunc("/testreq", testreqHandler)
-	http.HandleFunc("/testbet", betHandler)
+	http.HandleFunc("/testbet", betTestHandler)
 	http.HandleFunc("/testlock", lockHandler)
 
 	http.HandleFunc("/static/", staticPageHandler)
 	http.HandleFunc("/demo/state", getStateHandler)
+	http.HandleFunc("/demo/bet", placeBetHandler)
 
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", webport), nil))
 }
@@ -90,7 +91,7 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func betHandler(w http.ResponseWriter, r *http.Request) {
+func betTestHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
@@ -103,7 +104,12 @@ func betHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Bet request received for %d iotas\n", bet)
-		tx, err := makeBetRequestTx(uint64(bet), rand.Intn(fairroulette.NUM_COLORS))
+
+		playerIdx := curPlayer
+		curPlayer = (curPlayer + 1) % numPlayers
+		fromAccount := requesterAddresses[playerIdx]
+
+		tx, err := makeBetRequestTx(fromAccount, uint64(bet), rand.Intn(fairroulette.NUM_COLORS), 2000)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return

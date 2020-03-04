@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"net/http"
 	"path"
@@ -26,6 +27,7 @@ const (
 	Gi          = 1000 * Mi
 	Ti          = 1000 * Gi
 	depositInit = 61 * Ti
+	stdReward   = uint64(2000)
 )
 
 func setSCState(tx sc.Transaction) {
@@ -43,6 +45,7 @@ func getSCState() sc.Transaction {
 func newAccount() *hashing.HashValue {
 	addr := hashing.RandomHash(nil)
 	generateAccountWithDeposit(addr, depositInit)
+
 	currentStateMutex.Lock()
 	defer currentStateMutex.Unlock()
 	accounts = append(accounts, addr)
@@ -62,6 +65,57 @@ type accountInfo struct {
 	Account string `json:"account"`
 }
 
+func placeBetHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("placeBetHandler\n")
+	var err error
+	if err = r.ParseForm(); err != nil {
+		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
+		return
+	}
+	myAccountStr := r.FormValue("my_account")
+	var myAccount *hashing.HashValue
+
+	myAccount, err = hashing.HashValueFromString(myAccountStr)
+	if err != nil {
+		_, _ = fmt.Fprintf(w, "%v", err)
+		return
+	}
+	myBalance := value.GetBalance(myAccount)
+	if myBalance == 0 {
+		_, _ = fmt.Fprintf(w, "0 balance")
+		return
+	}
+	sumInt, err := strconv.Atoi(r.FormValue("sum"))
+	sum := uint64(sumInt)
+	if err != nil || sum == 0 || myBalance < sum+1+stdReward {
+		_, _ = fmt.Fprintf(w, "wrong bet amount or not enough balance")
+		return
+	}
+	color, err := strconv.Atoi(r.FormValue("color"))
+	if err != nil || color >= fairroulette.NUM_COLORS {
+		_, _ = fmt.Fprintf(w, "wrong color code")
+		return
+	}
+	tx, err := makeBetRequestTx(myAccount, sum, color, stdReward)
+	if err != nil {
+		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		return
+	}
+	vtx, err := tx.ValueTx()
+	if err != nil {
+		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		return
+	}
+	if err := ldb.PutTransaction(vtx); err != nil {
+		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		return
+	}
+	postMsg(&wrapped{
+		senderIndex: qserver.MockTangleIdx,
+		tx:          tx,
+	})
+}
+
 type stateResponse struct {
 	MyAccount   accountInfo                  `json:"my_account"`
 	AllBalances []*accountInfo               `json:"all_balances"`
@@ -70,6 +124,7 @@ type stateResponse struct {
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("getStateHandler\n")
 	var err error
 	if err = r.ParseForm(); err != nil {
 		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
@@ -144,20 +199,6 @@ func getBets() []*fairroulette.BetData {
 		return []*fairroulette.BetData{}
 	}
 	return ret
-}
-
-func placeBetHandler(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
-		return
-	}
-	sumStr := r.FormValue("sum")
-	bet, err := strconv.Atoi(sumStr)
-	if err != nil {
-		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
-		return
-	}
-	bet = bet
 }
 
 type sortByBalance []*accountInfo

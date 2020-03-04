@@ -1,6 +1,6 @@
 #account{
     font-family: "Liberation Mono", monospace;
-    text-align: left;
+    text-align: right;
     font-size: 15px;
     /*border: 1px solid #c2c2d6 ;*/
 }
@@ -16,4 +16,19 @@
     font-family: "Liberation Mono", monospace;
     text-align: left;
     font-size: 15px;
+}
+
+.my_account_highlight{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+    padding-right: 10px;
+    font-weight: bold;
+}
+
+.common_highlight{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+    padding-right: 10px;
 }
