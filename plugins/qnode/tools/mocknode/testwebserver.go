@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
+	"math/rand"
 	"net/http"
 	"strconv"
 )
@@ -102,7 +104,7 @@ func betHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Printf("Bet request received for %d iotas\n", bet)
-		tx, err := makeBetRequestTx(uint64(bet))
+		tx, err := makeBetRequestTx(uint64(bet), rand.Intn(fairroulette.NUM_COLORS))
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return

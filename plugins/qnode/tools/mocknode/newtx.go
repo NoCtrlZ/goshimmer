@@ -7,7 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
-	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairlottery"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"math/rand"
 )
 
@@ -110,7 +110,7 @@ func makeReqTx() (sc.Transaction, error) {
 	return ret, err
 }
 
-func makeBetRequestTx(betSum uint64) (sc.Transaction, error) {
+func makeBetRequestTx(betSum uint64, color int) (sc.Transaction, error) {
 	playerIdx := curPlayer
 	curPlayer = (curPlayer + 1) % numPlayers
 	reward := uint64(2000)
@@ -119,7 +119,8 @@ func makeBetRequestTx(betSum uint64) (sc.Transaction, error) {
 	fmt.Printf("+++ makeBetRequestTx: balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
 
 	vars := generic.NewFlatValueMap()
-	vars.SetInt("req_type", fairlottery.REQ_TYPE_BET)
+	vars.SetInt("req_type", fairroulette.REQ_TYPE_BET)
+	vars.SetInt("color", color)
 
 	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
 		AssemblyId:       aid,
@@ -149,7 +150,7 @@ func makeLockRequestTx() (sc.Transaction, error) {
 	requesterAccount := requesterAddresses[playerIdx]
 
 	vars := generic.NewFlatValueMap()
-	vars.SetInt("req_type", fairlottery.REQ_TYPE_LOCK)
+	vars.SetInt("req_type", fairroulette.REQ_TYPE_LOCK)
 
 	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
 		AssemblyId:       aid,

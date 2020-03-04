@@ -81,6 +81,11 @@ func (out *mockOutput) Value() uint64 {
 	return out.value
 }
 
+func (out *mockOutput) WithValue(v uint64) value.Output {
+	out.value = v
+	return out
+}
+
 func (out *mockOutput) Encode() generic.Encode {
 	return out
 }

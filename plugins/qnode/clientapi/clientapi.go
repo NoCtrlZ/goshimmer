@@ -142,6 +142,31 @@ func SendAllOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, ad
 	return nil
 }
 
+func SendOutputsToOutputs(tx sc.Transaction, inOutputs []*generic.OutputRef, outOutputs []value.Output, reminderAddr *HashValue) error {
+	sumInp := uint64(0)
+	for _, outp := range inOutputs {
+		oav := value.MustGetOutputAddrValue(outp)
+		sumInp += oav.Value
+	}
+	sumOutp := uint64(0)
+	for _, outp := range outOutputs {
+		sumOutp += outp.Value()
+	}
+	if sumOutp > sumInp {
+		return fmt.Errorf("not enough funds")
+	}
+	for _, outp := range inOutputs {
+		tx.Transfer().AddInput(value.NewInputFromOutputRef(outp))
+	}
+	for _, outp := range outOutputs {
+		tx.Transfer().AddOutput(outp)
+	}
+	if sumOutp < sumInp {
+		tx.Transfer().AddOutput(value.NewOutput(reminderAddr, sumInp-sumOutp))
+	}
+	return nil
+}
+
 type outputsByValue []*generic.OutputRefWithAddrValue
 
 func (s outputsByValue) Len() int {

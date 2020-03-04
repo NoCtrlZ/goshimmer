@@ -34,5 +34,6 @@ type Input interface {
 type Output interface {
 	Address() *hashing.HashValue
 	Value() uint64
+	WithValue(uint64) Output
 	Encode() generic.Encode
 }

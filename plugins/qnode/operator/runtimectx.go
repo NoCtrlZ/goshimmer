@@ -30,6 +30,10 @@ func (ctx *runtimeContext) ConfigVars() generic.ValueMap {
 	return ctx.state.MustState().Config().Vars()
 }
 
+func (ctx *runtimeContext) AssemblyAccount() *hashing.HashValue {
+	return ctx.state.MustState().Config().AssemblyAccount()
+}
+
 // BLS threshold signature. To use it as random value
 func (ctx *runtimeContext) Signature() []byte {
 	sig, _ := ctx.state.Signatures()[0].GetSignature()
@@ -57,6 +61,10 @@ func (ctx *runtimeContext) MainRequestOutputs() sc.MainRequestOutputs {
 
 func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue) {
 	_ = clientapi.SendAllOutputsToAddress(ctx.resultTx, outputs, addr)
+}
+
+func (ctx *runtimeContext) SendOutputsToOutputs(inOutputs []*generic.OutputRef, outOutputs []value.Output, reminderAddr *hashing.HashValue) error {
+	return clientapi.SendOutputsToOutputs(ctx.resultTx, inOutputs, outOutputs, reminderAddr)
 }
 
 func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) {

@@ -1,4 +1,4 @@
-package fairlottery
+package fairroulette
 
 import (
 	"bytes"
@@ -10,7 +10,18 @@ import (
 	"sort"
 )
 
-func runLottery(lockedBets []*generic.OutputRefWithAddrValue, signature string) (*hashing.HashValue, uint64, error) {
+func getRandom(signature string) uint32 {
+	// calculate random uint64
+	sigBin, err := hex.DecodeString(signature)
+	if err != nil {
+		return 0
+	}
+	h := hashing.HashData(sigBin)
+	// rnd < pot, uniformly distributed [0,pot)
+	return tools.Uint32From4Bytes(h.Bytes()[:4])
+}
+
+func runRoulette(lockedBets []*generic.OutputRefWithAddrValue, signature string) (*hashing.HashValue, uint64, error) {
 	// assert signature != ""
 	// sum up by payout address
 	byPayout := make(map[hashing.HashValue]uint64)
@@ -40,7 +51,7 @@ func runLottery(lockedBets []*generic.OutputRefWithAddrValue, signature string) 
 		}
 		runSum += byPayout[*addr]
 	}
-	return nil, 0, fmt.Errorf("runLottery: inconsistency")
+	return nil, 0, fmt.Errorf("runRoulette: inconsistency")
 }
 
 type arrToSort []*hashing.HashValue

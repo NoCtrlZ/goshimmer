@@ -6,7 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
-	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairlottery"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"github.com/pkg/errors"
 	"math/rand"
 	"net"
@@ -67,7 +67,7 @@ func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperato
 
 	ret := &AssemblyOperator{
 		assemblyId:        state.AssemblyId(),
-		processor:         fairlottery.New(),
+		processor:         fairroulette.New(),
 		requests:          make(map[HashValue]*request),
 		processedRequests: make(map[HashValue]time.Duration),
 		stateTx:           tx,
