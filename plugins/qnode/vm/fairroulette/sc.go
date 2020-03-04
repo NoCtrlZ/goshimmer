@@ -4,9 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 )
 
@@ -24,7 +22,7 @@ const (
 	NUM_COLORS          = 7
 )
 
-type betData struct {
+type BetData struct {
 	generic.OutputRefWithAddrValue
 	Color int `json:"color"`
 }
@@ -46,7 +44,7 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 	// of BET requests
 	betsStr, _ := ctx.StateVars().GetString("bets")
 
-	bets := make([]*betData, 0)
+	bets := make([]*BetData, 0)
 	if betsStr != "" {
 		if err := json.Unmarshal([]byte(betsStr), &bets); err != nil {
 			ctx.SetError(err)
@@ -57,7 +55,7 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 	// locked bets are stored as string in variable 'locked_bets'
 	// as hex encoded json marshaled list of deposit outputs
 	lockedBetsStr, _ := ctx.StateVars().GetString("locked_bets")
-	lockedBets := make([]*betData, 0)
+	lockedBets := make([]*BetData, 0)
 	if lockedBetsStr != "" {
 		if err := json.Unmarshal([]byte(lockedBetsStr), &lockedBets); err != nil {
 			ctx.SetError(err)
@@ -103,7 +101,7 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(fmt.Errorf("bet is too small, taken as donation"))
 			return
 		}
-		bets = append(bets, &betData{
+		bets = append(bets, &BetData{
 			OutputRefWithAddrValue: *depositOutput,
 			Color:                  color,
 		})
@@ -159,57 +157,4 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 		ctx.SetError(fmt.Errorf("wrong request type %d", reqType))
 		return
 	}
-}
-
-func distributePot(ctx vm.RuntimeContext, bets []*betData, outputs []value.Output) error {
-	inputs := make([]*generic.OutputRef, len(bets))
-	for i, bet := range bets {
-		inputs[i] = &bet.OutputRef
-	}
-	return ctx.SendOutputsToOutputs(inputs, outputs, ctx.AssemblyAccount())
-}
-
-func collectWinners(bets []*betData, color int) []value.Output {
-	ret1 := make(map[hashing.HashValue]value.Output)
-	if len(bets) == 0 {
-		return []value.Output{}
-	}
-	winningBets := make([]*generic.OutputRefWithAddrValue, 0)
-	totalSum := uint64(0)
-	winningSum := uint64(0)
-	for _, bet := range bets {
-		if bet.Color == color {
-			winningBets = append(winningBets, &bet.OutputRefWithAddrValue)
-			winningSum += bet.OutputRefWithAddrValue.Value
-		}
-		totalSum += bet.OutputRefWithAddrValue.Value
-	}
-	for _, bet := range winningBets {
-		if _, ok := ret1[*bet.Addr]; !ok {
-			ret1[*bet.Addr] = value.NewOutput(bet.Addr, 0)
-		}
-		ret1[*bet.Addr].WithValue(ret1[*bet.Addr].Value() + bet.Value)
-	}
-	// distribute proportionally bets to winning color
-	last := value.NewOutput(hashing.NilHash, 0)
-	roundedSum := uint64(0)
-	for _, outp := range ret1 {
-		last = outp
-		coeff := float64(outp.Value()) / float64(winningSum)
-		sum := uint64(coeff * float64(totalSum))
-		outp.WithValue(sum)
-		roundedSum += sum
-	}
-	// adjust to rounding
-	switch {
-	case roundedSum > totalSum:
-		last.WithValue(last.Value() - (roundedSum - totalSum))
-	case roundedSum < totalSum:
-		last.WithValue(last.Value() + (totalSum - roundedSum))
-	}
-	ret := make([]value.Output, 0, len(ret1))
-	for _, outp := range ret1 {
-		ret = append(ret, outp)
-	}
-	return ret
 }

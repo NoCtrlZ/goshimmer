@@ -23,6 +23,7 @@ type UTXOTransfer interface {
 	InputSignatures() []generic.SignedBlock
 	DataHash() *hashing.HashValue
 	Encode() generic.Encode
+	ShortStr() string
 }
 
 type Input interface {

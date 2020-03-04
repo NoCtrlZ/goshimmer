@@ -17,12 +17,11 @@ func runWebServer() {
 	//http.HandleFunc("/", defaultHandler)
 	http.HandleFunc("/testbuttons", testButtonsHandler)
 	http.HandleFunc("/testreq", testreqHandler)
-	http.HandleFunc("/lottery/bet", betHandler)
-	http.HandleFunc("/lottery/lock", lockHandler)
+	http.HandleFunc("/testbet", betHandler)
+	http.HandleFunc("/testlock", lockHandler)
 
 	http.HandleFunc("/static/", staticPageHandler)
-	http.HandleFunc("/state", getStateHandler)
-	http.HandleFunc("/newaccount", newAccountHandler)
+	http.HandleFunc("/demo/state", getStateHandler)
 
 	panic(http.ListenAndServe(fmt.Sprintf(":%d", webport), nil))
 }

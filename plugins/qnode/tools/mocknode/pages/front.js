@@ -6,7 +6,7 @@ function refreshAccountValues(){
     document.getElementById("account").innerHTML = account;
     document.getElementById("balance").innerHTML = balance;
 }
-function refreshAccount() {
+function onLoad() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4){

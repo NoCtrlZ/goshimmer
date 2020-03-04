@@ -48,11 +48,19 @@ func (ldb *localValueTxDb) GetSpendingTransaction(outputRefId *HashValue) (value
 	ret, ok := ldb.spendingTxsByOutputRefId[*outputRefId]
 	return ret, ok
 }
-
 func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 	ldb.Lock()
-	defer ldb.Unlock()
+	err := ldb.__putTransaction(tx)
+	ldb.Unlock()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s transf: %s\n",
+		tx.Id().Short(), tx.Transfer().Id().Short(), tx.Transfer().ShortStr())
+	return nil
+}
 
+func (ldb *localValueTxDb) __putTransaction(tx value.Transaction) error {
 	// check conflicts
 	_, ok := ldb.byTxId[*tx.Id()]
 	if ok {
@@ -86,7 +94,6 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 		}
 		ldb.outputsByAddress[*addr] = append(ldb.outputsByAddress[*addr], generic.NewOutputRef(trid, uint16(i)))
 	}
-	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s\n", tx.Id().Short(), trid.Short())
 	return nil
 }
 

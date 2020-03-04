@@ -2,6 +2,7 @@ package modelimpl
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
@@ -21,6 +22,19 @@ func newUTXOTransfer() value.UTXOTransfer {
 		inputs:  make([]value.Input, 0),
 		outputs: make([]value.Output, 0),
 	}
+}
+
+func (tr *mockUTXO) ShortStr() string {
+	balOut := uint64(0)
+	for _, outp := range tr.outputs {
+		balOut += outp.Value()
+	}
+	balIn := uint64(0)
+	for _, inp := range tr.inputs {
+		balIn += value.MustGetOutputAddrValue(inp.OutputRef()).Value
+	}
+	return fmt.Sprintf("numIn: %d numOut %d numSig: %d in: %d out: %d",
+		len(tr.inputs), len(tr.outputs), len(tr.inputSigs), balIn, balOut)
 }
 
 func (tr *mockUTXO) Id() *hashing.HashValue {

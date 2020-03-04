@@ -47,7 +47,7 @@ type wrapped struct {
 func main() {
 	initGlobals()
 
-	srv = udp.NewServer(2048)
+	srv = udp.NewServer(2048 * 4)
 	srv.Events.Start.Attach(events.NewClosure(func() {
 		fmt.Printf("MockTangle ServerInstance started\n")
 	}))
@@ -67,6 +67,8 @@ func main() {
 
 func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 	idx := findSenderIndex(updAddr)
+	fmt.Printf("---- received %d bytes\n", len(data))
+
 	tx, err := decodeUDPMsg(data)
 	if err != nil {
 		fmt.Printf("decode tx error: %v\n", err)
@@ -90,12 +92,12 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 		return
 	}
 	fmt.Printf("Signatures OK\n")
-
 	vtx, _ := tx.ValueTx()
 	if err := ldb.PutTransaction(vtx); err != nil {
 		fmt.Printf("%v\n", err)
 		return
 	}
+
 	postMsg(&wrapped{
 		senderIndex: idx,
 		tx:          tx,
@@ -142,7 +144,6 @@ func processMsg(msg *wrapped) {
 	tx := msg.tx
 	fmt.Printf("processMsg: tx id = %s trid = %s from sender %d\n",
 		tx.Id().Short(), tx.Transfer().Id().Short(), msg.senderIndex)
-
 	vtx, _ := tx.ValueTx()
 
 	var buf bytes.Buffer
@@ -152,6 +153,8 @@ func processMsg(msg *wrapped) {
 	}
 	sentTo := sendToNodes(buf.Bytes())
 	fmt.Printf("sent to %+v\n", sentTo)
+
+	setSCState(tx)
 }
 
 func sendToNodes(data []byte) []int16 {
