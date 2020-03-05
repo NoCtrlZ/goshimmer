@@ -149,13 +149,18 @@ func (op *AssemblyOperator) ReceiveUDPData(udpAddr *net.UDPAddr, senderIndex uin
 	}
 	switch msgType {
 	case MSG_PUSH_MSG:
-		if msg, err := decodePushResultMsg(senderIndex, msgData); err == nil {
-			op.DispatchEvent(msg)
+		msg, err := decodePushResultMsg(senderIndex, msgData)
+		if err != nil {
+			return err
 		}
+		op.DispatchEvent(msg)
+
 	case MSG_PULL_MSG:
-		if msg, err := decodePullResultMsg(senderIndex, msgData); err == nil {
-			op.DispatchEvent(msg)
+		msg, err := decodePullResultMsg(senderIndex, msgData)
+		if err != nil {
+			return err
 		}
+		op.DispatchEvent(msg)
 
 	default:
 		return errors.New("wrong msg type")

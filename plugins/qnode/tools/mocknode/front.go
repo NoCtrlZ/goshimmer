@@ -118,9 +118,13 @@ func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 
 type stateResponse struct {
 	MyAccount   accountInfo                  `json:"my_account"`
-	AllBalances []*accountInfo               `json:"all_balances"`
+	ScAccount   accountInfo                  `json:"sc_account"`
+	NumBets     int                          `json:"num_bets"`
+	SumBets     uint64                       `json:"sum_bets"`
 	Bets        []*fairroulette.BetData      `json:"bets"`
 	ColorStats  [fairroulette.NUM_COLORS]int `json:"color_stats"`
+	NumRuns     int                          `json:"num_runs"`
+	AllBalances []*accountInfo               `json:"all_balances"`
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -141,21 +145,49 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		myAccount = newAccount()
 	}
-	resp := stateResponse{
-		MyAccount: accountInfo{
-			Amount:  value.GetBalance(myAccount),
-			Account: myAccount.String(),
-		},
-		AllBalances: getAllBalances(),
-		Bets:        getBets(),
-		ColorStats:  getColorStats(),
-	}
+	resp := getStateResponse(myAccount)
 	sort.Sort(sortByBalance(resp.AllBalances))
 	data, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
 		data = []byte(fmt.Sprintf("%v", err))
 	}
 	_, _ = w.Write(data)
+}
+
+func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
+	ret := &stateResponse{
+		MyAccount: accountInfo{
+			Amount:  value.GetBalance(myAccount),
+			Account: myAccount.String(),
+		},
+		ScAccount:   getScAccount(),
+		Bets:        getBets(),
+		ColorStats:  getColorStats(),
+		AllBalances: getAllBalances(),
+	}
+	tx := getSCState()
+	if tx == nil {
+		return ret
+	}
+	ret.NumBets = len(ret.Bets)
+	ret.SumBets = 0
+	for _, bet := range ret.Bets {
+		ret.SumBets += bet.Value
+	}
+	ret.NumRuns, _ = tx.MustState().Vars().GetInt("num_runs")
+
+	return ret
+}
+
+func getScAccount() accountInfo {
+	ret := accountInfo{}
+	tx := getSCState()
+	if tx == nil {
+		return ret
+	}
+	ret.Account = tx.MustState().Config().AssemblyAccount().String()
+	ret.Amount = value.GetBalance(tx.MustState().Config().AssemblyAccount())
+	return ret
 }
 
 func getAllBalances() []*accountInfo {

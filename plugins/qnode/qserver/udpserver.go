@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/network/udp"
@@ -11,10 +12,8 @@ import (
 	"net"
 )
 
-const udpBufferSize = 2048
-
 func createUDPServer() *udp.UDPServer {
-	ret := udp.NewServer(udpBufferSize)
+	ret := udp.NewServer(parameters.UDP_BUFFER_SIZE)
 
 	ret.Events.Start.Attach(events.NewClosure(func() {
 		log.Debugf("Start event qnode UDP server")

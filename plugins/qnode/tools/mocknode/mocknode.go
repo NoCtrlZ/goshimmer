@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/events"
@@ -47,7 +48,7 @@ type wrapped struct {
 func main() {
 	initGlobals()
 
-	srv = udp.NewServer(2048 * 4)
+	srv = udp.NewServer(parameters.UDP_BUFFER_SIZE)
 	srv.Events.Start.Attach(events.NewClosure(func() {
 		fmt.Printf("MockTangle ServerInstance started\n")
 	}))
@@ -97,6 +98,8 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 		fmt.Printf("%v\n", err)
 		return
 	}
+
+	setSCState(tx)
 
 	postMsg(&wrapped{
 		senderIndex: idx,
@@ -151,14 +154,20 @@ func processMsg(msg *wrapped) {
 	if err != nil {
 		return
 	}
-	sentTo := sendToNodes(buf.Bytes())
-	fmt.Printf("sent to %+v\n", sentTo)
-
-	setSCState(tx)
+	data := buf.Bytes()
+	sentTo := sendToNodes(data)
+	if sentTo != nil {
+		fmt.Printf("sent to %+v\n", sentTo)
+	}
 }
 
 func sendToNodes(data []byte) []int16 {
 	wrapped := qserver.WrapUDPPacket(hashing.NilHash, qserver.MockTangleIdx, 0, data)
+	if len(wrapped) > parameters.UDP_BUFFER_SIZE {
+		fmt.Printf("sendToNodes: len(wrapped) > parameters.UDP_BUFFER_SIZE. Message wasn't sent")
+		return nil
+	}
+
 	sentTo := make([]int16, 0)
 	for idx, op := range operators {
 		addr := net.UDPAddr{

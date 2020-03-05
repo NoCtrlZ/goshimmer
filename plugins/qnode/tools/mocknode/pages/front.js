@@ -1,7 +1,7 @@
 
 let curState = null;
 
-function placeBet() {
+function placeBet(sum, color) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4){
@@ -10,30 +10,34 @@ function placeBet() {
             }
         }
     };
-    params = "?my_account="+curState.my_account+"&sum="+"10000"+"&color="+"3";
-    xhttp.open("GET", "/demo/state"+params, true);
+    params = "?my_account="+curState.my_account.account+"&sum="+sum+"&color="+color;
+    xhttp.open("GET", "/demo/bet"+params, true);
     xhttp.send();
 }
 
 
-function refreshState(){
-    document.getElementById("account").innerHTML = curState.my_account.account;
-    document.getElementById("balance").innerHTML = curState.my_account.amount;
+function updateState(){
+    document.getElementById("my_account").innerHTML = curState.my_account.account;
+    document.getElementById("my_balance").innerHTML = curState.my_account.amount;
     propagateAllAccounts();
     propagateAllBets();
 }
 
-function onLoad() {
+function refreshState() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4){
             if (this.status == 200) {
                 curState = JSON.parse(this.response);
-                refreshState();
+                updateState();
             }
         }
     };
-    xhttp.open("GET", "/demo/state", true);
+    params = "";
+    if (curState != null){
+        params = "?my_account="+curState.my_account.account;
+    }
+    xhttp.open("GET", "/demo/state"+params, true);
     xhttp.send();
 }
 
@@ -79,21 +83,21 @@ function newAllAccountsRow(idx){
 function colorIdxToStyle(idx){
     switch (idx) {
         case 0:
-            return "red_line";
+            return "common_highlight";  // "red_line";
         case 1:
-            return "yellow_line";
+            return "common_highlight";  // "yellow_line";
         case 2:
-            return "green_line";
+            return "common_highlight";  // "green_line";
         case 3:
-            return "blue_line";
+            return "common_highlight";  // "blue_line";
         case 4:
-            return "magenta_line";
+            return "common_highlight";  // "magenta_line";
         case 5:
-            return "orange_line";
+            return "common_highlight";  // "orange_line";
         case 6:
-            return "cyan_line";
+            return "common_highlight";  // "cyan_line";
         case 7:
-            return "brown_line";
+            return "common_highlight";  // "brown_line";
     }
     return "black_line";
 }

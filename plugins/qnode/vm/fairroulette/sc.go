@@ -20,6 +20,7 @@ const (
 	REQ_TYPE_LOCK       = 2
 	REQ_TYPE_DISTRIBUTE = 3
 	NUM_COLORS          = 7
+	MAX_BETS            = 10 // when number of bets reaches limit, lock msg is sent automatically.
 )
 
 type BetData struct {
@@ -66,8 +67,6 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 	if !ok {
 		winningColor = -1
 	}
-	// 'num_bets' is a counter of not locked yet bets
-	numBets, _ := ctx.StateVars().GetInt("num_bets")
 	// 'signature' is signature saved next request right after lock request
 	// if not locked and right after lock request it is == ""
 	signature, _ := ctx.StateVars().GetString("locked_signature")
@@ -111,29 +110,30 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			return
 		}
 		ctx.StateVars().SetString("bets", string(betsBin))
-		ctx.StateVars().SetInt("num_bets", numBets+1)
+
+		if len(bets) == MAX_BETS {
+			ctx.AddRequestToSelf(REQ_TYPE_LOCK)
+		}
 
 	case REQ_TYPE_LOCK:
 		// LOCK request
 		// appends list of not locked yet bets to the end of 'locked_bets' list
-		if numBets == 0 {
-			ctx.SetError(fmt.Errorf("no bets to lock"))
-			return
-		}
-		lockedBets = append(lockedBets, bets...)
-		lockedBetsBin, err := json.Marshal(lockedBets)
-		if err != nil {
-			ctx.SetError(err)
-			return
-		}
-		ctx.StateVars().SetString("locked_bets", string(lockedBetsBin))
-		ctx.StateVars().SetString("locked_signature", "")
-		ctx.StateVars().SetString("bets", "")
-		ctx.StateVars().SetInt("num_bets", 0)
-		ctx.StateVars().SetString("rnd", "")
-		ctx.StateVars().SetInt("winning_color", -1)
+		// repeats previous state if len(bets) == 0
+		if len(bets) != 0 {
+			lockedBets = append(lockedBets, bets...)
+			lockedBetsBin, err := json.Marshal(lockedBets)
+			if err != nil {
+				ctx.SetError(err)
+				return
+			}
+			ctx.StateVars().SetString("locked_bets", string(lockedBetsBin))
+			ctx.StateVars().SetString("locked_signature", "")
+			ctx.StateVars().SetString("bets", "")
+			ctx.StateVars().SetString("rnd", "")
+			ctx.StateVars().SetInt("winning_color", -1)
 
-		ctx.AddRequestToSelf(REQ_TYPE_DISTRIBUTE)
+			ctx.AddRequestToSelf(REQ_TYPE_DISTRIBUTE)
+		}
 
 	case REQ_TYPE_DISTRIBUTE:
 		if len(lockedBets) == 0 || winningColor < 0 || winningColor >= NUM_COLORS {
@@ -152,6 +152,9 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 		keyName := generic.VarName(fmt.Sprintf("color_%d", winningColor))
 		colorCounter, _ := ctx.StateVars().GetInt(keyName)
 		ctx.StateVars().SetInt(keyName, colorCounter+1)
+
+		numRuns, _ := ctx.StateVars().GetInt("num_runs")
+		ctx.StateVars().SetInt("num_runs", numRuns+1)
 
 	default:
 		ctx.SetError(fmt.Errorf("wrong request type %d", reqType))

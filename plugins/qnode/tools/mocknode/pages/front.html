@@ -11,25 +11,75 @@
         <link rel="stylesheet" type="text/css" href="/static/front.css">
         <script type="text/javascript" src="/static/front.js"></script>
 </head>
-<body onload="onLoad()">
+<body onload="refreshState()">
 <table>
     <tr>
-        <td class="just_text">Your account:</td>
-        <td id="account"></td>
+        <td class="just_text_right">Your account:</td>
+        <td class="just_text_left" id="my_account"></td>
     </tr>
     <tr>
-        <td class="just_text">Your balance:</td>
-        <td id="balance"></td>
+        <td class="just_text_right">Your balance:</td>
+        <td class="just_text_left" id="my_balance"></td>
     </tr>
 </table>
 
 <button type="button" onclick="placeBet(1000, 3)">Place bet 10000</button>
 
-<h3> All balances</h3>
-<div style="display: table" id="all_accounts_table">
-</div>
-<h3> All bets</h3>
+<h3>Smart contract state</h3>
+<table>
+    <tr>
+        <td class="just_text_right">Smart contract account:</td>
+        <td class="just_text_left"  id="sc_account"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Smart contract balance:</td>
+        <td class="just_text_left"  id="sc_balance"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Current number of bets:</td>
+        <td class="just_text_left"  id="num_bets"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Current amount staked:</td>
+        <td class="just_text_left"  id="bets_amount"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Number of runs so far:</td>
+        <td class="just_text_left"  id="num_runs"></td>
+    </tr>
+</table>
+<h4> Current bets placed</h4>
 <div style="display: table" id="all_bets_table">
+</div>
+<h4>Historical</h4>
+<table>
+    <tr>
+        <td class="just_text_right">Number of plays:</td>
+        <td class="just_text_left"  id="num_plays"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Last game tx ID:</td>
+        <td class="just_text_left"  id="last_game_tx"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Last distribution transfer ID:</td>
+        <td class="just_text_left"  id="last_distrib_trid"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Signature of last game transaction:</td>
+        <td class="just_text_left"  id="last_signature"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Last winning color:</td>
+        <td class="just_text_left"  id="winning_color"></td>
+    </tr>
+    <tr>
+        <td class="just_text_right">Winning color stats:</td>
+        <td class="just_text_left"  id="color_state"></td>
+    </tr>
+</table>
+<h3> Balances of participants</h3>
+<div style="display: table" id="all_accounts_table">
 </div>
 
 </body>

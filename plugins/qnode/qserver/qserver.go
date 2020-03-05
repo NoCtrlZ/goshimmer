@@ -189,6 +189,9 @@ func (q *QServer) GetOwnAddressAndPort() (string, int) {
 
 func (q *QServer) SendUDPData(data []byte, aid *HashValue, senderIndex uint16, msgType byte, addr *net.UDPAddr) error {
 	wrapped := WrapUDPPacket(aid, senderIndex, msgType, data)
+	if len(wrapped) > parameters.UDP_BUFFER_SIZE {
+		return fmt.Errorf("len(wrapped) > parameters.UDP_BUFFER_SIZE. Message wasnt't send")
+	}
 	_, err := q.udpServer.GetSocket().WriteTo(wrapped, addr)
 	return err
 }
