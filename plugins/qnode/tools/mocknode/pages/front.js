@@ -6,7 +6,9 @@ function placeBet(sum, color) {
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4){
             if (this.status == 200) {
-                refreshState();
+                console.log(this.response);
+                resp = JSON.parse(this.response);
+                document.getElementById("last_err").innerHTML = resp.err;
             }
         }
     };
@@ -19,10 +21,24 @@ function placeBet(sum, color) {
 function updateState(){
     document.getElementById("my_account").innerHTML = curState.my_account.account;
     document.getElementById("my_balance").innerHTML = curState.my_account.amount;
+    document.getElementById("sc_account").innerHTML = curState.sc_account.account;
+    document.getElementById("sc_balance").innerHTML = curState.sc_account.amount;
+    document.getElementById("num_runs").innerHTML = curState.num_runs;
+    document.getElementById("bets_amount").innerHTML = curState.sum_bets;
+    document.getElementById("num_bets").innerHTML = curState.num_bets;
     propagateAllAccounts();
     propagateAllBets();
+
 }
 
+function initPage() {
+    refreshState();
+    refresh(refreshState, 2000);
+}
+
+function clearErr() {
+    document.getElementById("last_err").innerHTML = "";
+}
 function refreshState() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -30,6 +46,7 @@ function refreshState() {
             if (this.status == 200) {
                 curState = JSON.parse(this.response);
                 updateState();
+                clearErr();
             }
         }
     };
@@ -59,52 +76,23 @@ function newAllAccountsRow(idx){
 
     cell = document.createElement("div");
     cell.setAttribute("style", "display: table-cell");
-    if (account == curState.my_account.account){
-        cell.setAttribute("class", "my_account_highlight");
-    } else {
-        cell.setAttribute("class", "common_highlight");
-    }
+    cell.setAttribute("class", classByAccount(account));
     cell.innerHTML = account;
     row.appendChild(cell);
 
     cell = document.createElement("div");
     cell.setAttribute("style", "display: table-cell");
-    if (account == curState.my_account.account){
-        cell.setAttribute("class", "my_account_highlight");
-    } else {
-        cell.setAttribute("class", "common_highlight");
-    }
+    cell.setAttribute("class", classByAccount(account));
     cell.innerHTML = bal;
 
     row.appendChild(cell);
     return row;
 }
 
-function colorIdxToStyle(idx){
-    switch (idx) {
-        case 0:
-            return "common_highlight";  // "red_line";
-        case 1:
-            return "common_highlight";  // "yellow_line";
-        case 2:
-            return "common_highlight";  // "green_line";
-        case 3:
-            return "common_highlight";  // "blue_line";
-        case 4:
-            return "common_highlight";  // "magenta_line";
-        case 5:
-            return "common_highlight";  // "orange_line";
-        case 6:
-            return "common_highlight";  // "cyan_line";
-        case 7:
-            return "common_highlight";  // "brown_line";
-    }
-    return "black_line";
-}
-
 function propagateAllBets(){
     allBetsTable = document.getElementById("all_bets_table");
     deleteChildren(allBetsTable);
+    allBetsTable.appendChild(newAllBetsHeader());
     for (idx in curState.bets){
         row = newAllBetsRow(idx);
         allBetsTable.appendChild(row);
@@ -112,30 +100,70 @@ function propagateAllBets(){
 }
 
 function newAllBetsRow(idx){
-    account = curState.bets[idx].a;
-    bet = curState.bets[idx].v;
-    color = curState.bets[idx].color
+    account = curState.bets[idx].p;
+    bet = curState.bets[idx].s;
+    color = curState.bets[idx].c;
 
     row = document.createElement("div");
     row.setAttribute("style", "display: table-row");
 
     cell = document.createElement("div");
     cell.setAttribute("style", "display: table-cell");
-    cell.setAttribute("class", colorIdxToStyle(color));
+    cell.setAttribute("class", classByAccount(account)+" "+classByColor(color));
     cell.innerHTML = account;
     row.appendChild(cell);
 
     cell = document.createElement("div");
     cell.setAttribute("style", "display: table-cell");
-    cell.setAttribute("class", colorIdxToStyle(color));
+    cell.setAttribute("class", classByAccount(account)+" "+classByColor(color));
     cell.innerHTML = bet;
 
     row.appendChild(cell);
     return row;
 }
 
+function newAllBetsHeader(){
+    row = document.createElement("div");
+    row.setAttribute("style", "display: table-row");
+
+    cell = document.createElement("div");
+    cell.setAttribute("style", "display: table-cell");
+    cell.setAttribute("class", "my_account_highlight");
+    cell.innerHTML = "Player's account";
+    row.appendChild(cell);
+
+    cell = document.createElement("div");
+    cell.setAttribute("style", "display: table-cell");
+    cell.setAttribute("class", "my_account_highlight");
+    cell.innerHTML = "Bet amount";
+
+    row.appendChild(cell);
+    return row;
+}
+
+
 function deleteChildren(obj){
     while( obj.hasChildNodes() ){
         obj.removeChild(obj.lastChild);
     }
+}
+
+function classByAccount(account){
+    if (account == curState.my_account.account){
+        return "my_account_highlight";
+    } else {
+        return"common_highlight";
+    }
+}
+
+function classByColor(idx){
+    if (idx < 0 || idx > 6){
+        return "color_7"
+    }
+    return "color_"+idx.toString()
+}
+
+function refresh(fun, millis){
+    fun();
+    setInterval(fun, millis);
 }

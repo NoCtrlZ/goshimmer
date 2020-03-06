@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 )
@@ -24,8 +25,10 @@ const (
 )
 
 type BetData struct {
-	generic.OutputRefWithAddrValue
-	Color int `json:"color"`
+	*generic.OutputRef
+	Sum           uint64             `json:"s"`
+	Color         int                `json:"c"`
+	PayoutAddress *hashing.HashValue `json:"p"`
 }
 
 func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
@@ -101,8 +104,10 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			return
 		}
 		bets = append(bets, &BetData{
-			OutputRefWithAddrValue: *depositOutput,
-			Color:                  color,
+			OutputRef:     &depositOutput.OutputRef,
+			Sum:           depositOutput.Value,
+			Color:         color,
+			PayoutAddress: ctx.MainInputAddress(),
 		})
 		betsBin, err := json.Marshal(bets)
 		if err != nil {
@@ -142,10 +147,12 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 		}
 
 		outputs := collectWinners(lockedBets, winningColor)
-		err := distributePot(ctx, lockedBets, outputs)
-		if err != nil {
-			ctx.SetError(err)
-			return
+		if len(outputs) > 0 {
+			err := distributePot(ctx, lockedBets, outputs)
+			if err != nil {
+				ctx.SetError(err)
+				return
+			}
 		}
 		ctx.StateVars().SetString("locked_bets", "")
 

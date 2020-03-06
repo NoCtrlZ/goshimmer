@@ -18,9 +18,10 @@
     font-size: 15px;
 }
 
-.just_text_right{
+.bold_text_right{
     font-family: "Liberation Mono", monospace;
     text-align: right;
+    font-weight: bold;
     font-size: 15px;
 }
 
@@ -38,4 +39,102 @@
     text-align: left;
     font-size: 15px;
     padding-right: 10px;
+}
+
+#last_err{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+    font-weight: bold;
+    color: red;
+}
+.color_0{
+    color: red;
+}
+
+.color_1{
+    color: darkturquoise;
+}
+.color_2{
+    color: green;
+}
+.color_3{
+    color: blue;
+}
+
+.color_4{
+    color: magenta;
+}
+
+.color_5{
+    color: orange;
+}
+
+.color_6{
+    color: brown;
+}
+
+.color_7{
+    color: black;
+}
+
+.color_0_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: red;
+    color: white;
+    width: 100%;
+}
+
+.color_1_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: darkturquoise;
+    color: white;
+    width: 100%;
+}
+.color_2_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: green;
+    color: white;
+    width: 100%;
+}
+.color_3_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: blue;
+    color: white;
+    width: 100%;
+}
+
+.color_4_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: magenta;
+    color: white;
+    width: 100%;
+}
+
+.color_5_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: orange;
+    color: white;
+    width: 100%;
+}
+
+.color_6_butt{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-size: 15px;
+    background-color: brown;
+    color: white;
+    width: 100%;
 }

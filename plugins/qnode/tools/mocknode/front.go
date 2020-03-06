@@ -9,6 +9,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
+	"io"
 	"net/http"
 	"path"
 	"sort"
@@ -26,7 +27,7 @@ const (
 	Mi          = uint64(1000000)
 	Gi          = 1000 * Mi
 	Ti          = 1000 * Gi
-	depositInit = 61 * Ti
+	depositInit = 1 * Gi
 	stdReward   = uint64(2000)
 )
 
@@ -65,11 +66,26 @@ type accountInfo struct {
 	Account string `json:"account"`
 }
 
+type simpleResponse struct {
+	Err string `json:"err"`
+}
+
+func respond(w io.Writer, err string) {
+	data, _ := json.Marshal(&simpleResponse{Err: err})
+	_, _ = w.Write(data)
+}
+
 func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("placeBetHandler\n")
+	if !originPosted {
+		originPosted = true
+		postOrigin()
+		return
+	}
+
 	var err error
 	if err = r.ParseForm(); err != nil {
-		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
+		respond(w, err.Error())
 		return
 	}
 	myAccountStr := r.FormValue("my_account")
@@ -77,43 +93,44 @@ func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 
 	myAccount, err = hashing.HashValueFromString(myAccountStr)
 	if err != nil {
-		_, _ = fmt.Fprintf(w, "%v", err)
+		respond(w, err.Error())
 		return
 	}
 	myBalance := value.GetBalance(myAccount)
 	if myBalance == 0 {
-		_, _ = fmt.Fprintf(w, "0 balance")
+		respond(w, "0 balance")
 		return
 	}
 	sumInt, err := strconv.Atoi(r.FormValue("sum"))
 	sum := uint64(sumInt)
 	if err != nil || sum == 0 || myBalance < sum+1+stdReward {
-		_, _ = fmt.Fprintf(w, "wrong bet amount or not enough balance")
+		respond(w, "wrong bet amount or not enough balance")
 		return
 	}
 	color, err := strconv.Atoi(r.FormValue("color"))
 	if err != nil || color >= fairroulette.NUM_COLORS {
-		_, _ = fmt.Fprintf(w, "wrong color code")
+		respond(w, "wrong color code")
 		return
 	}
 	tx, err := makeBetRequestTx(myAccount, sum, color, stdReward)
 	if err != nil {
-		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		respond(w, err.Error())
 		return
 	}
 	vtx, err := tx.ValueTx()
 	if err != nil {
-		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		respond(w, err.Error())
 		return
 	}
 	if err := ldb.PutTransaction(vtx); err != nil {
-		_, _ = fmt.Fprintf(w, fmt.Sprintf("error: %v", err))
+		respond(w, err.Error())
 		return
 	}
 	postMsg(&wrapped{
 		senderIndex: qserver.MockTangleIdx,
 		tx:          tx,
 	})
+	respond(w, "")
 }
 
 type stateResponse struct {
@@ -125,13 +142,13 @@ type stateResponse struct {
 	ColorStats  [fairroulette.NUM_COLORS]int `json:"color_stats"`
 	NumRuns     int                          `json:"num_runs"`
 	AllBalances []*accountInfo               `json:"all_balances"`
+	Err         string                       `json:"err"`
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("getStateHandler\n")
 	var err error
 	if err = r.ParseForm(); err != nil {
-		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
+		respond(w, err.Error())
 		return
 	}
 	myAccountStr := r.FormValue("my_account")
@@ -139,7 +156,7 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if myAccountStr != "" {
 		if myAccount, err = hashing.HashValueFromString(myAccountStr); err != nil {
-			_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
+			respond(w, err.Error())
 			return
 		}
 	} else {
@@ -149,19 +166,22 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(sortByBalance(resp.AllBalances))
 	data, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		data = []byte(fmt.Sprintf("%v", err))
+		respond(w, err.Error())
+		return
 	}
 	_, _ = w.Write(data)
 }
 
 func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
+	bets, totalStaked := getBets()
 	ret := &stateResponse{
 		MyAccount: accountInfo{
 			Amount:  value.GetBalance(myAccount),
 			Account: myAccount.String(),
 		},
 		ScAccount:   getScAccount(),
-		Bets:        getBets(),
+		Bets:        bets,
+		SumBets:     totalStaked,
 		ColorStats:  getColorStats(),
 		AllBalances: getAllBalances(),
 	}
@@ -172,7 +192,7 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 	ret.NumBets = len(ret.Bets)
 	ret.SumBets = 0
 	for _, bet := range ret.Bets {
-		ret.SumBets += bet.Value
+		ret.SumBets += bet.Sum
 	}
 	ret.NumRuns, _ = tx.MustState().Vars().GetInt("num_runs")
 
@@ -216,21 +236,25 @@ func getColorStats() [fairroulette.NUM_COLORS]int {
 	return ret
 }
 
-func getBets() []*fairroulette.BetData {
+func getBets() ([]*fairroulette.BetData, uint64) {
 	tx := getSCState()
 	if tx == nil {
-		return []*fairroulette.BetData{}
+		return []*fairroulette.BetData{}, 0
 	}
 	betStr, _ := tx.MustState().Vars().GetString("bets")
 	if betStr == "" {
-		return []*fairroulette.BetData{}
+		return []*fairroulette.BetData{}, 0
 	}
 	ret := make([]*fairroulette.BetData, 0)
 	err := json.Unmarshal([]byte(betStr), &ret)
 	if err != nil {
-		return []*fairroulette.BetData{}
+		return []*fairroulette.BetData{}, 0
 	}
-	return ret
+	sum := uint64(0)
+	for _, b := range ret {
+		sum += b.Sum
+	}
+	return ret, sum
 }
 
 type sortByBalance []*accountInfo

@@ -59,6 +59,15 @@ func (ctx *runtimeContext) MainRequestOutputs() sc.MainRequestOutputs {
 	return ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx())
 }
 
+func (ctx *runtimeContext) MainInputAddress() *hashing.HashValue {
+	tr := ctx.reqRef.Tx().Transfer()
+	if len(tr.Inputs()) == 0 {
+		return hashing.NilHash // panic?
+	}
+	inp0 := tr.Inputs()[0].OutputRef()
+	return value.MustGetOutputAddrValue(inp0).Addr
+}
+
 func (ctx *runtimeContext) SendFundsToAddress(outputs []*generic.OutputRef, addr *hashing.HashValue) {
 	_ = clientapi.SendAllOutputsToAddress(ctx.resultTx, outputs, addr)
 }

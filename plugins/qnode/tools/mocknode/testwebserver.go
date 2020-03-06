@@ -31,6 +31,8 @@ func testButtonsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "C:/Users/evaldas/Documents/proj/Go/src/github.com/lunfardo314/goshimmer/plugins/qnode/tools/mocknode/sendmsg.html")
 }
 
+var originPosted = false
+
 func testreqHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		_, _ = fmt.Fprintf(w, "ParseForm() err: %v", err)
@@ -38,30 +40,12 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var tx sc.Transaction
 	var err error
-	isCfgStr := r.FormValue("cfg")
-	if isCfgStr != "" {
-		fmt.Printf("cfg request\n")
-		tx, err = newOrigin()
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			return
-		}
-		vtx, err := tx.ValueTx()
-		if err != nil {
-			fmt.Printf("%v\n", err)
-			return
-		}
-		if err := ldb.PutTransaction(vtx); err != nil {
-			fmt.Printf("%v\n", err)
-			return
-		}
-
-		postMsg(&wrapped{
-			senderIndex: qserver.MockTangleIdx,
-			tx:          tx,
-		})
+	if !originPosted {
+		originPosted = true
+		postOrigin()
 		return
 	}
+
 	reqnr := r.FormValue("reqnr")
 	num, err := strconv.Atoi(reqnr)
 	if err != nil || num == 0 {
@@ -89,6 +73,29 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+}
+
+func postOrigin() {
+	tx, err := newOrigin()
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	vtx, err := tx.ValueTx()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+	if err := ldb.PutTransaction(vtx); err != nil {
+		fmt.Printf("%v\n", err)
+		return
+	}
+
+	originPosted = true
+	postMsg(&wrapped{
+		senderIndex: qserver.MockTangleIdx,
+		tx:          tx,
+	})
 }
 
 func betTestHandler(w http.ResponseWriter, r *http.Request) {

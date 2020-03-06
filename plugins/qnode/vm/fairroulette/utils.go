@@ -23,36 +23,40 @@ func getRandom(signature string) uint32 {
 func distributePot(ctx vm.RuntimeContext, bets []*BetData, outputs []value.Output) error {
 	inputs := make([]*generic.OutputRef, len(bets))
 	for i, bet := range bets {
-		inputs[i] = &bet.OutputRef
+		inputs[i] = bet.OutputRef
 	}
 	return ctx.SendOutputsToOutputs(inputs, outputs, ctx.AssemblyAccount())
 }
 
 func collectWinners(bets []*BetData, color int) []value.Output {
-	ret1 := make(map[hashing.HashValue]value.Output)
 	if len(bets) == 0 {
 		return []value.Output{}
 	}
-	winningBets := make([]*generic.OutputRefWithAddrValue, 0)
+	winningBets := make([]*BetData, 0)
 	totalSum := uint64(0)
 	winningSum := uint64(0)
 	for _, bet := range bets {
 		if bet.Color == color {
-			winningBets = append(winningBets, &bet.OutputRefWithAddrValue)
-			winningSum += bet.OutputRefWithAddrValue.Value
+			winningBets = append(winningBets, bet)
+			winningSum += bet.Sum
 		}
-		totalSum += bet.OutputRefWithAddrValue.Value
+		totalSum += bet.Sum
 	}
+	if len(winningBets) == 0 {
+		// no bets on the winning color
+		return []value.Output{}
+	}
+	retMap := make(map[hashing.HashValue]value.Output)
 	for _, bet := range winningBets {
-		if _, ok := ret1[*bet.Addr]; !ok {
-			ret1[*bet.Addr] = value.NewOutput(bet.Addr, 0)
+		if _, ok := retMap[*bet.PayoutAddress]; !ok {
+			retMap[*bet.PayoutAddress] = value.NewOutput(bet.PayoutAddress, 0)
 		}
-		ret1[*bet.Addr].WithValue(ret1[*bet.Addr].Value() + bet.Value)
+		retMap[*bet.PayoutAddress].WithValue(retMap[*bet.PayoutAddress].Value() + bet.Sum)
 	}
 	// distribute proportionally bets to winning color
-	last := value.NewOutput(hashing.NilHash, 0)
+	last := value.Output(nil)
 	roundedSum := uint64(0)
-	for _, outp := range ret1 {
+	for _, outp := range retMap {
 		last = outp
 		coeff := float64(outp.Value()) / float64(winningSum)
 		sum := uint64(coeff * float64(totalSum))
@@ -66,8 +70,8 @@ func collectWinners(bets []*BetData, color int) []value.Output {
 	case roundedSum < totalSum:
 		last.WithValue(last.Value() + (totalSum - roundedSum))
 	}
-	ret := make([]value.Output, 0, len(ret1))
-	for _, outp := range ret1 {
+	ret := make([]value.Output, 0, len(retMap))
+	for _, outp := range retMap {
 		ret = append(ret, outp)
 	}
 	return ret
