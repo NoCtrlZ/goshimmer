@@ -1,5 +1,6 @@
 
-let curState = null;
+var curState = null;
+var seed = null;
 
 function placeBet(sum, color) {
     var xhttp = new XMLHttpRequest();
@@ -12,13 +13,14 @@ function placeBet(sum, color) {
             }
         }
     };
-    params = "?my_account="+curState.my_account.account+"&sum="+sum+"&color="+color;
+    params = "?seed="+seed+"&sum="+sum+"&color="+color;
     xhttp.open("GET", "/demo/bet"+params, true);
     xhttp.send();
 }
 
 
 function updateState(){
+    document.getElementById("my_seed").innerHTML = seed;
     document.getElementById("my_account").innerHTML = curState.my_account.account;
     document.getElementById("my_balance").innerHTML = curState.my_account.amount;
     document.getElementById("sc_account").innerHTML = curState.sc_account.account;
@@ -26,13 +28,23 @@ function updateState(){
     document.getElementById("num_runs").innerHTML = curState.num_runs;
     document.getElementById("bets_amount").innerHTML = curState.sum_bets;
     document.getElementById("num_bets").innerHTML = curState.num_bets;
+    document.getElementById("last_signature").innerHTML = curState.sign.substr(0, 12)+"..";
+    setWinningColor(curState.winning_color);
     propagateAllAccounts();
     propagateAllBets();
-
 }
 
-function initPage() {
-    refreshState();
+function submitSeed() {
+    seed = document.getElementById("seed_input").value.toString();
+    if (seed.length < 5){
+        seed = null;
+        return;
+    }
+    window.location.href = "/demo/game?seed="+seed;
+}
+
+function initPage(mySeed) {
+    seed = mySeed;
     refresh(refreshState, 2000);
 }
 
@@ -44,16 +56,14 @@ function refreshState() {
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4){
             if (this.status == 200) {
+                console.log(this.response);
                 curState = JSON.parse(this.response);
                 updateState();
                 clearErr();
             }
         }
     };
-    params = "";
-    if (curState != null){
-        params = "?my_account="+curState.my_account.account;
-    }
+    params = "?seed="+seed;
     xhttp.open("GET", "/demo/state"+params, true);
     xhttp.send();
 }
@@ -166,4 +176,10 @@ function classByColor(idx){
 function refresh(fun, millis){
     fun();
     setInterval(fun, millis);
+}
+
+function setWinningColor(color) {
+    colElem = document.getElementById("winning_color");
+    colElem.setAttribute("class", classByColor(curState.winning_color)+"_text");
+    colElem.innerHTML = curState.winning_color;
 }

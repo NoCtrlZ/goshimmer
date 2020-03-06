@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IOTA smart contract FairLottery</title>
+        <title>Tanglebeat. IOTA network related metrics</title>
+        <meta charset="UTF-8">
+        <meta name="description" content="IOTA smart contract FairRoulette. PoC">
+        <meta name="keywords" content="IOTA, Tangle, Goshimmer">
+        <meta name="author" content="lunfardo">
+        <link rel="stylesheet" type="text/css" href="/static/front.css">
+        <script type="text/javascript" src="/static/front.js"></script>
+</head>
+<body onload="initPage('{{.Seed}}')">
+<table>
+    <tr>
+        <td class="bold_text_right">Your seed:</td>
+        <td class="just_text_left" id="my_seed"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Your account address:</td>
+        <td class="just_text_left" id="my_account"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Your balance:</td>
+        <td class="just_text_left" id="my_balance"></td>
+    </tr>
+</table>
+<h3>Place bet on color</h3>
+<table>
+    <tr>
+        <td><button type="button" onclick="placeBet(1000000, 0)" class="color_0_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 1)" class="color_1_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 2)" class="color_2_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 3)" class="color_3_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 4)" class="color_4_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 5)" class="color_5_butt">1 Mi</button></td>
+        <td><button type="button" onclick="placeBet(1000000, 6)" class="color_6_butt">1 Mi</button></td>
+    </tr>
+    <tr>
+        <td><button type="button" onclick="placeBet(10000000, 0)" class="color_0_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 1)" class="color_1_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 2)" class="color_2_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 3)" class="color_3_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 4)" class="color_4_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 5)" class="color_5_butt">10 Mi</button></td>
+        <td><button type="button" onclick="placeBet(10000000, 6)" class="color_6_butt">10 Mi</button></td>
+    </tr>
+    <tr>
+        <td><button type="button" onclick="placeBet(100000000, 0)" class="color_0_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 1)" class="color_1_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 2)" class="color_2_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 3)" class="color_3_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 4)" class="color_4_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 5)" class="color_5_butt">100 Mi</button></td>
+        <td><button type="button" onclick="placeBet(100000000, 6)" class="color_6_butt">100 Mi</button></td>
+    </tr>
+</table>
+<p id="last_err"></p>
+<h3>Smart contract state</h3>
+<table>
+    <tr>
+        <td class="bold_text_right">Smart contract account:</td>
+        <td class="just_text_left"  id="sc_account"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Smart contract balance:</td>
+        <td class="just_text_left"  id="sc_balance"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Current number of bets:</td>
+        <td class="just_text_left"  id="num_bets"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Current amount staked:</td>
+        <td class="just_text_left"  id="bets_amount"></td>
+    </tr>
+</table>
+<h4> Current bets</h4>
+<div style="display: table" id="all_bets_table">
+</div>
+<h4>Historical</h4>
+<table>
+    <tr>
+        <td class="bold_text_right">Number of rounds so far:</td>
+        <td class="just_text_left"  id="num_runs"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Last winning color:</td>
+        <td class="just_text_left"  id="winning_color"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Last game tx ID:</td>
+        <td class="just_text_left"  id="last_game_tx"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Last distribution transfer ID:</td>
+        <td class="just_text_left"  id="last_distrib_trid"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Signature of last game transaction:</td>
+        <td class="just_text_left"  id="last_signature"></td>
+    </tr>
+    <tr>
+        <td class="bold_text_right">Winning color stats:</td>
+        <td class="just_text_left"  id="color_state"></td>
+    </tr>
+</table>
+<h3> Balances of participants</h3>
+<div style="display: table" id="all_accounts_table">
+</div>
+
+</body>
+</html>

@@ -51,7 +51,7 @@ func configureLocal() *peer.Local {
 
 	// the private key seed of the current local can be returned the following way:
 	// key, _ := db.LocalPrivateKey()
-	// fmt.Println(base64.StdEncoding.EncodeToString(ed25519.PrivateKey(key).Seed()))
+	// fmt.Println(base64.StdEncoding.EncodeToString(ed25519.PrivateKey(key).MySeed()))
 
 	// set the private key from the seed provided in the config
 	var seed [][]byte

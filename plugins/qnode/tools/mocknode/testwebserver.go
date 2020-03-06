@@ -21,6 +21,8 @@ func runWebServer() {
 	http.HandleFunc("/testlock", lockHandler)
 
 	http.HandleFunc("/static/", staticPageHandler)
+	http.HandleFunc("/demo/start", startPageHandler)
+	http.HandleFunc("/demo/game", gamePageHandler)
 	http.HandleFunc("/demo/state", getStateHandler)
 	http.HandleFunc("/demo/bet", placeBetHandler)
 

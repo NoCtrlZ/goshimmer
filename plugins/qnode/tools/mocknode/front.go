@@ -9,11 +9,13 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
+	"html/template"
 	"io"
 	"net/http"
 	"path"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -43,17 +45,45 @@ func getSCState() sc.Transaction {
 	return currentState
 }
 
-func newAccount() *hashing.HashValue {
-	addr := hashing.RandomHash(nil)
-	generateAccountWithDeposit(addr, depositInit)
-
+func getAccount(seed string) *hashing.HashValue {
+	h := hashing.HashStrings(seed)
 	currentStateMutex.Lock()
 	defer currentStateMutex.Unlock()
-	accounts = append(accounts, addr)
-	return addr
+	for _, addr := range accounts {
+		if h.Equal(addr) {
+			return h
+		}
+	}
+	generateAccountWithDeposit(h, depositInit)
+	accounts = append(accounts, h)
+	return h
 }
 
 const rootDir = "C:/Users/evaldas/Documents/proj/Go/src/github.com/lunfardo314/goshimmer/plugins/qnode/tools/mocknode/pages"
+
+var mainTemplate *template.Template
+
+func startPageHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(rootDir, "front.html"))
+}
+
+func gamePageHandler(w http.ResponseWriter, r *http.Request) {
+	if mainTemplate == nil {
+		mainTemplate = template.Must(template.ParseFiles(path.Join(rootDir, "game.html")))
+	}
+	var err error
+	if err = r.ParseForm(); err != nil {
+		respondErr(w, err.Error())
+		return
+	}
+
+	mySeed := strings.TrimSpace(r.FormValue("seed"))
+	if len(mySeed) < 5 {
+		respondErr(w, "seed must be at least 5 characters")
+		return
+	}
+	_ = mainTemplate.Execute(w, &struct{ Seed string }{Seed: mySeed})
+}
 
 func staticPageHandler(w http.ResponseWriter, r *http.Request) {
 	req := r.URL.Path[len("/static/"):]
@@ -70,7 +100,7 @@ type simpleResponse struct {
 	Err string `json:"err"`
 }
 
-func respond(w io.Writer, err string) {
+func respondErr(w io.Writer, err string) {
 	data, _ := json.Marshal(&simpleResponse{Err: err})
 	_, _ = w.Write(data)
 }
@@ -85,88 +115,89 @@ func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	if err = r.ParseForm(); err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
-	myAccountStr := r.FormValue("my_account")
-	var myAccount *hashing.HashValue
+	mySeed := r.FormValue("seed")
+	if len(mySeed) < 5 {
+		respondErr(w, "wrong seed")
+		return
+	}
 
-	myAccount, err = hashing.HashValueFromString(myAccountStr)
-	if err != nil {
-		respond(w, err.Error())
-		return
-	}
+	myAccount := getAccount(mySeed)
 	myBalance := value.GetBalance(myAccount)
 	if myBalance == 0 {
-		respond(w, "0 balance")
+		respondErr(w, "0 balance")
 		return
 	}
 	sumInt, err := strconv.Atoi(r.FormValue("sum"))
 	sum := uint64(sumInt)
 	if err != nil || sum == 0 || myBalance < sum+1+stdReward {
-		respond(w, "wrong bet amount or not enough balance")
+		respondErr(w, "wrong bet amount or not enough balance")
 		return
 	}
 	color, err := strconv.Atoi(r.FormValue("color"))
 	if err != nil || color >= fairroulette.NUM_COLORS {
-		respond(w, "wrong color code")
+		respondErr(w, "wrong color code")
 		return
 	}
 	tx, err := makeBetRequestTx(myAccount, sum, color, stdReward)
 	if err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
 	vtx, err := tx.ValueTx()
 	if err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
 	if err := ldb.PutTransaction(vtx); err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
 	postMsg(&wrapped{
 		senderIndex: qserver.MockTangleIdx,
 		tx:          tx,
 	})
-	respond(w, "")
+	respondErr(w, "")
 }
 
 type stateResponse struct {
-	MyAccount   accountInfo                  `json:"my_account"`
-	ScAccount   accountInfo                  `json:"sc_account"`
-	NumBets     int                          `json:"num_bets"`
-	SumBets     uint64                       `json:"sum_bets"`
-	Bets        []*fairroulette.BetData      `json:"bets"`
-	ColorStats  [fairroulette.NUM_COLORS]int `json:"color_stats"`
-	NumRuns     int                          `json:"num_runs"`
-	AllBalances []*accountInfo               `json:"all_balances"`
-	Err         string                       `json:"err"`
+	MySeed       string                       `json:"my_seed"`
+	MyAccount    accountInfo                  `json:"my_account"`
+	ScAccount    accountInfo                  `json:"sc_account"`
+	NumBets      int                          `json:"num_bets"`
+	SumBets      uint64                       `json:"sum_bets"`
+	Bets         []*fairroulette.BetData      `json:"bets"`
+	WinningColor int                          `json:"winning_color"`
+	Sign         string                       `json:"sign"`
+	ColorStats   [fairroulette.NUM_COLORS]int `json:"color_stats"`
+	NumRuns      int                          `json:"num_runs"`
+	AllBalances  []*accountInfo               `json:"all_balances"`
+	Err          string                       `json:"err"`
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if err = r.ParseForm(); err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
-	myAccountStr := r.FormValue("my_account")
-	var myAccount *hashing.HashValue
 
-	if myAccountStr != "" {
-		if myAccount, err = hashing.HashValueFromString(myAccountStr); err != nil {
-			respond(w, err.Error())
-			return
-		}
-	} else {
-		myAccount = newAccount()
+	mySeed := strings.TrimSpace(r.FormValue("seed"))
+	if len(mySeed) < 5 {
+		respondErr(w, "must be at least 5 characters")
+		return
 	}
+	myAccount := getAccount(mySeed)
+	//fmt.Printf("getState for seed '%s' account %s\n", mySeed, myAccount.Short())
+
 	resp := getStateResponse(myAccount)
+	resp.MySeed = mySeed
 	sort.Sort(sortByBalance(resp.AllBalances))
 	data, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		respond(w, err.Error())
+		respondErr(w, err.Error())
 		return
 	}
 	_, _ = w.Write(data)
@@ -195,7 +226,8 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 		ret.SumBets += bet.Sum
 	}
 	ret.NumRuns, _ = tx.MustState().Vars().GetInt("num_runs")
-
+	ret.WinningColor, _ = tx.MustState().Vars().GetInt("winning_color")
+	ret.Sign, _ = tx.MustState().Vars().GetString("locked_signature")
 	return ret
 }
 

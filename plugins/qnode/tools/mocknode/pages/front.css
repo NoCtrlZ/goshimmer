@@ -25,6 +25,12 @@
     font-size: 15px;
 }
 
+#enterseed{
+    font-family: "Liberation Mono", monospace;
+    text-align: left;
+    font-size: 15px;
+}
+
 
 .my_account_highlight{
     font-family: "Liberation Mono", monospace;
@@ -48,6 +54,7 @@
     font-weight: bold;
     color: red;
 }
+
 .color_0{
     color: red;
 }
@@ -76,6 +83,44 @@
 
 .color_7{
     color: black;
+}
+
+.color_0_text{
+    background-color: red;
+    color: white;
+}
+
+.color_1_text{
+    background-color: darkturquoise;
+    color: white;
+}
+.color_2_text{
+    background-color: green;
+    color: white;
+}
+.color_3_text{
+    background-color: blue;
+    color: white;
+}
+
+.color_4_text{
+    background-color: magenta;
+    color: white;
+}
+
+.color_5_text{
+    background-color: orange;
+    color: white;
+}
+
+.color_6_text{
+    background-color: brown;
+    color: white;
+}
+
+.color_7_text{
+    background-color: black;
+    color: white;
 }
 
 .color_0_butt{
