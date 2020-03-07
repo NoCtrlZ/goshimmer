@@ -16,6 +16,33 @@ func (op *AssemblyOperator) adjustToContext() {
 	}
 }
 
+func (op *AssemblyOperator) checkForCheating(req *request) {
+	// simplified: only checking for cheating when own request is known
+	// and it belongs to context
+	if req.ownResultCalculated == nil {
+		return
+	}
+	if !op.resultBelongsToContext(req.ownResultCalculated.res) {
+		return
+	}
+	if len(req.pushMessages) <= 1 {
+		return
+	}
+	for _, rhlst := range req.pushMessages {
+		for _, msg := range rhlst {
+			if msg == nil {
+				continue
+			}
+			if msg.StateIndex != op.stateTx.MustState().StateIndex() {
+				continue // possibly from the future
+			}
+			if !msg.MasterDataHash.Equal(req.ownResultCalculated.masterDataHash) {
+				req.log.Warnf("!!! unexpected master hash from peer's %d: someone is cheating", msg.SenderIndex)
+			}
+		}
+	}
+}
+
 // delete all records from request which do not correspond to the new config id or stateTx id
 func (op *AssemblyOperator) adjustToContextReq(req *request) {
 	if req.ownResultCalculated != nil {
@@ -28,10 +55,11 @@ func (op *AssemblyOperator) adjustToContextReq(req *request) {
 	}
 	// delete push messages which are not from the current context
 	ktd1 := make([]*hashing.HashValue, 0)
-	for pushMsg, lst := range req.pushMessages {
+	for resultHash, lst := range req.pushMessages {
 		for _, rh := range lst {
 			if rh != nil && !op.pushMsgConsistentWithContext(rh) {
-				ktd1 = append(ktd1, pushMsg.Clone())
+				ktd1 = append(ktd1, resultHash.Clone())
+				break
 			}
 		}
 	}

@@ -69,7 +69,7 @@ func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
 		clead := req.currLeaderSeqIndex
 		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.assemblySize())
 		req.hasBeenPushedToCurrentLeader = false
-		log.Debugf("rotateLeaderIfNeeded: req id %s, leader rotated %d --> %d",
+		req.log.Debugf("rotateLeaderIfNeeded: req id %s, leader rotated %d --> %d",
 			req.reqId.Short(), clead, req.currLeaderSeqIndex)
 	}
 }

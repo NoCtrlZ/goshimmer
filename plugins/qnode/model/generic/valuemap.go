@@ -2,8 +2,10 @@ package generic
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"io"
+	"sort"
 )
 
 type VarName string
@@ -113,21 +115,73 @@ func (vm flatValueMap) Encode() Encode {
 	return vm
 }
 
+// to achieve deterministic json data of the dictionary
+// it must be sorted first
+
 func (vm flatValueMap) Write(w io.Writer) error {
-	data, err := json.Marshal(vm)
+	keys, values := vm.sortedMap()
+	dataK, err := json.Marshal(keys)
 	if err != nil {
 		return err
 	}
-	err = tools.WriteBytes32(w, data)
+	dataV, err := json.Marshal(values)
+	if err != nil {
+		return err
+	}
+	err = tools.WriteBytes32(w, dataK)
+	if err != nil {
+		return err
+	}
+	err = tools.WriteBytes32(w, dataV)
+	if err != nil {
+		return err
+	}
 	return err
 }
 
 func (vm flatValueMap) Read(r io.Reader) error {
-	data, err := tools.ReadBytes32(r)
+	dataK, err := tools.ReadBytes32(r)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, &vm)
+	keys := make([]string, 0)
+	err = json.Unmarshal(dataK, &keys)
+	if err != nil {
+		return err
+	}
+	dataV, err := tools.ReadBytes32(r)
+	if err != nil {
+		return err
+	}
+	values := make([]interface{}, 0)
+	err = json.Unmarshal(dataV, &values)
+	if err != nil {
+		return err
+	}
+	return vm.reconstruct(keys, values)
+}
+
+func (vm flatValueMap) sortedMap() ([]string, []interface{}) {
+	retK := make([]string, 0, len(vm))
+	for k := range vm {
+		retK = append(retK, string(k))
+	}
+	sort.Strings(retK)
+	retV := make([]interface{}, 0, len(vm))
+	for _, k := range retK {
+		retV = append(retV, vm[VarName(k)])
+	}
+	return retK, retV
+}
+
+func (vm flatValueMap) reconstruct(keys []string, values []interface{}) error {
+	if len(keys) != len(values) {
+		return fmt.Errorf("len(keys) != len(values)")
+	}
+	for i := range keys {
+		vm[VarName(keys[i])] = values[i]
+	}
+	return nil
 }
 
 // shallow copy of values

@@ -11,8 +11,8 @@ func MustGetOutputAddrValue(or *generic.OutputRef) *generic.OutputRefWithAddrVal
 	var addr *hashing.HashValue
 	var value uint64
 	if tr == nil {
-		addr = hashing.RandomHash(nil)
-		value = 1 // TODO for testing only
+		addr = hashing.NilHash
+		value = 1 // TODO for testing
 	} else {
 		output := tr.Outputs()[or.OutputIndex]
 		addr = output.Address()

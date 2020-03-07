@@ -62,7 +62,7 @@ func (op *AssemblyOperator) checkQuorum() {
 		}
 		maxVotes, maxVotedHash := maxVotesFromPeers(req)
 		if !req.ownResultCalculated.resultHash.Equal(maxVotedHash) {
-			// maybe voted from the future, the skip
+			// maybe voted from the future, then skip
 			continue
 		}
 		if maxVotes+1 < op.assemblyQuorum() {

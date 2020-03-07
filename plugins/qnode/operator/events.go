@@ -120,7 +120,6 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		// dismiss the result
 		return
 	}
-	reqRec.log.Debugw("EventResultCalculated is in context")
 
 	if reqRec.ownResultCalculated != nil {
 		// shouldn't be
@@ -137,6 +136,12 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		return
 	}
 	masterDataHash := ctx.resultTx.MasterDataHash()
+	reqRec.log.Debugw("EventResultCalculated:",
+		"input tx", ctx.state.Id().Short(),
+		"res tx", ctx.resultTx.Id().Short(),
+		"master result hash", masterDataHash.Short(),
+		"err", err,
+	)
 	reqRec.ownResultCalculated = &resultCalculated{
 		res:            ctx,
 		resultHash:     resultHash(ctx.state.MustState().StateIndex(), reqId, masterDataHash),
@@ -146,20 +151,14 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 }
 
 // triggered by new result hash received from another operator
-// called from the main queue
 
 func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 	reqRec, ok := op.requestFromId(pushMsg.RequestId)
 	if !ok {
 		return // already processed, ignore
 	}
-	reqRec.log.Debugw("EventPushResultMsg received",
-		"from", pushMsg.SenderIndex,
-	)
-	if err := op.accountNewPushMsg(pushMsg); err != nil {
-		reqRec.log.Errorf("accountNewPushMsg returned: %v", err)
-		return
-	}
+	reqRec.log.Debugf("EventPushResultMsg received from peer %d", pushMsg.SenderIndex)
+	op.accountNewPushMsg(pushMsg)
 	op.adjustToContext()
 	op.takeAction()
 }
