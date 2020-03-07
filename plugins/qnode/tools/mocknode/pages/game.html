@@ -14,6 +14,10 @@
 <body onload="initPage('{{.Seed}}')">
 <table>
     <tr>
+        <td class="bold_text_right">Smart contract Id:</td>
+        <td class="just_text_left" id="sc_id"></td>
+    </tr>
+    <tr>
         <td class="bold_text_right">Your seed:</td>
         <td class="just_text_left" id="my_seed"></td>
     </tr>
@@ -94,16 +98,12 @@
         <td class="just_text_left"  id="last_game_tx"></td>
     </tr>
     <tr>
-        <td class="bold_text_right">Last distribution transfer ID:</td>
+        <td class="bold_text_right">Last gain distribution transfer ID:</td>
         <td class="just_text_left"  id="last_distrib_trid"></td>
     </tr>
     <tr>
         <td class="bold_text_right">Signature of last game transaction:</td>
         <td class="just_text_left"  id="last_signature"></td>
-    </tr>
-    <tr>
-        <td class="bold_text_right">Winning color stats:</td>
-        <td class="just_text_left"  id="color_state"></td>
     </tr>
 </table>
 <h3> Balances of participants</h3>

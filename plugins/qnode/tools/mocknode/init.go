@@ -39,7 +39,6 @@ func initGlobals() {
 		requesterAddresses[i] = hashing.RandomHash(nil)
 	}
 	// deposit fake iotas to addresses owned by requesterAddresses
-	keyPool = clientapi.NewDummyKeyPool()
 	for i, addr := range requesterAddresses {
 		requesterDeposits[i] = generateAccountWithDeposit(addr, initDeposit)
 	}

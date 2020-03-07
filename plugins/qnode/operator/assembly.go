@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
+	"github.com/iotaledger/hive.go/logger"
 	"github.com/pkg/errors"
 	"math/rand"
 	"net"
@@ -45,6 +46,7 @@ type request struct {
 	currLeaderSeqIndex           int16
 	hasBeenPushedToCurrentLeader bool
 	msgCounter                   int
+	log                          *logger.Logger
 }
 
 type resultCalculated struct {

@@ -113,7 +113,7 @@ func nodeEventHandler(vtx value.Transaction) {
 		aData, ok := registry.GetAssemblyData(aid)
 		if ok {
 			// request has to be processed by the node
-			reqRef, _ := sc.NewRequestRef(tx, uint16(i))
+			reqRef, _ := sc.NewRequestRefFromTx(tx, uint16(i))
 			ServerInstance.processRequest(reqRef, aData)
 		}
 	}

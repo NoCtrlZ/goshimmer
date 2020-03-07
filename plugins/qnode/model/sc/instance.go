@@ -10,14 +10,14 @@ import (
 var (
 	newTransaction  func() Transaction
 	newFromValueTx  func(value.Transaction) (Transaction, error)
-	newStateBlock   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
+	newStateBlock   func(*hashing.HashValue, *hashing.HashValue, *RequestRef) State
 	newRequestBlock func(*hashing.HashValue, bool) Request
 )
 
 type SetConstructorsParams struct {
 	TxConstructor           func() Transaction
 	TxParser                func(value.Transaction) (Transaction, error)
-	StateBlockConstructor   func(*hashing.HashValue, *hashing.HashValue, *hashing.HashValue, uint16) State
+	StateBlockConstructor   func(*hashing.HashValue, *hashing.HashValue, *RequestRef) State
 	RequestBlockConstructor func(*hashing.HashValue, bool) Request
 }
 
@@ -37,10 +37,7 @@ func ParseTransaction(vtx value.Transaction) (Transaction, error) {
 }
 
 func NewStateBlock(aid, cid *hashing.HashValue, reqRef *RequestRef) State {
-	if reqRef == nil {
-		return newStateBlock(aid, cid, hashing.NilHash, 0)
-	}
-	return newStateBlock(aid, cid, reqRef.Tx().Id(), reqRef.Index())
+	return newStateBlock(aid, cid, reqRef)
 }
 
 func NewRequestBlock(aid *hashing.HashValue, isConfig bool) Request {

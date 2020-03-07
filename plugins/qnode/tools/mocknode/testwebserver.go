@@ -15,13 +15,13 @@ const webport = 2000
 func runWebServer() {
 	fmt.Printf("Web server is running on port %d\n", webport)
 	//http.HandleFunc("/", defaultHandler)
-	http.HandleFunc("/testbuttons", testButtonsHandler)
-	http.HandleFunc("/testreq", testreqHandler)
-	http.HandleFunc("/testbet", betTestHandler)
-	http.HandleFunc("/testlock", lockHandler)
+	//http.HandleFunc("/testbuttons", testButtonsHandler)
+	//http.HandleFunc("/testreq", testreqHandler)
+	//http.HandleFunc("/testbet", betTestHandler)
+	//http.HandleFunc("/testlock", lockHandler)
 
+	http.HandleFunc("/", startPageHandler)
 	http.HandleFunc("/static/", staticPageHandler)
-	http.HandleFunc("/demo/start", startPageHandler)
 	http.HandleFunc("/demo/game", gamePageHandler)
 	http.HandleFunc("/demo/state", getStateHandler)
 	http.HandleFunc("/demo/bet", placeBetHandler)
@@ -42,11 +42,7 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var tx sc.Transaction
 	var err error
-	if !originPosted {
-		originPosted = true
-		postOrigin()
-		return
-	}
+	postOriginIfNeeded()
 
 	reqnr := r.FormValue("reqnr")
 	num, err := strconv.Atoi(reqnr)
@@ -77,7 +73,10 @@ func testreqHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func postOrigin() {
+func postOriginIfNeeded() {
+	if originPosted {
+		return
+	}
 	tx, err := newOrigin()
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
@@ -94,6 +93,8 @@ func postOrigin() {
 	}
 
 	originPosted = true
+	fmt.Printf("origin posted for assembly %s\n", tx.MustState().AssemblyId().Short())
+
 	postMsg(&wrapped{
 		senderIndex: qserver.MockTangleIdx,
 		tx:          tx,

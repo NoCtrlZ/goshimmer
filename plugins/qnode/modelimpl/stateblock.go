@@ -16,8 +16,7 @@ type mockStateBlock struct {
 	stateIndex            uint32
 	stateChainOutputIndex uint16
 	vars                  generic.ValueMap
-	requestTxId           *HashValue
-	requestBlockIndex     uint16
+	requestRef            *sc.RequestRef
 }
 
 type mockConfig struct {
@@ -86,12 +85,11 @@ func (cfg *mockConfig) With(config sc.Config) sc.Config {
 	return cfg
 }
 
-func newStateBlock(aid, cid, reqId *HashValue, reqIdx uint16) sc.State {
+func newStateBlock(aid, cid *HashValue, reqRef *sc.RequestRef) sc.State {
 	ret := &mockStateBlock{
-		assemblyId:        aid,
-		requestTxId:       reqId,
-		requestBlockIndex: reqIdx,
-		vars:              generic.NewFlatValueMap(),
+		assemblyId: aid,
+		requestRef: reqRef,
+		vars:       generic.NewFlatValueMap(),
 	}
 	ret.config = newConfig(cid, ret, 0, 0)
 	return ret
@@ -107,8 +105,11 @@ func (st *mockStateBlock) StateChainOutputIndex() uint16 {
 	return st.stateChainOutputIndex
 }
 
-func (st *mockStateBlock) RequestId() *HashValue {
-	return sc.RequestId(st.requestTxId, st.requestBlockIndex)
+func (st *mockStateBlock) RequestRef() (*sc.RequestRef, bool) {
+	if st.requestRef == nil {
+		return nil, false
+	}
+	return st.requestRef, true
 }
 
 func (st *mockStateBlock) Vars() generic.ValueMap {
@@ -161,13 +162,20 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(st.requestTxId.Bytes())
+	requestRefExists := st.requestRef != nil
+	err = tools.WriteBoolByte(w, requestRefExists)
 	if err != nil {
 		return err
 	}
-	err = tools.WriteUint16(w, st.requestBlockIndex)
-	if err != nil {
-		return err
+	if requestRefExists {
+		_, err = w.Write(st.requestRef.TxId().Bytes())
+		if err != nil {
+			return err
+		}
+		err = tools.WriteUint16(w, st.requestRef.Index())
+		if err != nil {
+			return err
+		}
 	}
 	isError := st.err != nil
 	err = tools.WriteBoolByte(w, isError)
@@ -217,15 +225,25 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	var requestTxId HashValue
-	_, err = r.Read(requestTxId.Bytes())
+	var requestRefExist bool
+	var reqRef *sc.RequestRef
+
+	err = tools.ReadBoolByte(r, &requestRefExist)
 	if err != nil {
 		return err
 	}
-	var requestBlockIndex uint16
-	err = tools.ReadUint16(r, &requestBlockIndex)
-	if err != nil {
-		return err
+	if requestRefExist {
+		var requestTxId HashValue
+		_, err = r.Read(requestTxId.Bytes())
+		if err != nil {
+			return err
+		}
+		var requestBlockIndex uint16
+		err = tools.ReadUint16(r, &requestBlockIndex)
+		if err != nil {
+			return err
+		}
+		reqRef = sc.NewRequestRefFromTxId(&requestTxId, requestBlockIndex)
 	}
 	var isError bool
 	err = tools.ReadBoolByte(r, &isError)
@@ -244,8 +262,7 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 		st.stateIndex = 0
 		st.stateChainOutputIndex = 0
 		st.vars = nil
-		st.requestTxId = &requestTxId
-		st.requestBlockIndex = requestBlockIndex
+		st.requestRef = nil
 		return nil
 	}
 	var stateIndex uint32
@@ -289,7 +306,6 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	st.stateIndex = stateIndex
 	st.stateChainOutputIndex = stateChainOutputIndex
 	st.vars = vars
-	st.requestTxId = &requestTxId
-	st.requestBlockIndex = requestBlockIndex
+	st.requestRef = reqRef
 	return nil
 }

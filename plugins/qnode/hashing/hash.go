@@ -38,6 +38,10 @@ func (h *HashValue) Short() string {
 	return hex.EncodeToString((*h)[:6]) + ".."
 }
 
+func (h *HashValue) Shortest() string {
+	return hex.EncodeToString((*h)[:4])
+}
+
 func (h *HashValue) Equal(h1 *HashValue) bool {
 	if h == h1 {
 		return true

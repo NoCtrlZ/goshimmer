@@ -84,6 +84,7 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 		winningColor = int(rnd32 % NUM_COLORS)
 		ctx.StateVars().SetInt("winning_color", winningColor)
 	}
+	ctx.StateVars().SetInt("req_type", reqType)
 
 	switch reqType {
 	case REQ_TYPE_BET:

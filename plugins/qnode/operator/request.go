@@ -8,7 +8,7 @@ import (
 )
 
 // check if the request message is well formed
-func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
+func (op *AssemblyOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
 	reward := uint64(0)
 	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx()).RewardOutput
@@ -16,17 +16,20 @@ func (op *AssemblyOperator) validateRequest(reqRef *sc.RequestRef) error {
 		reward = rewardOutput.Value
 	}
 	if reward < cfg.MinimumReward() {
-		return fmt.Errorf("reward %d iotas is less than required minimum of %d", rewardOutput.Value, cfg.MinimumReward()+1)
+		return fmt.Errorf("reward is less than required minimum of %d", cfg.MinimumReward()+1)
 	}
 	return nil
 }
 
 func newRequest(reqId *HashValue) *request {
+	reqLog := log.Named(reqId.Shortest())
+	reqLog.Info("created new request record")
 	return &request{
 		reqId:              reqId,
 		pushMessages:       make(map[HashValue][]*pushResultMsg),
 		pullMessages:       make(map[uint16]*pullResultMsg),
 		startedCalculation: make(map[HashValue]time.Time),
+		log:                reqLog,
 	}
 }
 
@@ -70,7 +73,8 @@ func (op *AssemblyOperator) isRequestProcessed(reqid *HashValue) (time.Duration,
 	return duration, ok
 }
 
-func (op *AssemblyOperator) markRequestProcessed(reqId *HashValue, duration time.Duration) {
-	op.processedRequests[*reqId] = duration
-	delete(op.requests, *reqId)
+func (op *AssemblyOperator) markRequestProcessed(req *request, duration time.Duration) {
+	req.log.Info("request marked 'processed'")
+	op.processedRequests[*req.reqId] = duration
+	delete(op.requests, *req.reqId)
 }

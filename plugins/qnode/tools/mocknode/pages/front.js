@@ -20,6 +20,7 @@ function placeBet(sum, color) {
 
 
 function updateState(){
+    document.getElementById("sc_id").innerHTML = curState.sc_id;
     document.getElementById("my_seed").innerHTML = seed;
     document.getElementById("my_account").innerHTML = curState.my_account.account;
     document.getElementById("my_balance").innerHTML = curState.my_account.amount;
@@ -29,6 +30,8 @@ function updateState(){
     document.getElementById("bets_amount").innerHTML = curState.sum_bets;
     document.getElementById("num_bets").innerHTML = curState.num_bets;
     document.getElementById("last_signature").innerHTML = curState.sign.substr(0, 12)+"..";
+    document.getElementById("last_distrib_trid").innerHTML = curState.last_distrib_trid.substr(0, 12)+"..";
+    document.getElementById("last_game_tx").innerHTML = curState.last_game_tx.substr(0, 12)+"..";
     setWinningColor(curState.winning_color);
     propagateAllAccounts();
     propagateAllBets();

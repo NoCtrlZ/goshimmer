@@ -11,18 +11,17 @@ import (
 // called from he main queue
 
 func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
-	if err := op.validateRequest(reqRef); err != nil {
-		log.Errorw("invalid request message received",
+	if err := op.validateRequestBlock(reqRef); err != nil {
+		log.Errorw("invalid request message received. Ignored...",
 			"req", reqRef.Id().Short(),
 			"err", err,
 		)
 		return
 	}
 	reqRec := op.requestFromMsg(reqRef)
-	log.Debugw("EventRequestMsg",
+	reqRec.log.Debugw("EventRequestMsg",
 		"tx", reqRef.Tx().ShortStr(),
 		"reqIdx", reqRef.Index(),
-		"req id", reqRef.Id().Short(),
 		"leader", op.currentLeaderIndex(reqRec),
 		"iAmTheLeader", op.iAmCurrentLeader(reqRec),
 	)
@@ -35,6 +34,8 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 	log.Debugw("EventStateUpdate", "tx", tx.ShortStr())
 
 	stateUpd := tx.MustState()
+
+	// current state is always present
 	state := op.stateTx.MustState()
 
 	if stateUpd.Error() == nil && stateUpd.StateIndex() <= state.StateIndex() {
@@ -42,26 +43,28 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		log.Warnf("wrong sequence of stateTx indices. Ignore the message")
 		return
 	}
-	reqId := stateUpd.RequestId()
-	req, ok := op.requestFromId(reqId)
-	if !ok {
-		// already processed
-		return
-	}
+	reqRef, reqExists := stateUpd.RequestRef()
 	duration := time.Duration(0)
-	if req.reqRef != nil {
-		duration = time.Since(req.whenMsgReceived)
+	if reqExists {
+		reqId := reqRef.Id()
+		req, ok := op.requestFromId(reqId)
+		if !ok {
+			// already processed
+			return
+		}
+		if req.reqRef != nil {
+			duration = time.Since(req.whenMsgReceived)
+		}
+
+		// delete processed request from pending queue
+		op.markRequestProcessed(req, duration)
 	}
 	log.Infow("RECEIVE STATE UPD",
-		"stateIndex", stateUpd.StateIndex(),
+		"stateIdx", stateUpd.StateIndex(),
 		"tx", tx.ShortStr(),
-		"req", reqId.Short(),
 		"duration", duration,
 		"err", stateUpd.Error(),
 	)
-
-	// delete processed request from buffer
-	op.markRequestProcessed(reqId, duration)
 
 	if stateUpd.Error() == nil {
 		if !state.Config().Id().Equal(stateUpd.Config().Id()) {
@@ -76,7 +79,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		// update current state
 		op.stateTx = tx
 	} else {
-		log.Warnf("State update with error ignored: '%v'", stateUpd.Error())
+		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
 	}
 	op.adjustToContext()
 	op.takeAction()
@@ -91,10 +94,9 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		// processed
 		return
 	}
-	log.Debugw("EventResultCalculated",
-		"req id", reqId.Short(),
+	reqRec.log.Debugw("EventResultCalculated",
 		"state idx", ctx.state.MustState().StateIndex(),
-		"current state idx", op.stateTx.MustState().StateIndex(),
+		"cur state idx", op.stateTx.MustState().StateIndex(),
 		"resultErr", ctx.err,
 	)
 
@@ -105,8 +107,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		var err error
 		ctx.resultTx, err = clientapi.ErrorTransaction(ctx.reqRef, ctx.state.MustState().Config(), ctx.err)
 		if err != nil {
-			log.Errorw("EventResultCalculated: error while processing error state",
-				"req id", reqId.Short(),
+			reqRec.log.Errorw("EventResultCalculated: error while processing error state",
 				"state idx", ctx.state.MustState().StateIndex(),
 				"current state idx", op.stateTx.MustState().StateIndex(),
 				"error", err,
@@ -119,7 +120,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		// dismiss the result
 		return
 	}
-	log.Debugw("EventResultCalculated in context", "req", ctx.reqRef.Id().Short())
+	reqRec.log.Debugw("EventResultCalculated is in context")
 
 	if reqRec.ownResultCalculated != nil {
 		// shouldn't be
@@ -132,7 +133,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 	// new result
 	err := sc.SignTransaction(ctx.resultTx, op)
 	if err != nil {
-		log.Errorf("SignTransaction returned: %v", err)
+		reqRec.log.Errorf("SignTransaction returned: %v", err)
 		return
 	}
 	masterDataHash := ctx.resultTx.MasterDataHash()
@@ -148,16 +149,15 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 // called from the main queue
 
 func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
-	log.Debugw("EventPushResultMsg received",
-		"from", pushMsg.SenderIndex,
-		"req id", pushMsg.RequestId.Short(),
-		"state idx", pushMsg.StateIndex,
-	)
-	if _, ok := op.requestFromId(pushMsg.RequestId); !ok {
-		return // already processed
+	reqRec, ok := op.requestFromId(pushMsg.RequestId)
+	if !ok {
+		return // already processed, ignore
 	}
+	reqRec.log.Debugw("EventPushResultMsg received",
+		"from", pushMsg.SenderIndex,
+	)
 	if err := op.accountNewPushMsg(pushMsg); err != nil {
-		log.Errorf("accountNewPushMsg returned: %v", err)
+		reqRec.log.Errorf("accountNewPushMsg returned: %v", err)
 		return
 	}
 	op.adjustToContext()
@@ -165,11 +165,11 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 }
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
-	log.Debug("EventPullResultMsg")
 	req, ok := op.requestFromId(msg.RequestId)
 	if !ok {
 		return // already processed
 	}
+	req.log.Debug("EventPullResultMsg")
 	req.pullMessages[msg.SenderIndex] = msg
 	op.takeAction()
 }

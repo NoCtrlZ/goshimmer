@@ -23,7 +23,7 @@ type Transaction interface {
 
 type State interface {
 	AssemblyId() *HashValue
-	RequestId() *HashValue
+	RequestRef() (*RequestRef, bool)
 	StateIndex() uint32
 	Error() error
 	Vars() generic.ValueMap
@@ -73,6 +73,7 @@ type Request interface {
 }
 
 type RequestRef struct {
+	reqTxId      *HashValue
 	tx           Transaction
 	requestIndex uint16
 }

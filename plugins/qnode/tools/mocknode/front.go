@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
@@ -12,6 +11,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"sort"
 	"strconv"
@@ -21,6 +21,9 @@ import (
 
 var (
 	currentState      sc.Transaction
+	assemblyid        string
+	gameTxId          string
+	distribTrid       string
 	currentStateMutex = &sync.Mutex{}
 	accounts          = make([]*hashing.HashValue, 0)
 )
@@ -37,12 +40,19 @@ func setSCState(tx sc.Transaction) {
 	currentStateMutex.Lock()
 	defer currentStateMutex.Unlock()
 	currentState = tx
+	rt, _ := tx.MustState().Vars().GetInt("req_type")
+	switch rt {
+	case fairroulette.REQ_TYPE_LOCK:
+		gameTxId = tx.Id().String()
+	case fairroulette.REQ_TYPE_DISTRIBUTE:
+		distribTrid = tx.Transfer().Id().String()
+	}
 }
 
-func getSCState() sc.Transaction {
+func getSCState() (sc.Transaction, string, string) {
 	currentStateMutex.Lock()
 	defer currentStateMutex.Unlock()
-	return currentState
+	return currentState, gameTxId, distribTrid
 }
 
 func getAccount(seed string) *hashing.HashValue {
@@ -59,17 +69,25 @@ func getAccount(seed string) *hashing.HashValue {
 	return h
 }
 
-const rootDir = "C:/Users/evaldas/Documents/proj/Go/src/github.com/lunfardo314/goshimmer/plugins/qnode/tools/mocknode/pages"
+var webRootDir string
+
+func init() {
+	wd, _ := os.Getwd()
+	webRootDir = path.Join(wd, "/pages")
+}
 
 var mainTemplate *template.Template
 
 func startPageHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(rootDir, "front.html"))
+	fmt.Printf("startPageHandler\n")
+
+	postOriginIfNeeded()
+	http.ServeFile(w, r, path.Join(webRootDir, "front.html"))
 }
 
 func gamePageHandler(w http.ResponseWriter, r *http.Request) {
 	if mainTemplate == nil {
-		mainTemplate = template.Must(template.ParseFiles(path.Join(rootDir, "game.html")))
+		mainTemplate = template.Must(template.ParseFiles(path.Join(webRootDir, "game.html")))
 	}
 	var err error
 	if err = r.ParseForm(); err != nil {
@@ -87,7 +105,7 @@ func gamePageHandler(w http.ResponseWriter, r *http.Request) {
 
 func staticPageHandler(w http.ResponseWriter, r *http.Request) {
 	req := r.URL.Path[len("/static/"):]
-	pathname := path.Join(rootDir, req)
+	pathname := path.Join(webRootDir, req)
 	http.ServeFile(w, r, pathname)
 }
 
@@ -106,13 +124,6 @@ func respondErr(w io.Writer, err string) {
 }
 
 func placeBetHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("placeBetHandler\n")
-	if !originPosted {
-		originPosted = true
-		postOrigin()
-		return
-	}
-
 	var err error
 	if err = r.ParseForm(); err != nil {
 		respondErr(w, err.Error())
@@ -163,18 +174,20 @@ func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type stateResponse struct {
-	MySeed       string                       `json:"my_seed"`
-	MyAccount    accountInfo                  `json:"my_account"`
-	ScAccount    accountInfo                  `json:"sc_account"`
-	NumBets      int                          `json:"num_bets"`
-	SumBets      uint64                       `json:"sum_bets"`
-	Bets         []*fairroulette.BetData      `json:"bets"`
-	WinningColor int                          `json:"winning_color"`
-	Sign         string                       `json:"sign"`
-	ColorStats   [fairroulette.NUM_COLORS]int `json:"color_stats"`
-	NumRuns      int                          `json:"num_runs"`
-	AllBalances  []*accountInfo               `json:"all_balances"`
-	Err          string                       `json:"err"`
+	ScId            string                  `json:"sc_id"`
+	MySeed          string                  `json:"my_seed"`
+	MyAccount       accountInfo             `json:"my_account"`
+	ScAccount       accountInfo             `json:"sc_account"`
+	NumBets         int                     `json:"num_bets"`
+	SumBets         uint64                  `json:"sum_bets"`
+	Bets            []*fairroulette.BetData `json:"bets"`
+	WinningColor    int                     `json:"winning_color"`
+	Sign            string                  `json:"sign"`
+	NumRuns         int                     `json:"num_runs"`
+	AllBalances     []*accountInfo          `json:"all_balances"`
+	LastGameTx      string                  `json:"last_game_tx"`
+	LastDistribTrid string                  `json:"last_distrib_trid"`
+	Err             string                  `json:"err"`
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -206,6 +219,7 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 	bets, totalStaked := getBets()
 	ret := &stateResponse{
+		ScId: aid.String(),
 		MyAccount: accountInfo{
 			Amount:  value.GetBalance(myAccount),
 			Account: myAccount.String(),
@@ -213,13 +227,15 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 		ScAccount:   getScAccount(),
 		Bets:        bets,
 		SumBets:     totalStaked,
-		ColorStats:  getColorStats(),
 		AllBalances: getAllBalances(),
 	}
-	tx := getSCState()
+	tx, lastGameTx, lastDistribTrid := getSCState()
 	if tx == nil {
 		return ret
 	}
+	ret.ScId = tx.MustState().AssemblyId().String()
+	ret.LastGameTx = lastGameTx
+	ret.LastDistribTrid = lastDistribTrid
 	ret.NumBets = len(ret.Bets)
 	ret.SumBets = 0
 	for _, bet := range ret.Bets {
@@ -233,7 +249,7 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 
 func getScAccount() accountInfo {
 	ret := accountInfo{}
-	tx := getSCState()
+	tx, _, _ := getSCState()
 	if tx == nil {
 		return ret
 	}
@@ -255,21 +271,8 @@ func getAllBalances() []*accountInfo {
 	return ret
 }
 
-func getColorStats() [fairroulette.NUM_COLORS]int {
-	var ret [fairroulette.NUM_COLORS]int
-	tx := getSCState()
-	if tx == nil {
-		return ret
-	}
-	for i := 0; i < fairroulette.NUM_COLORS; i++ {
-		n := fmt.Sprintf("color_%d", i)
-		ret[i], _ = tx.MustState().Vars().GetInt(generic.VarName(n))
-	}
-	return ret
-}
-
 func getBets() ([]*fairroulette.BetData, uint64) {
-	tx := getSCState()
+	tx, _, _ := getSCState()
 	if tx == nil {
 		return []*fairroulette.BetData{}, 0
 	}

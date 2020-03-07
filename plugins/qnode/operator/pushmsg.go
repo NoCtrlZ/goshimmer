@@ -29,7 +29,7 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) error {
 			if !duplicatePushMessages(msg, rhlst[msg.SenderIndex]) {
 				return fmt.Errorf("duplicate push msg has been received")
 			}
-			log.Error("repeating push msg ignored")
+			log.Warn("repeating push msg ignored")
 		}
 	}
 	// if duplicate, replace the previous
