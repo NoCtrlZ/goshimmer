@@ -25,6 +25,13 @@
     font-size: 15px;
 }
 
+.bold_text_center{
+    font-family: "Liberation Mono", monospace;
+    text-align: center;
+    font-weight: bold;
+    font-size: 15px;
+}
+
 #enterseed{
     font-family: "Liberation Mono", monospace;
     text-align: left;

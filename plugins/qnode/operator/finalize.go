@@ -44,11 +44,12 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 	if err != nil {
 		return err
 	}
-	log.Infow("POST result to the ValueTangle",
+	req, _ := op.requestFromId(res.res.reqRef.Id())
+	req.log.Debugw("POST result to the ValueTangle",
 		"leader", op.peerIndex(),
 		"req", res.res.reqRef.Id().Short(),
 		"resTx id", res.res.resultTx.Id().Short())
-
+	req.log.Info("FINALIZED REQUEST")
 	return op.comm.PostToValueTangle(vtx)
 }
 

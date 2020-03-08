@@ -50,7 +50,7 @@ func StartServer() {
 		return
 	}
 	// mock the ValueTangle ontology
-	valuetxdb := txdb.NewLocalDb()
+	valuetxdb := txdb.NewLocalDb(log)
 	value.SetValuetxDB(valuetxdb)
 
 	ServerInstance = &QServer{

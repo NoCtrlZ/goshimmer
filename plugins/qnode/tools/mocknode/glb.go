@@ -31,7 +31,7 @@ func initGlobals() {
 	aid = hashing.HashStrings(assemblyDescription)
 	assemblyAccount, _ = hashing.HashValueFromString(accStrings2[0])
 
-	ldb = txdb.NewLocalDb()
+	ldb = txdb.NewLocalDb(nil)
 	value.SetValuetxDB(ldb)
 
 	keyPool = clientapi.NewDummyKeyPool()

@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
+	"github.com/iotaledger/hive.go/logger"
 	"sync"
 )
 
@@ -15,16 +16,21 @@ type localValueTxDb struct {
 	byTransferId             map[HashValue]value.Transaction
 	spendingTxsByOutputRefId map[HashValue]value.Transaction
 	outputsByAddress         map[HashValue][]*generic.OutputRef
+	log                      *logger.Logger
 }
 
 const genesisAmount = 61 * parameters.Ti
 
-func NewLocalDb() *localValueTxDb {
+func NewLocalDb(log *logger.Logger) *localValueTxDb {
+	if log != nil {
+		log = log.Named("txdb")
+	}
 	ret := &localValueTxDb{
 		byTxId:                   make(map[HashValue]value.Transaction),
 		byTransferId:             make(map[HashValue]value.Transaction),
 		spendingTxsByOutputRefId: make(map[HashValue]value.Transaction),
 		outputsByAddress:         make(map[HashValue][]*generic.OutputRef),
+		log:                      log,
 	}
 	genesisTransfer := value.NewUTXOTransfer()
 	genesisTransfer.AddInput(value.NewInput(NilHash, 0))
@@ -66,8 +72,16 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s ShortStr: %s\n",
-		tx.Id().Short(), tx.Transfer().Id().Short(), tx.Transfer().ShortStr())
+	if ldb.log != nil {
+		ldb.log.Debugw("inserted new tx",
+			"id", tx.Id().Short(),
+			"trid", tx.Transfer().Id().Short(),
+			"ShortStr", tx.Transfer().ShortStr(),
+		)
+	} else {
+		fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s ShortStr: %s\n",
+			tx.Id().Short(), tx.Transfer().Id().Short(), tx.Transfer().ShortStr())
+	}
 	return nil
 }
 

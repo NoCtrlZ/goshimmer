@@ -192,6 +192,7 @@ type stateResponse struct {
 	ScAccount       accountInfo             `json:"sc_account"`
 	NumBets         int                     `json:"num_bets"`
 	SumBets         uint64                  `json:"sum_bets"`
+	BetsByColor     []int                   `json:"bets_by_color"`
 	Bets            []*fairroulette.BetData `json:"bets"`
 	WinningColor    int                     `json:"winning_color"`
 	Sign            string                  `json:"sign"`
@@ -229,7 +230,7 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
-	bets, totalStaked := getBets()
+	bets, totalStaked, betsByColor := getBets()
 	ret := &stateResponse{
 		ScId: aid.String(),
 		MyAccount: accountInfo{
@@ -238,6 +239,7 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 		},
 		ScAccount:   getScAccount(),
 		Bets:        bets,
+		BetsByColor: betsByColor,
 		SumBets:     totalStaked,
 		AllBalances: getAllBalances(),
 	}
@@ -283,25 +285,27 @@ func getAllBalances() []*accountInfo {
 	return ret
 }
 
-func getBets() ([]*fairroulette.BetData, uint64) {
+func getBets() ([]*fairroulette.BetData, uint64, []int) {
+	betsByColor := make([]int, fairroulette.NUM_COLORS)
 	tx, _, _ := getSCState()
 	if tx == nil {
-		return []*fairroulette.BetData{}, 0
+		return []*fairroulette.BetData{}, 0, betsByColor
 	}
 	betStr, _ := tx.MustState().Vars().GetString("bets")
 	if betStr == "" {
-		return []*fairroulette.BetData{}, 0
+		return []*fairroulette.BetData{}, 0, betsByColor
 	}
 	ret := make([]*fairroulette.BetData, 0)
 	err := json.Unmarshal([]byte(betStr), &ret)
 	if err != nil {
-		return []*fairroulette.BetData{}, 0
+		return []*fairroulette.BetData{}, 0, betsByColor
 	}
 	sum := uint64(0)
 	for _, b := range ret {
 		sum += b.Sum
+		betsByColor[b.Color%fairroulette.NUM_COLORS]++
 	}
-	return ret, sum
+	return ret, sum, betsByColor
 }
 
 type sortByBalance []*accountInfo

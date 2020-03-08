@@ -4,7 +4,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"time"
 )
 
 // triggered by new request msg from the node
@@ -44,7 +43,6 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 		return
 	}
 	reqRef, reqExists := stateUpd.RequestRef()
-	duration := time.Duration(0)
 	if reqExists {
 		reqId := reqRef.Id()
 		req, ok := op.requestFromId(reqId)
@@ -52,17 +50,12 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 			// already processed
 			return
 		}
-		if req.reqRef != nil {
-			duration = time.Since(req.whenMsgReceived)
-		}
-
 		// delete processed request from pending queue
-		op.markRequestProcessed(req, duration)
+		op.markRequestProcessed(req)
 	}
-	log.Infow("RECEIVE STATE UPD",
+	log.Debugw("RECEIVE STATE UPD",
 		"stateIdx", stateUpd.StateIndex(),
 		"tx", tx.ShortStr(),
-		"duration", duration,
 		"err", stateUpd.Error(),
 	)
 
@@ -77,6 +70,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 			}
 		}
 		// update current state
+		log.Infof("STATE CHANGE %d --> %d", state.StateIndex(), stateUpd.StateIndex())
 		op.stateTx = tx
 	} else {
 		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
@@ -153,11 +147,12 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 // triggered by new result hash received from another operator
 
 func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
-	reqRec, ok := op.requestFromId(pushMsg.RequestId)
+	req, ok := op.requestFromId(pushMsg.RequestId)
+	req.msgCounter++
 	if !ok {
 		return // already processed, ignore
 	}
-	reqRec.log.Debugf("EventPushResultMsg received from peer %d", pushMsg.SenderIndex)
+	req.log.Debugf("EventPushResultMsg received from peer %d", pushMsg.SenderIndex)
 	op.accountNewPushMsg(pushMsg)
 	op.adjustToContext()
 	op.takeAction()
@@ -165,6 +160,7 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 	req, ok := op.requestFromId(msg.RequestId)
+	req.msgCounter++
 	if !ok {
 		return // already processed
 	}
@@ -175,7 +171,7 @@ func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 
 func (op *AssemblyOperator) EventTimer(msg timerMsg) {
 	if msg%300 == 0 {
-		log.Infow("EventTimer", "#", int(msg))
+		log.Debugw("EventTimer", "#", int(msg))
 		snap := op.getStateSnapshot()
 		log.Debugf("%+v", snap)
 	}

@@ -32,9 +32,20 @@ function updateState(){
     document.getElementById("last_signature").innerHTML = curState.sign.substr(0, 12)+"..";
     document.getElementById("last_distrib_trid").innerHTML = curState.last_distrib_trid.substr(0, 12)+"..";
     document.getElementById("last_game_tx").innerHTML = curState.last_game_tx.substr(0, 12)+"..";
-    setWinningColor(curState.winning_color);
+    setWinningColor();
+    setBetsByColor();
     propagateAllAccounts();
     propagateAllBets();
+}
+
+function setBetsByColor() {
+    for (i=0; i<7; i++){
+        t = curState.bets_by_color[i];
+        if (t == undefined) {
+            t = 0;
+        }
+        document.getElementById("num_bets_"+i.toString()).innerHTML = t.toString();
+    }
 }
 
 function submitSeed() {
@@ -181,7 +192,7 @@ function refresh(fun, millis){
     setInterval(fun, millis);
 }
 
-function setWinningColor(color) {
+function setWinningColor() {
     colElem = document.getElementById("winning_color");
     colElem.setAttribute("class", classByColor(curState.winning_color)+"_text");
     colElem.innerHTML = curState.winning_color;

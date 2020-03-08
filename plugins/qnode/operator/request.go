@@ -21,16 +21,21 @@ func (op *AssemblyOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 	return nil
 }
 
-func newRequest(reqId *HashValue) *request {
+func (op *AssemblyOperator) newRequest(reqId *HashValue) *request {
 	reqLog := log.Named(reqId.Shortest())
-	reqLog.Info("created new request record")
-	return &request{
+	ret := &request{
 		reqId:              reqId,
 		pushMessages:       make(map[HashValue][]*pushResultMsg),
 		pullMessages:       make(map[uint16]*pullResultMsg),
 		startedCalculation: make(map[HashValue]time.Time),
 		log:                reqLog,
 	}
+	lead := ""
+	if op.iAmCurrentLeader(ret) {
+		lead = " (LEADER)"
+	}
+	reqLog.Info("NEW REQUEST" + lead)
+	return ret
 }
 
 // request record retrieved (or created) by request message
@@ -44,7 +49,7 @@ func (op *AssemblyOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 		return ret
 	}
 	if !ok {
-		ret = newRequest(reqId)
+		ret = op.newRequest(reqId)
 		ret.whenMsgReceived = time.Now()
 		ret.reqRef = reqRef
 		op.requests[*reqId] = ret
@@ -61,7 +66,7 @@ func (op *AssemblyOperator) requestFromId(reqId *HashValue) (*request, bool) {
 	}
 	ret, ok := op.requests[*reqId]
 	if !ok {
-		ret = newRequest(reqId)
+		ret = op.newRequest(reqId)
 		op.requests[*reqId] = ret
 	}
 	ret.msgCounter++
@@ -73,8 +78,13 @@ func (op *AssemblyOperator) isRequestProcessed(reqid *HashValue) (time.Duration,
 	return duration, ok
 }
 
-func (op *AssemblyOperator) markRequestProcessed(req *request, duration time.Duration) {
-	req.log.Info("request marked 'processed'")
+func (op *AssemblyOperator) markRequestProcessed(req *request) {
+	duration := time.Duration(0)
+	if req.reqRef != nil {
+		duration = time.Since(req.whenMsgReceived)
+	}
+	req.log.Infof("REQUEST MARKED PROCESSED. duration since received: %v, msg count: %d",
+		duration, req.msgCounter)
 	op.processedRequests[*req.reqId] = duration
 	delete(op.requests, *req.reqId)
 }
