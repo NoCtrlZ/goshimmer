@@ -162,15 +162,15 @@ func processMsg(msg *wrapped) {
 	}
 }
 
-func sendToNodes(data []byte) []int16 {
+func sendToNodes(data []byte) []string {
 	wrapped := qserver.WrapUDPPacket(hashing.NilHash, qserver.MockTangleIdx, 0, data)
 	if len(wrapped) > parameters.UDP_BUFFER_SIZE {
 		fmt.Printf("sendToNodes: len(wrapped) > parameters.UDP_BUFFER_SIZE. Message wasn't sent")
 		return nil
 	}
 
-	sentTo := make([]int16, 0)
-	for idx, op := range operators {
+	sentTo := make([]string, 0)
+	for _, op := range operators {
 		addr := net.UDPAddr{
 			IP:   net.ParseIP(op.Addr),
 			Port: op.Port,
@@ -180,7 +180,7 @@ func sendToNodes(data []byte) []int16 {
 		if err != nil {
 			fmt.Printf("error while sending data to %+v: %v\n", addr, err)
 		}
-		sentTo = append(sentTo, int16(idx))
+		sentTo = append(sentTo, addr.String())
 	}
 	return sentTo
 }
