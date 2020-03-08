@@ -17,7 +17,8 @@ import (
 
 const (
 	address = "127.0.0.1"
-	port    = 1000
+	webport = 2000
+	port    = 7000
 	firstN  = 4
 )
 

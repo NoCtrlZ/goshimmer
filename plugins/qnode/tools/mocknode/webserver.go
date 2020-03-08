@@ -6,8 +6,6 @@ import (
 	"net/http"
 )
 
-const webport = 2000
-
 func runWebServer() {
 	fmt.Printf("Web server is running on port %d\n", webport)
 
