@@ -1,33 +1,46 @@
 package value
 
 import (
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
 func MustGetOutputAddrValue(or *generic.OutputRef) *generic.OutputRefWithAddrValue {
+	ret, err := GetOutputAddrValue(or)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func GetOutputAddrValue(or *generic.OutputRef) (*generic.OutputRefWithAddrValue, error) {
 	tr := GetTransfer(or.TransferId)
+	if tr == nil {
+		return nil, fmt.Errorf("can't find transfer %s", or.TransferId.Short())
+	}
 	var addr *hashing.HashValue
 	var value uint64
-	if tr == nil {
-		addr = hashing.NilHash
-		value = 1 // TODO for testing
-	} else {
-		output := tr.Outputs()[or.OutputIndex]
-		addr = output.Address()
-		value = output.Value()
+	if int(or.OutputIndex) >= len(tr.Outputs()) {
+		return nil, fmt.Errorf("output index out of bounds")
 	}
+	output := tr.Outputs()[or.OutputIndex]
+	addr = output.Address()
+	value = output.Value()
 
 	return &generic.OutputRefWithAddrValue{
 		OutputRef: *or,
 		Addr:      addr,
 		Value:     value,
-	}
+	}, nil
 }
 
 func OutputCanBeChained(or *generic.OutputRef, chainAccount *hashing.HashValue) bool {
-	tmp := MustGetOutputAddrValue(or)
+	tmp, err := GetOutputAddrValue(or)
+	if err != nil {
+		return false
+	}
 	return tmp.Value == 1 && tmp.Addr.Equal(chainAccount)
 }
 

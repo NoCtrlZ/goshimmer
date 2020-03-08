@@ -21,7 +21,7 @@ const (
 	REQ_TYPE_LOCK       = 2
 	REQ_TYPE_DISTRIBUTE = 3
 	NUM_COLORS          = 7
-	MAX_BETS            = 10 // when number of bets reaches limit, lock msg is sent automatically.
+	MAX_BETS            = 20 // when number of bets reaches the limit, lock msg is sent automatically.
 )
 
 type BetData struct {
@@ -118,7 +118,11 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 		ctx.StateVars().SetString("bets", string(betsBin))
 
 		if len(bets) == MAX_BETS {
-			ctx.AddRequestToSelf(REQ_TYPE_LOCK)
+			err = ctx.AddRequestToSelf(REQ_TYPE_LOCK)
+			if err != nil {
+				ctx.SetError(err)
+				return
+			}
 		}
 
 	case REQ_TYPE_LOCK:
@@ -138,7 +142,11 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			ctx.StateVars().SetString("rnd", "")
 			ctx.StateVars().SetInt("winning_color", -1)
 
-			ctx.AddRequestToSelf(REQ_TYPE_DISTRIBUTE)
+			err = ctx.AddRequestToSelf(REQ_TYPE_DISTRIBUTE)
+			if err != nil {
+				ctx.SetError(err)
+				return
+			}
 		}
 
 	case REQ_TYPE_DISTRIBUTE:
@@ -155,6 +163,9 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 				return
 			}
 		}
+		// len(outputs) == 0 means nobody staked on the winning color
+		// the total stays in the smart contract's account
+
 		ctx.StateVars().SetString("locked_bets", "")
 
 		keyName := generic.VarName(fmt.Sprintf("color_%d", winningColor))

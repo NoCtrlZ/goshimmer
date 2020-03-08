@@ -5,6 +5,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"sync"
 )
 
@@ -16,13 +17,23 @@ type localValueTxDb struct {
 	outputsByAddress         map[HashValue][]*generic.OutputRef
 }
 
+const genesisAmount = 61 * parameters.Ti
+
 func NewLocalDb() *localValueTxDb {
-	return &localValueTxDb{
+	ret := &localValueTxDb{
 		byTxId:                   make(map[HashValue]value.Transaction),
 		byTransferId:             make(map[HashValue]value.Transaction),
 		spendingTxsByOutputRefId: make(map[HashValue]value.Transaction),
 		outputsByAddress:         make(map[HashValue][]*generic.OutputRef),
 	}
+	genesisTransfer := value.NewUTXOTransfer()
+	genesisTransfer.AddInput(value.NewInput(NilHash, 0))
+	genesisTransfer.AddOutput(value.NewOutput(NilHash, genesisAmount))
+	genesisTx := value.NewTransaction(genesisTransfer, nil)
+	ret.byTxId[*NilHash] = genesisTx
+	ret.byTransferId[*NilHash] = genesisTx
+	ret.outputsByAddress[*NilHash] = []*generic.OutputRef{generic.NewOutputRef(NilHash, 0)}
+	return ret
 }
 
 func (ldb *localValueTxDb) GetByTransactionId(id *HashValue) (value.Transaction, bool) {
@@ -55,7 +66,7 @@ func (ldb *localValueTxDb) PutTransaction(tx value.Transaction) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s transf: %s\n",
+	fmt.Printf("++++ ldb: inserted new tx: id = %s trid = %s ShortStr: %s\n",
 		tx.Id().Short(), tx.Transfer().Id().Short(), tx.Transfer().ShortStr())
 	return nil
 }
@@ -67,20 +78,18 @@ func (ldb *localValueTxDb) __putTransaction(tx value.Transaction) error {
 		return fmt.Errorf("++++ conflict: another tx with id %s", tx.Id().Short())
 	}
 	trid := tx.Transfer().Id()
-	if !trid.Equal(NilHash) {
-		_, ok = ldb.byTransferId[*trid]
-		if ok {
-			return fmt.Errorf("++++ conflict: another tx with transfer id %s", trid.Short())
-		}
-		for _, inp := range tx.Transfer().Inputs() {
-			spendingTx, ok := ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()]
-			if ok {
-				return fmt.Errorf("++++ conflict: doublespend in tx id %s. Conflicts with tx %s",
-					tx.Id().Short(), spendingTx.Id())
-			}
-		}
-		ldb.byTransferId[*trid] = tx
+	_, ok = ldb.byTransferId[*trid]
+	if ok {
+		return fmt.Errorf("++++ conflict: another tx with transfer id %s", trid.Short())
 	}
+	for _, inp := range tx.Transfer().Inputs() {
+		spendingTx, ok := ldb.spendingTxsByOutputRefId[*inp.OutputRef().Id()]
+		if ok {
+			return fmt.Errorf("++++ conflict: doublespend in tx id %s. Conflicts with tx %s",
+				tx.Id().Short(), spendingTx.Id())
+		}
+	}
+	ldb.byTransferId[*trid] = tx
 	ldb.byTxId[*tx.Id()] = tx
 	// register each input as spent
 	for _, inp := range tx.Transfer().Inputs() {

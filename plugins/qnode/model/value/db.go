@@ -34,16 +34,8 @@ func GetTransfer(id *hashing.HashValue) UTXOTransfer {
 	return tx.Transfer()
 }
 
-func PutTransaction(tx Transaction) error {
-	return valuetxdb.PutTransaction(tx)
-}
-
 func GetByTransactionId(id *hashing.HashValue) (Transaction, bool) {
 	return valuetxdb.GetByTransactionId(id)
-}
-
-func GetByTransferId(id *hashing.HashValue) (Transaction, bool) {
-	return valuetxdb.GetByTransferId(id)
 }
 
 func GetUnspentOutputs(addr *hashing.HashValue) []*generic.OutputRefWithAddrValue {

@@ -8,7 +8,10 @@ import (
 
 func AuthorizedForAddress(tx Transaction, account *hashing.HashValue) bool {
 	for _, inp := range tx.Transfer().Inputs() {
-		oav := value.MustGetOutputAddrValue(inp.OutputRef())
+		oav, err := value.GetOutputAddrValue(inp.OutputRef())
+		if err != nil {
+			return false
+		}
 		if oav.Addr.Equal(account) {
 			return true
 		}
@@ -17,8 +20,10 @@ func AuthorizedForAddress(tx Transaction, account *hashing.HashValue) bool {
 }
 
 func SignTransaction(tx Transaction, keys generic.KeyPool) error {
-	sigblocks := tx.Signatures()
-	var err error
+	sigblocks, err := tx.Signatures()
+	if err != nil {
+		return err
+	}
 	for _, sigblk := range sigblocks {
 		err = keys.SignBlock(sigblk)
 		if err != nil {
@@ -26,6 +31,14 @@ func SignTransaction(tx Transaction, keys generic.KeyPool) error {
 		}
 	}
 	return nil
+}
+
+func VerifySignatures(tx Transaction, keys generic.KeyPool) error {
+	sigBlocks, err := tx.Signatures()
+	if err != nil {
+		return err
+	}
+	return VerifySignedBlocks(sigBlocks, keys)
 }
 
 func VerifySignedBlocks(sigBlocks []generic.SignedBlock, keys generic.KeyPool) error {

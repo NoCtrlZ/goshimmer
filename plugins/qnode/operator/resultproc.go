@@ -59,8 +59,11 @@ func displayResult(req *request, ctx *runtimeContext) {
 	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
 }
 
-func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) *pushResultMsg {
-	sigBlocks := resRec.res.resultTx.Signatures()
+func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) (*pushResultMsg, error) {
+	sigBlocks, err := resRec.res.resultTx.Signatures()
+	if err != nil {
+		return nil, err
+	}
 	state, _ := resRec.res.state.State()
 	return &pushResultMsg{
 		SenderIndex:    op.peerIndex(),
@@ -68,15 +71,18 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) *p
 		StateIndex:     state.StateIndex(),
 		MasterDataHash: resRec.masterDataHash,
 		SigBlocks:      sigBlocks,
-	}
+	}, nil
 }
 
 func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
-	pushMsg := op.pushResultMsgFromResult(res)
-	req, _ := op.requestFromId(pushMsg.RequestId)
+	req, _ := op.requestFromId(res.res.reqRef.Id())
+	pushMsg, err := op.pushResultMsgFromResult(res)
+	if err != nil {
+		req.log.Errorf("sendPushResultToPeer: %v", err)
+		return
+	}
 
 	resultHash := resultHash(pushMsg.StateIndex, pushMsg.RequestId, pushMsg.MasterDataHash)
-
 	req.log.Debugf("sendPushResultToPeer %d for state idx %d, res hash %s",
 		peerIndex, res.res.state.MustState().StateIndex(), resultHash.Short())
 
@@ -87,7 +93,7 @@ func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerInde
 		return
 	}
 	addr := op.peers[peerIndex]
-	err := op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_PUSH_MSG, addr)
+	err = op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_PUSH_MSG, addr)
 	if err != nil {
 		req.log.Errorf("SendUDPData returned error: `%v`", err)
 	}

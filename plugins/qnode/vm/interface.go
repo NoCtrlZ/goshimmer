@@ -25,6 +25,6 @@ type RuntimeContext interface {
 	Signature() []byte
 	SendFundsToAddress([]*generic.OutputRef, *HashValue)
 	SendOutputsToOutputs([]*generic.OutputRef, []value.Output, *HashValue) error
-	AddRequestToSelf(uint16)
+	AddRequestToSelf(uint16) error
 	Log() *logger.Logger
 }

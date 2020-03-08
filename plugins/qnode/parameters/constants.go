@@ -9,3 +9,9 @@ const (
 	NUM_OLDEST_REQESTS     = 10
 	UDP_BUFFER_SIZE        = 2048 * 4
 )
+
+const (
+	Mi = uint64(1000000)
+	Gi = 1000 * Mi
+	Ti = 1000 * Gi
+)

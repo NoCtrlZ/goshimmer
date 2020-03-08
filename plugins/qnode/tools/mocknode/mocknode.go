@@ -87,7 +87,7 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 		fmt.Printf("ERROR from %d tx = %s err = %v\n", idx, tx.Id().Short(), state.Error())
 	}
 
-	err = sc.VerifySignedBlocks(tx.Signatures(), clientapi.NewDummyKeyPool())
+	err = sc.VerifySignatures(tx, clientapi.NewDummyKeyPool())
 	if err != nil {
 		fmt.Printf("VerifySignedBlocks: %v\n", err)
 		return

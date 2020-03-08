@@ -90,10 +90,6 @@ func nodeEventCaller(handler interface{}, params ...interface{}) {
 // receiving tx from the Value Tangle ontology/layer
 
 func nodeEventHandler(vtx value.Transaction) {
-	if err := ServerInstance.txdb.PutTransaction(vtx); err != nil {
-		log.Errorf("nodeEventHandler: %v", err)
-		return
-	}
 	tx, err := sc.ParseTransaction(vtx)
 	if err != nil {
 		log.Errorf("%v", err)

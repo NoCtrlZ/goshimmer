@@ -8,7 +8,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
-	"math/rand"
 )
 
 const (
@@ -29,84 +28,31 @@ var accStringsN10 = []string{
 	"60ef310872f2b4d09cb2fa43e843b514fc21d3ea72b268a39d822b8ca9d5fd19",
 }
 
-var aid, configId, assemblyAccount, ownerAddr *hashing.HashValue
-
-func init() {
-	configId, _ = hashing.HashValueFromString(cfgId2)
-	aid = hashing.HashStrings(assemblyDescription)
-	assemblyAccount, _ = hashing.HashValueFromString(accStrings2[0])
-	ownerAddr = hashing.NilHash
-}
-
-func newOrigin() (sc.Transaction, error) {
-	// create owners's transfer of 1i to owner's address
-	toorig := sc.NewTransaction()
-	trf := toorig.Transfer()
-	trf.AddInput(value.NewInput(hashing.RandomHash(nil), 0))
-	outIdx := trf.AddOutput(value.NewOutput(ownerAddr, 1))
-
+func newOrigin(ownerAddr *hashing.HashValue) (sc.Transaction, error) {
+	// create owners's transfer balance of 1i by transferring it from genesis
 	keyPool := clientapi.NewDummyKeyPool()
-	err := sc.SignTransaction(toorig, keyPool)
+	ret, err := clientapi.NewScOriginTransaction(clientapi.NewOriginParams{
+		AssemblyId:      aid,
+		ConfigId:        configId,
+		AssemblyAccount: assemblyAccount,
+		OwnerAccount:    ownerAddr,
+	})
+	err = sc.SignTransaction(ret, keyPool)
+
 	if err != nil {
 		return nil, err
 	}
-	err = sc.VerifySignedBlocks(toorig.Signatures(), keyPool)
+	err = sc.VerifySignatures(ret, keyPool)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	vtx, err := toorig.ValueTx()
+	vtx, err := ret.ValueTx()
 	if err != nil {
 		return nil, err
 	}
 	if err := ldb.PutTransaction(vtx); err != nil {
 		return nil, err
 	}
-	origOutRef := generic.NewOutputRef(toorig.Transfer().Id(), outIdx)
-	ret, err := clientapi.NewOriginTransaction(clientapi.NewOriginParams{
-		AssemblyId:      aid,
-		ConfigId:        configId,
-		AssemblyAccount: assemblyAccount,
-		OwnerAccount:    ownerAddr,
-		OriginOutput:    origOutRef,
-	})
-
-	err = sc.SignTransaction(ret, keyPool)
-
-	if err != nil {
-		return nil, err
-	}
-	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
-	if err != nil {
-		panic(err)
-	}
-	return ret, err
-}
-
-func makeReqTx() (sc.Transaction, error) {
-	reqnrseq++
-	requesterAccount := requesterAddresses[0]
-
-	vars := generic.NewFlatValueMap()
-	vars.SetString("reqnr", fmt.Sprintf("#%d", reqnrseq))
-	vars.SetString("salt", fmt.Sprintf("%d", rand.Int()))
-
-	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
-		AssemblyId:       aid,
-		AssemblyAccount:  assemblyAccount,
-		RequesterAccount: requesterAccount,
-		Vars:             vars,
-	})
-
-	err = sc.SignTransaction(ret, keyPool)
-	if err != nil {
-		return nil, err
-	}
-	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
-	if err != nil {
-		panic(err)
-	}
-
 	return ret, err
 }
 
@@ -131,39 +77,10 @@ func makeBetRequestTx(fromAccount *hashing.HashValue, betSum uint64, color int, 
 	if err != nil {
 		return nil, err
 	}
-	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
+	err = sc.VerifySignatures(ret, keyPool)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("+++ bet tansaction created for sum %d account %s\n", betSum, fromAccount.Short())
-	return ret, nil
-}
-
-func makeLockRequestTx() (sc.Transaction, error) {
-	playerIdx := curPlayer
-	curPlayer = (curPlayer + 1) % numPlayers
-	reward := uint64(2000)
-	requesterAccount := requesterAddresses[playerIdx]
-
-	vars := generic.NewFlatValueMap()
-	vars.SetInt("req_type", fairroulette.REQ_TYPE_LOCK)
-
-	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
-		AssemblyId:       aid,
-		AssemblyAccount:  assemblyAccount,
-		RequesterAccount: requesterAccount,
-		Reward:           reward,
-		Vars:             vars,
-	})
-
-	err = sc.SignTransaction(ret, keyPool)
-	if err != nil {
-		return nil, err
-	}
-	err = sc.VerifySignedBlocks(ret.Signatures(), keyPool)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("+++ makeLockRequestTx: balance of %s is %d\n", requesterAccount.Short(), value.GetBalance(requesterAccount))
 	return ret, nil
 }

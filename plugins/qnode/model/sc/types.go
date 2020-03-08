@@ -13,11 +13,11 @@ type Transaction interface {
 	State() (State, bool)
 	MustState() State
 	Requests() []Request
-	Signatures() []generic.SignedBlock
+	Signatures() ([]generic.SignedBlock, error)
 	MasterDataHash() *HashValue
 	ShortStr() string
 	SetState(State)
-	AddRequest(Request)
+	AddRequest(Request) uint16
 	Equal(Transaction) bool
 }
 

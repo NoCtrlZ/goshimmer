@@ -49,6 +49,13 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 		if err != nil {
 			return err
 		}
+
+		// -- for testing only TODO
+		if err := ServerInstance.txdb.PutTransaction(tx); err != nil {
+			return err
+		}
+		// -- for testing only
+
 		ServerInstance.Events.NodeEvent.Trigger(tx)
 		return nil
 	}

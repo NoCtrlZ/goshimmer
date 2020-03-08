@@ -14,29 +14,21 @@ type NewOriginParams struct {
 	ConfigId        *HashValue
 	AssemblyAccount *HashValue
 	OwnerAccount    *HashValue
-	// owner's section
-	OriginOutput *generic.OutputRef // output of 1i to the owner's address
 }
 
 // transfer is not signed
 
-func NewOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
+func NewScOriginTransaction(par NewOriginParams) (sc.Transaction, error) {
 	ret := sc.NewTransaction()
+	_, err := MoveFundsFromToAddress(ret, par.OwnerAccount, par.AssemblyAccount, []uint64{1})
+	if err != nil {
+		return nil, err
+	}
 	state := sc.NewStateBlock(par.AssemblyId, par.ConfigId, nil)
 	configVars := state.Config().Vars()
 	configVars.SetString(sc.MAP_KEY_ASSEMBLY_ACCOUNT, par.AssemblyAccount.String())
 	configVars.SetString(sc.MAP_KEY_OWNER_ACCOUNT, par.OwnerAccount.String())
 	ret.SetState(state)
-	tr := ret.Transfer()
-
-	// adding owner chain: transfer of 1i from owner's account to the stateAccount
-	// the latter will be used to build chain
-	oav := value.MustGetOutputAddrValue(par.OriginOutput)
-	if !oav.Addr.Equal(par.OwnerAccount) || oav.Value != 1 {
-		return nil, fmt.Errorf("OriginOutput parameter must be exactly 1i to the owner's account")
-	}
-	tr.AddInput(value.NewInputFromOutputRef(par.OriginOutput))
-	tr.AddOutput(value.NewOutput(par.AssemblyAccount, 1))
 	return ret, nil
 }
 
@@ -50,7 +42,15 @@ type NewRequestParams struct {
 }
 
 func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
-	ret := sc.NewTransaction()
+	tx := sc.NewTransaction()
+	_, err := AddNewRequestBlock(tx, par)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func AddNewRequestBlock(tx sc.Transaction, par NewRequestParams) (*sc.RequestRef, error) {
 	amounts := []uint64{1}
 	if par.Reward > 0 {
 		amounts = append(amounts, par.Reward)
@@ -58,7 +58,7 @@ func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
 	if par.Deposit > 0 {
 		amounts = append(amounts, par.Deposit)
 	}
-	outIndices, err := MoveFundsFromToAddress(ret, par.RequesterAccount, par.AssemblyAccount, amounts)
+	outIndices, err := MoveFundsFromToAddress(tx, par.RequesterAccount, par.AssemblyAccount, amounts)
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,8 @@ func NewRequestTransaction(par NewRequestParams) (sc.Transaction, error) {
 	if par.Deposit > 0 {
 		reqBlk.WithDepositOutputIndex(outIndices[2])
 	}
-	ret.AddRequest(reqBlk)
-	return ret, nil
+	reqIdx := tx.AddRequest(reqBlk)
+	return sc.NewRequestRefFromTx(tx, reqIdx)
 }
 
 func NewResultTransaction(reqRef *sc.RequestRef, config sc.Config) (sc.Transaction, error) {
@@ -135,7 +135,10 @@ func SendAllOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, ad
 	sum := uint64(0)
 	for _, outp := range outputs {
 		tx.Transfer().AddInput(value.NewInputFromOutputRef(outp))
-		oav := value.MustGetOutputAddrValue(outp)
+		oav, err := value.GetOutputAddrValue(outp)
+		if err != nil {
+			return err
+		}
 		sum += oav.Value
 	}
 	tx.Transfer().AddOutput(value.NewOutput(addr, sum))
@@ -145,7 +148,10 @@ func SendAllOutputsToAddress(tx sc.Transaction, outputs []*generic.OutputRef, ad
 func SendOutputsToOutputs(tx sc.Transaction, inOutputs []*generic.OutputRef, outOutputs []value.Output, reminderAddr *HashValue) error {
 	sumInp := uint64(0)
 	for _, outp := range inOutputs {
-		oav := value.MustGetOutputAddrValue(outp)
+		oav, err := value.GetOutputAddrValue(outp)
+		if err != nil {
+			return err
+		}
 		sumInp += oav.Value
 	}
 	sumOutp := uint64(0)

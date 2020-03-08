@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"html/template"
@@ -29,10 +30,7 @@ var (
 )
 
 const (
-	Mi          = uint64(1000000)
-	Gi          = 1000 * Mi
-	Ti          = 1000 * Gi
-	depositInit = 1 * Gi
+	depositInit = 1 * parameters.Gi
 	stdReward   = uint64(2000)
 )
 
@@ -64,8 +62,22 @@ func getAccount(seed string) *hashing.HashValue {
 			return h
 		}
 	}
-	generateAccountWithDeposit(h, depositInit)
+	depoTx, _ := generateAccountWithDeposit(h, depositInit)
 	accounts = append(accounts, h)
+
+	if !ownerTxPosted {
+		postMsg(&wrapped{
+			senderIndex: qserver.MockTangleIdx,
+			tx:          ownerTx,
+		})
+		ownerTxPosted = true
+	}
+	// sending to nodes to update their value tx db
+	// for testing only
+	postMsg(&wrapped{
+		senderIndex: qserver.MockTangleIdx,
+		tx:          depoTx,
+	})
 	return h
 }
 

@@ -29,11 +29,13 @@ func (tx *mockScTransaction) SetState(state sc.State) {
 	tx.stateBlock = state
 }
 
-func (tx *mockScTransaction) AddRequest(req sc.Request) {
+func (tx *mockScTransaction) AddRequest(req sc.Request) uint16 {
 	if tx.reqBlocks == nil {
 		tx.reqBlocks = make([]sc.Request, 0)
 	}
+	ret := uint16(len(tx.reqBlocks))
 	tx.reqBlocks = append(tx.reqBlocks, req)
+	return ret
 }
 
 func (tx *mockScTransaction) Equal(tx1 sc.Transaction) bool {
@@ -63,13 +65,16 @@ func (tx *mockScTransaction) ShortStr() string {
 	return tx.Id().Short()
 }
 
-func (tx *mockScTransaction) Signatures() []generic.SignedBlock {
-	trsigs := tx.Transfer().InputSignatures()
+func (tx *mockScTransaction) Signatures() ([]generic.SignedBlock, error) {
+	trsigs, err := tx.Transfer().InputSignatures()
+	if err != nil {
+		return nil, err
+	}
 	ret := make([]generic.SignedBlock, 0, len(trsigs))
 	for _, sigblk := range trsigs {
 		ret = append(ret, sigblk)
 	}
-	return ret
+	return ret, nil
 }
 
 func (tx *mockScTransaction) MasterDataHash() *HashValue {

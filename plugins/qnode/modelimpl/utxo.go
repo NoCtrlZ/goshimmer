@@ -31,7 +31,11 @@ func (tr *mockUTXO) ShortStr() string {
 	}
 	balIn := uint64(0)
 	for _, inp := range tr.inputs {
-		balIn += value.MustGetOutputAddrValue(inp.OutputRef()).Value
+		b, err := value.GetOutputAddrValue(inp.OutputRef())
+		if err != nil {
+			return err.Error()
+		}
+		balIn += b.Value
 	}
 	return fmt.Sprintf("numIn: %d numOut %d numSig: %d in: %d out: %d",
 		len(tr.inputs), len(tr.outputs), len(tr.inputSigs), balIn, balOut)
@@ -64,11 +68,14 @@ func (tr *mockUTXO) Outputs() []value.Output {
 	return tr.outputs
 }
 
-func (tr *mockUTXO) InputSignatures() []generic.SignedBlock {
+func (tr *mockUTXO) InputSignatures() ([]generic.SignedBlock, error) {
 	if len(tr.inputSigs) != 0 {
-		return tr.inputSigs
+		return tr.inputSigs, nil
 	}
-	outputsToSign := tr.collectOutputsToSign()
+	outputsToSign, err := tr.collectOutputsToSign()
+	if err != nil {
+		return nil, err
+	}
 	ret := make([]generic.SignedBlock, 0, len(outputsToSign))
 	for _, addr := range sortedAccounts(outputsToSign) {
 		outs := outputsToSign[*addr]
@@ -80,7 +87,7 @@ func (tr *mockUTXO) InputSignatures() []generic.SignedBlock {
 		ret = append(ret, generic.NewSignedBlock(addr.Clone(), hashing.HashData(data...)))
 	}
 	tr.inputSigs = ret
-	return ret
+	return ret, nil
 }
 
 // except signatures
@@ -119,16 +126,19 @@ func (tr *mockUTXO) Encode() generic.Encode {
 	return tr
 }
 
-func (tr *mockUTXO) collectOutputsToSign() map[hashing.HashValue][]*generic.OutputRef {
+func (tr *mockUTXO) collectOutputsToSign() (map[hashing.HashValue][]*generic.OutputRef, error) {
 	ret := make(map[hashing.HashValue][]*generic.OutputRef)
 	for _, inp := range tr.inputs {
-		addr := value.MustGetOutputAddrValue(inp.OutputRef()).Addr
-		if _, ok := ret[*addr]; !ok {
-			ret[*addr] = make([]*generic.OutputRef, 0)
+		av, err := value.GetOutputAddrValue(inp.OutputRef())
+		if err != nil {
+			return nil, err
 		}
-		ret[*addr] = append(ret[*addr], inp.OutputRef())
+		if _, ok := ret[*av.Addr]; !ok {
+			ret[*av.Addr] = make([]*generic.OutputRef, 0)
+		}
+		ret[*av.Addr] = append(ret[*av.Addr], inp.OutputRef())
 	}
-	return ret
+	return ret, nil
 }
 
 func sortedAccounts(data map[hashing.HashValue][]*generic.OutputRef) []*hashing.HashValue {

@@ -36,7 +36,11 @@ func (ctx *runtimeContext) AssemblyAccount() *hashing.HashValue {
 
 // BLS threshold signature. To use it as random value
 func (ctx *runtimeContext) Signature() []byte {
-	sig, _ := ctx.state.Signatures()[0].GetSignature()
+	sigs, err := ctx.state.Signatures()
+	if err != nil {
+		return nil
+	}
+	sig, _ := sigs[0].GetSignature()
 	return sig
 }
 
@@ -76,15 +80,16 @@ func (ctx *runtimeContext) SendOutputsToOutputs(inOutputs []*generic.OutputRef, 
 	return clientapi.SendOutputsToOutputs(ctx.resultTx, inOutputs, outOutputs, reminderAddr)
 }
 
-func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) {
-	// add chain link to assembly account
-	// select any unspent output which is not already used in the current result tx
-	reqChainOutput := ctx.reqRef.RequestBlock().MainOutputs(ctx.reqRef.Tx()).RequestChainOutput
-	outIdx := value.AddChainLink(ctx.resultTx.Transfer(), &reqChainOutput.OutputRef, reqChainOutput.Addr)
-	req := sc.NewRequestBlock(ctx.state.MustState().AssemblyId(), false).
-		WithRequestChainOutputIndex(outIdx)
-	req.Vars().SetInt("req_type", int(reqType))
-	ctx.resultTx.AddRequest(req)
+func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) error {
+	vars := generic.NewFlatValueMap()
+	vars.SetInt("req_type", int(reqType))
+	_, err := clientapi.AddNewRequestBlock(ctx.resultTx, clientapi.NewRequestParams{
+		AssemblyId:       ctx.state.MustState().AssemblyId(),
+		AssemblyAccount:  ctx.AssemblyAccount(),
+		RequesterAccount: ctx.AssemblyAccount(),
+		Vars:             vars,
+	})
+	return err
 }
 
 func (ctx *runtimeContext) Log() *logger.Logger {

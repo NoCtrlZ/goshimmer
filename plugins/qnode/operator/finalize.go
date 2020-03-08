@@ -33,7 +33,7 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
 	if err != nil {
 		return err
 	}
-	err = sc.VerifySignedBlocks(res.res.resultTx.Signatures(), op)
+	err = sc.VerifySignatures(res.res.resultTx, op)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,10 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 		// must be checked before
 		log.Panic("aggregateResult: inconsistency: not enough shares to finalize result")
 	}
-	ownSignedBlocks := reqRec.ownResultCalculated.res.resultTx.Signatures()
+	ownSignedBlocks, err := reqRec.ownResultCalculated.res.resultTx.Signatures()
+	if err != nil {
+		return err
+	}
 
 	for i, sigBlock := range ownSignedBlocks {
 		receivedSigBlocks := make([]generic.SignedBlock, 0, op.assemblySize())
