@@ -136,6 +136,9 @@ func respondErr(w io.Writer, err string) {
 }
 
 func placeBetHandler(w http.ResponseWriter, r *http.Request) {
+	if !originPosted {
+		return
+	}
 	var err error
 	if err = r.ParseForm(); err != nil {
 		respondErr(w, err.Error())
@@ -204,6 +207,9 @@ type stateResponse struct {
 }
 
 func getStateHandler(w http.ResponseWriter, r *http.Request) {
+	if !originPosted {
+		return
+	}
 	var err error
 	if err = r.ParseForm(); err != nil {
 		respondErr(w, err.Error())

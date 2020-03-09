@@ -20,7 +20,7 @@ type RuntimeContext interface {
 	SetError(error)
 	Error() error
 	MainRequestOutputs() sc.MainRequestOutputs
-	MainInputAddress() *HashValue
+	MainInputAddress() (*HashValue, error)
 	RequestTransferId() *HashValue
 	Signature() []byte
 	SendFundsToAddress([]*generic.OutputRef, *HashValue)

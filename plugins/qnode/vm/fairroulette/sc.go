@@ -104,11 +104,16 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(fmt.Errorf("bet is too small, taken as donation"))
 			return
 		}
+		payoutAddr, err := ctx.MainInputAddress()
+		if err != nil {
+			ctx.Log().Errorf("MainInputAddress returned: %v. Assuming payout to the smart contract account", err)
+			payoutAddr = ctx.AssemblyAccount()
+		}
 		bets = append(bets, &BetData{
 			OutputRef:     &depositOutput.OutputRef,
 			Sum:           depositOutput.Value,
 			Color:         color,
-			PayoutAddress: ctx.MainInputAddress(),
+			PayoutAddress: payoutAddr,
 		})
 		betsBin, err := json.Marshal(bets)
 		if err != nil {
