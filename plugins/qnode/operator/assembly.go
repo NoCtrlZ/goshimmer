@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
@@ -8,7 +9,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"github.com/iotaledger/hive.go/logger"
-	"github.com/pkg/errors"
 	"math/rand"
 	"net"
 	"sync"
@@ -115,7 +115,8 @@ func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort
 		addr, port := a.AdjustedIP()
 		if uint16(i) == index {
 			if ownAddr != addr || ownPort != port {
-				return nil, errors.New("inconsistent operator index and network address")
+				return nil, fmt.Errorf("inconsistent peer index %d and network address: own %s:%d got %s:%d",
+					index, ownAddr, ownPort, addr, port)
 			}
 			iAmAmongOperators = true
 			continue
