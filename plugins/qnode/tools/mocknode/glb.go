@@ -18,8 +18,6 @@ var (
 	ownerTx         sc.Transaction
 	keyPool         generic.KeyPool
 	ldb             value.DB
-	aid             *hashing.HashValue
-	configId        *hashing.HashValue
 	assemblyAccount *hashing.HashValue
 )
 
@@ -27,16 +25,14 @@ func initGlobals() {
 	modelimpl.Init()
 	signedblock.Init()
 
-	configId, _ = hashing.HashValueFromString(cfgId2)
-	aid = hashing.HashStrings(assemblyDescription)
-	assemblyAccount, _ = hashing.HashValueFromString(accStrings2[0])
+	assemblyAccount = params.Accounts[0]
 
 	ldb = txdb.NewLocalDb(nil)
 	value.SetValuetxDB(ldb)
 
 	keyPool = clientapi.NewDummyKeyPool()
 	// owner account with 1i
-	ownerAddress = hashing.RandomHash(nil)
+	ownerAddress = hashing.HashData(params.AssemblyId.Bytes())
 	fmt.Printf("owner's account will be %s\n", ownerAddress.Short())
 	ownerTx, _ = generateAccountWithDeposit(ownerAddress, 1)
 }

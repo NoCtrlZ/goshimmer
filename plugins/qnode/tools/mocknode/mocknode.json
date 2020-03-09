@@ -1,0 +1,33 @@
+{
+ "web_address": "127.0.0.1",
+ "web_port": 2000,
+ "udp_address": "127.0.0.1",
+ "udp_port": 7000,
+ "description": "test assembly 3",
+ "n": 4,
+ "t": 3,
+ "accounts": [
+  "179310b36d1c078fd54b0010b2a494b5fe9d6e750fe7e403d8a70e2bef2125e1",
+  "ef9826a632841beb7e09ecdd7493cd3e2857f63866f88e0fd9f898be69a668bc"
+ ],
+ "peers": [
+  {
+   "port": 4000,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4001,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4002,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4003,
+   "addr": "127.0.0.1"
+  }
+ ],
+ "config_id": "14ed9d02c54a9c6219231968b511f70c0729c5b3f16ac1753242a07a47e9542b",
+ "assembly_id": "89acffebe0eae6b929877090a27c048de6d0b3f0a7bfd07122bee238f656c597"
+}

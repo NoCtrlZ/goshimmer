@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -12,33 +13,15 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/network/udp"
+	"io/ioutil"
 	"net"
+	"os"
 )
-
-const (
-	address = "127.0.0.1"
-	webport = 2000
-	port    = 7000
-	firstN  = 4
-)
-
-var operatorsAll = []*registry.PortAddr{
-	{4000, "127.0.0.1"},
-	{4001, "127.0.0.1"},
-	{4002, "127.0.0.1"},
-	{4003, "127.0.0.1"},
-	{4004, "127.0.0.1"},
-	{4005, "127.0.0.1"},
-	{4006, "127.0.0.1"},
-	{4007, "127.0.0.1"},
-	{4008, "127.0.0.1"},
-	{4009, "127.0.0.1"},
-}
 
 var (
-	operators = operatorsAll[:firstN]
-	srv       *udp.UDPServer
-	inCh      = make(chan *wrapped, 10)
+	srv    *udp.UDPServer
+	inCh   = make(chan *wrapped, 10)
+	params *configParams
 )
 
 type wrapped struct {
@@ -46,7 +29,42 @@ type wrapped struct {
 	tx          sc.Transaction
 }
 
+type configParams struct {
+	WebAddress          string               `json:"web_address"`
+	WebPort             int                  `json:"web_port"`
+	UDPAddress          string               `json:"udp_address"`
+	UDPPort             int                  `json:"udp_port"`
+	AssemblyDescription string               `json:"description"`
+	N                   uint16               `json:"n"`
+	T                   uint16               `json:"t"`
+	Accounts            []*hashing.HashValue `json:"accounts"`
+	Peers               []*registry.PortAddr `json:"peers"`
+	ConfigId            *hashing.HashValue   `json:"config_id"`
+	AssemblyId          *hashing.HashValue   `json:"assembly_id"`
+}
+
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Printf("usage: mocknode <input file path>\n")
+		os.Exit(1)
+	}
+	fname := os.Args[1]
+	data, err := ioutil.ReadFile(fname)
+	if err != nil {
+		panic(err)
+	}
+	params = &configParams{}
+	err = json.Unmarshal(data, params)
+	if err != nil {
+		panic(err)
+	}
+	if len(params.Peers) != int(params.N) || params.N < params.T || params.N < 4 {
+		panic("wrong assembly size parameters or number of peers")
+	}
+	params.AssemblyId = hashing.HashStrings(params.AssemblyDescription)
+	fmt.Printf("assembly dscr = %s\n", params.AssemblyDescription)
+	fmt.Printf("assembly id = %s\n", params.AssemblyId.String())
+
 	initGlobals()
 
 	srv = udp.NewServer(parameters.UDP_BUFFER_SIZE)
@@ -61,8 +79,8 @@ func main() {
 
 	go inLoop()
 
-	fmt.Printf("listen UDP on %s:%d\n", address, port)
-	go srv.Listen(address, port)
+	fmt.Printf("listen UDP on %s:%d\n", params.UDPAddress, params.UDPPort)
+	go srv.Listen(params.UDPAddress, params.UDPPort)
 
 	runWebServer()
 }
@@ -109,7 +127,7 @@ func receiveUDPData(updAddr *net.UDPAddr, data []byte) {
 }
 
 func findSenderIndex(updAddr *net.UDPAddr) uint16 {
-	for i, a := range operators {
+	for i, a := range params.Peers {
 		if updAddr.Port == a.Port && updAddr.IP.String() == a.Addr {
 			return uint16(i)
 		}
@@ -170,7 +188,7 @@ func sendToNodes(data []byte) []string {
 	}
 
 	sentTo := make([]string, 0)
-	for _, op := range operators {
+	for _, op := range params.Peers {
 		addr := net.UDPAddr{
 			IP:   net.ParseIP(op.Addr),
 			Port: op.Port,

@@ -7,7 +7,7 @@ import (
 )
 
 func runWebServer() {
-	fmt.Printf("Web server is running on port %d\n", webport)
+	fmt.Printf("Web server is running on port %d\n", params.WebPort)
 
 	http.HandleFunc("/", startPageHandler)
 	http.HandleFunc("/static/", staticPageHandler)
@@ -15,7 +15,7 @@ func runWebServer() {
 	http.HandleFunc("/demo/state", getStateHandler)
 	http.HandleFunc("/demo/bet", placeBetHandler)
 
-	panic(http.ListenAndServe(fmt.Sprintf(":%d", webport), nil))
+	panic(http.ListenAndServe(fmt.Sprintf(":%d", params.WebPort), nil))
 }
 
 var originPosted = false
