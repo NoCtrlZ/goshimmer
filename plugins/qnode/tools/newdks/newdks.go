@@ -56,7 +56,7 @@ func main() {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
-	err = ioutil.WriteFile("resp."+fname, data, 0644)
+	err = ioutil.WriteFile(fname+".resp.json", data, 0644)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
