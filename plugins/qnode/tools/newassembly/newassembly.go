@@ -1,50 +1,55 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"io/ioutil"
+	"os"
 )
 
-var hostsAll = []*registry.PortAddr{
-	{9090, "127.0.0.1"},
-	{9091, "127.0.0.1"},
-	{9092, "127.0.0.1"},
-	{9093, "127.0.0.1"},
-	{9094, "127.0.0.1"},
-	{9095, "127.0.0.1"},
-	{9096, "127.0.0.1"},
-	{9097, "127.0.0.1"},
-	{9098, "127.0.0.1"},
-	{9099, "127.0.0.1"},
+type ioParams struct {
+	Hosts        []*registry.PortAddr  `json:"hosts"`
+	AssemblyData registry.AssemblyData `json:"assembly_data"`
 }
 
-var hosts []*registry.PortAddr
-
-const firstN = 10
-
-const assemblyDescription = "test assembly 2"
-
 func main() {
-	hosts := hostsAll[:firstN]
-	assemblyId := hashing.HashStrings(assemblyDescription)
-	ownerPk := hashing.HashStrings("dummy").String() // for testing only
-
-	od := registry.AssemblyData{
-		AssemblyId:  assemblyId,
-		OwnerPubKey: ownerPk,
-		Description: assemblyDescription,
-		Program:     "dummy",
+	if len(os.Args) < 2 {
+		fmt.Printf("usage newassembly <input file path>\n")
+		os.Exit(1)
 	}
-	fmt.Printf("%+v\n", od)
-	var err error
-	for _, h := range hosts {
-		err = apilib.PutAssemblyData(h.Addr, h.Port, &od)
+	fname := os.Args[1]
+	data, err := ioutil.ReadFile(fname)
+	if err != nil {
+		panic(err)
+	}
+	params := ioParams{}
+	err = json.Unmarshal(data, &params)
+	if err != nil {
+		panic(err)
+	}
+	params.AssemblyData.AssemblyId = hashing.HashStrings(params.AssemblyData.Description)
+	params.AssemblyData.OwnerPubKey = hashing.HashData(params.AssemblyData.AssemblyId.Bytes())
+	params.AssemblyData.Program = "dummy"
+	fmt.Printf("%+v\n", params)
+	for _, h := range params.Hosts {
+		err = apilib.PutAssemblyData(h.Addr, h.Port, &params.AssemblyData)
 		if err != nil {
 			fmt.Printf("PutAssemblyData: %v\n", err)
 		} else {
 			fmt.Printf("PutAssemblyData success: %s:%d\n", h.Addr, h.Port)
 		}
+	}
+	data, err = json.MarshalIndent(&params, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	err = ioutil.WriteFile("resp."+fname, data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
 	}
 }

@@ -43,7 +43,10 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 	if err != nil {
 		return err
 	}
-	if senderIndex == MockTangleIdx && aid.Equal(NilHash) && ServerInstance.isMockTangleAddr(updAddr) {
+	if senderIndex == MockTangleIdx {
+		if !aid.Equal(NilHash) || !ServerInstance.isMockTangleAddr(updAddr) {
+			log.Panicf("unexpected msg data from sender index %d. Possibly wrong configuration", MockTangleIdx)
+		}
 		// for testing: processing messages from MockTangle server
 		tx, err := value.ParseTransaction(msgData)
 		if err != nil {

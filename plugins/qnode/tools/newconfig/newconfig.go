@@ -1,92 +1,88 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"io/ioutil"
+	"os"
 	"time"
 )
 
-var webHostsAll = []*registry.PortAddr{
-	{9090, "127.0.0.1"},
-	{9091, "127.0.0.1"},
-	{9092, "127.0.0.1"},
-	{9093, "127.0.0.1"},
-	{9094, "127.0.0.1"},
-	{9095, "127.0.0.1"},
-	{9096, "127.0.0.1"},
-	{9097, "127.0.0.1"},
-	{9098, "127.0.0.1"},
-	{9099, "127.0.0.1"},
+type ioParams struct {
+	Hosts               []*registry.PortAddr `json:"hosts"`
+	AssemblyDescription string               `json:"description"`
+	N                   uint16               `json:"n"`
+	T                   uint16               `json:"t"`
+	Accounts            []*hashing.HashValue `json:"accounts"`
+	Peers               []*registry.PortAddr `json:"peers"`
+	ConfigId            *hashing.HashValue   `json:"config_id"`
+	AssemblyId          *hashing.HashValue   `json:"assembly_id"`
 }
-
-var nodeUDPAddressesAll = []*registry.PortAddr{
-	{4000, "127.0.0.1"},
-	{4001, "127.0.0.1"},
-	{4002, "127.0.0.1"},
-	{4003, "127.0.0.1"},
-	{4004, "127.0.0.1"},
-	{4005, "127.0.0.1"},
-	{4006, "127.0.0.1"},
-	{4007, "127.0.0.1"},
-	{4008, "127.0.0.1"},
-	{4009, "127.0.0.1"},
-}
-
-const (
-	firstN              = 10
-	assemblyDescription = "test assembly 2"
-	N                   = uint16(10)
-	T                   = uint16(7)
-	cfgId1              = "d85036600bb75389dae0d501d983bbe0d1edb3251a5590816c314d9f390cb85f" // 1 account
-	cfgId2              = "eddb2656a97ff6be411aac0d2fddb1fd1cc7de42905eaa742a09031ee921c261" // 2 accounts
-)
-
-var accStrings2 = []string{
-	"c59de480c9ea21705b0d66299f14e9976308e3d7802971271b5eedd9e1f7a9ad",
-	"158284bb4c1f33342681832bed2b807286744f098f7f1c58289169ba7b603415",
-}
-
-var accStrings1 = []string{
-	"c59de480c9ea21705b0d66299f14e9976308e3d7802971271b5eedd9e1f7a9ad",
-}
-
-var accStringsN10 = []string{
-	"ceb5579e21e651dd48c47eea42fa7e6ddd0732e3df9ef8de127d693b977ea4e1",
-	"60ef310872f2b4d09cb2fa43e843b514fc21d3ea72b268a39d822b8ca9d5fd19",
-}
-
-var accStrings = accStringsN10
-var webHosts = webHostsAll[:firstN]
-var nodeUDPAddresses = nodeUDPAddressesAll[:firstN]
 
 func main() {
-
-	var err error
-	assemblyId := hashing.HashStrings(assemblyDescription)
-	accounts := make([]*hashing.HashValue, len(accStrings))
-	for i, addr := range accStrings {
-		accounts[i], err = hashing.HashValueFromString(addr)
-		if err != nil {
-			panic(err)
-		}
+	if len(os.Args) < 2 {
+		fmt.Printf("usage newdconfig <input file path>\n")
+		os.Exit(1)
 	}
+	fname := os.Args[1]
+	data, err := ioutil.ReadFile(fname)
+	if err != nil {
+		panic(err)
+	}
+	params := ioParams{}
+	err = json.Unmarshal(data, &params)
+	if err != nil {
+		panic(err)
+	}
+	if len(params.Hosts) != int(params.N) || params.N < params.T || params.N < 4 {
+		panic("wrong assembly size parameters or number rof hosts")
+	}
+	params.AssemblyId = hashing.HashStrings(params.AssemblyDescription)
+	fmt.Printf("assembly dscr = %s\n", params.AssemblyDescription)
+	fmt.Printf("assembly id = %s\n", params.AssemblyId.String())
+
 	cd := registry.ConfigData{
 		Created:       time.Now().UnixNano(),
-		AssemblyId:    assemblyId,
-		N:             N,
-		T:             T,
-		NodeAddresses: nodeUDPAddresses,
-		Accounts:      accounts,
+		AssemblyId:    params.AssemblyId,
+		N:             params.N,
+		T:             params.T,
+		NodeAddresses: params.Peers,
+		Accounts:      params.Accounts,
 	}
-	for i, h := range webHosts {
+	var configId *hashing.HashValue
+	var wrongIds bool
+	for i, h := range params.Hosts {
 		cd.Index = uint16(i)
-		configId, err := apilib.NewConfiguration(h.Addr, h.Port, &cd)
+		_configId, err := apilib.NewConfiguration(h.Addr, h.Port, &cd)
 		if err != nil {
 			fmt.Printf("NewConfiguration: %v\n", err)
 		} else {
-			fmt.Printf("NewConfiguration: %s:%d config id = %s\n", h.Addr, h.Port, configId.String())
+			fmt.Printf("NewConfiguration: %s:%d config id = %s\n", h.Addr, h.Port, _configId.String())
 		}
+		if configId != nil && !configId.Equal(_configId) {
+			fmt.Printf("error: nut equal configuration Ids returned")
+			wrongIds = true
+		}
+		if configId == nil {
+			configId = _configId
+		}
+	}
+	if wrongIds {
+		fmt.Printf("error occured")
+		os.Exit(1)
+	}
+	params.ConfigId = configId
+	data, err = json.MarshalIndent(&params, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	err = ioutil.WriteFile("resp."+fname, data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
 	}
 }

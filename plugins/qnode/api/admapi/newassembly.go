@@ -16,11 +16,14 @@ func HandlerAssemblyData(c echo.Context) error {
 			Error: err.Error(),
 		})
 	}
-	log.Debugw("HandlerAssemblyData", "assembly_id", req.AssemblyId.Short())
 
 	if err := req.Save(); err != nil {
+		log.Errorf("failed to save assembly data: %v", err)
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
 	}
+	log.Infof("assembly data saved: id = %s descr = '%s'",
+		req.AssemblyId.Short(), req.Description)
+
 	if err := registry.RefreshAssemblyData(); err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
 	}

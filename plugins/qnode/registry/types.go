@@ -7,7 +7,7 @@ import . "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 
 type AssemblyData struct {
 	AssemblyId  *HashValue `json:"assembly_id"`
-	OwnerPubKey string     `json:"owner_pub_key"`
+	OwnerPubKey *HashValue `json:"owner_pub_key"`
 	Description string     `json:"description"`
 	Program     string     `json:"program"`
 }
