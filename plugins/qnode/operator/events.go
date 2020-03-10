@@ -153,6 +153,7 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 		return // already processed, ignore
 	}
 	req.log.Debugf("EventPushResultMsg received from peer %d", pushMsg.SenderIndex)
+
 	op.accountNewPushMsg(pushMsg)
 	op.adjustToContext()
 	op.takeAction()
@@ -160,10 +161,10 @@ func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
 
 func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 	req, ok := op.requestFromId(msg.RequestId)
-	req.msgCounter++
 	if !ok {
 		return // already processed
 	}
+	req.msgCounter++
 	req.log.Debug("EventPullResultMsg")
 	req.pullMessages[msg.SenderIndex] = msg
 	op.takeAction()

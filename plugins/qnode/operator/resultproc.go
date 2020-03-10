@@ -75,26 +75,30 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) (*
 }
 
 func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
-	req, _ := op.requestFromId(res.res.reqRef.Id())
+	locLog := log
+	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
+		locLog = req.log
+	}
+
 	pushMsg, err := op.pushResultMsgFromResult(res)
 	if err != nil {
-		req.log.Errorf("sendPushResultToPeer: %v", err)
+		locLog.Errorf("sendPushResultToPeer: %v", err)
 		return
 	}
 
 	resultHash := resultHash(pushMsg.StateIndex, pushMsg.RequestId, pushMsg.MasterDataHash)
-	req.log.Debugf("sendPushResultToPeer %d for state idx %d, res hash %s",
+	locLog.Debugf("sendPushResultToPeer %d for state idx %d, res hash %s",
 		peerIndex, res.res.state.MustState().StateIndex(), resultHash.Short())
 
 	data, _ := op.encodeMsg(pushMsg)
 
 	if peerIndex == op.peerIndex() {
-		req.log.Error("error: attempt to send result hash to itself. Result hash wasn't sent")
+		locLog.Error("error: attempt to send result hash to itself. Result hash wasn't sent")
 		return
 	}
 	addr := op.peers[peerIndex]
 	err = op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_PUSH_MSG, addr)
 	if err != nil {
-		req.log.Errorf("SendUDPData returned error: `%v`", err)
+		locLog.Errorf("SendUDPData returned error: `%v`", err)
 	}
 }
