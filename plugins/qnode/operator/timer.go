@@ -24,7 +24,7 @@ func (op *AssemblyOperator) startRoutines() {
 			case <-chCancel:
 				return
 			case <-time.After(parameters.CLOCK_TICK_PERIOD):
-				op.DispatchEvent(timerMsg(index))
+				op.postEventToQueue(timerMsg(index))
 				index++
 			}
 		}

@@ -52,7 +52,7 @@ func (op *AssemblyOperator) processRequest(req *request) {
 		op.processor.Run(ctx)
 		displayResult(req, ctx)
 	}
-	op.DispatchEvent(ctx)
+	op.postEventToQueue(ctx)
 }
 
 func displayResult(req *request, ctx *runtimeContext) {

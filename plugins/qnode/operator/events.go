@@ -9,7 +9,7 @@ import (
 // triggered by new request msg from the node
 // called from he main queue
 
-func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
+func (op *AssemblyOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 	if err := op.validateRequestBlock(reqRef); err != nil {
 		log.Errorw("invalid request message received. Ignored...",
 			"req", reqRef.Id().Short(),
@@ -18,7 +18,7 @@ func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
 		return
 	}
 	reqRec := op.requestFromMsg(reqRef)
-	reqRec.log.Debugw("EventRequestMsg",
+	reqRec.log.Debugw("eventRequestMsg",
 		"tx", reqRef.Tx().ShortStr(),
 		"reqIdx", reqRef.Index(),
 		"leader", op.currentLeaderIndex(reqRec),
@@ -29,8 +29,8 @@ func (op *AssemblyOperator) EventRequestMsg(reqRef *sc.RequestRef) {
 
 // triggered by the new stateTx update
 
-func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
-	log.Debugw("EventStateUpdate", "tx", tx.ShortStr())
+func (op *AssemblyOperator) eventStateUpdate(tx sc.Transaction) {
+	log.Debugw("eventStateUpdate", "tx", tx.ShortStr())
 
 	stateUpd := tx.MustState()
 
@@ -65,7 +65,7 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 			ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
 			iAmParticipant, err := op.configure(stateUpd.Config().Id(), ownAddr, ownPort)
 			if err != nil || !iAmParticipant {
-				op.Dismiss()
+				op.dismiss()
 				return
 			}
 		}
@@ -81,14 +81,14 @@ func (op *AssemblyOperator) EventStateUpdate(tx sc.Transaction) {
 
 // triggered from main msg queue whenever calculation of new result is finished
 
-func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
+func (op *AssemblyOperator) eventResultCalculated(ctx *runtimeContext) {
 	reqId := ctx.reqRef.Id()
 	reqRec, ok := op.requestFromId(reqId)
 	if !ok {
 		// processed
 		return
 	}
-	reqRec.log.Debugw("EventResultCalculated",
+	reqRec.log.Debugw("eventResultCalculated",
 		"state idx", ctx.state.MustState().StateIndex(),
 		"cur state idx", op.stateTx.MustState().StateIndex(),
 		"resultErr", ctx.err,
@@ -101,7 +101,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		var err error
 		ctx.resultTx, err = clientapi.ErrorTransaction(ctx.reqRef, ctx.state.MustState().Config(), ctx.err)
 		if err != nil {
-			reqRec.log.Errorw("EventResultCalculated: error while processing error state",
+			reqRec.log.Errorw("eventResultCalculated: error while processing error state",
 				"state idx", ctx.state.MustState().StateIndex(),
 				"current state idx", op.stateTx.MustState().StateIndex(),
 				"error", err,
@@ -130,7 +130,7 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 		return
 	}
 	masterDataHash := ctx.resultTx.MasterDataHash()
-	reqRec.log.Debugw("EventResultCalculated:",
+	reqRec.log.Debugw("eventResultCalculated:",
 		"input tx", ctx.state.Id().Short(),
 		"res tx", ctx.resultTx.Id().Short(),
 		"master result hash", masterDataHash.Short(),
@@ -146,20 +146,20 @@ func (op *AssemblyOperator) EventResultCalculated(ctx *runtimeContext) {
 
 // triggered by new result hash received from another operator
 
-func (op *AssemblyOperator) EventPushResultMsg(pushMsg *pushResultMsg) {
+func (op *AssemblyOperator) eventPushResultMsg(pushMsg *pushResultMsg) {
 	req, ok := op.requestFromId(pushMsg.RequestId)
 	req.msgCounter++
 	if !ok {
 		return // already processed, ignore
 	}
-	req.log.Debugf("EventPushResultMsg received from peer %d", pushMsg.SenderIndex)
+	req.log.Debugf("eventPushResultMsg received from peer %d", pushMsg.SenderIndex)
 
 	op.accountNewPushMsg(pushMsg)
 	op.adjustToContext()
 	op.takeAction()
 }
 
-func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
+func (op *AssemblyOperator) eventPullMsgReceived(msg *pullResultMsg) {
 	req, ok := op.requestFromId(msg.RequestId)
 	if !ok {
 		return // already processed
@@ -167,12 +167,13 @@ func (op *AssemblyOperator) EventPullMsgReceived(msg *pullResultMsg) {
 	req.msgCounter++
 	req.log.Debug("EventPullResultMsg")
 	req.pullMessages[msg.SenderIndex] = msg
+	op.adjustToContext()
 	op.takeAction()
 }
 
-func (op *AssemblyOperator) EventTimer(msg timerMsg) {
+func (op *AssemblyOperator) eventTimer(msg timerMsg) {
 	if msg%300 == 0 {
-		log.Debugw("EventTimer", "#", int(msg))
+		log.Debugw("eventTimer", "#", int(msg))
 		snap := op.getStateSnapshot()
 		log.Debugf("%+v", snap)
 	}
