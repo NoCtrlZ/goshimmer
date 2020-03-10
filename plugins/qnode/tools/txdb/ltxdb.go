@@ -128,7 +128,11 @@ func (ldb *localValueTxDb) GetUnspentOutputs(addr *HashValue) []*generic.OutputR
 	ret := make([]*generic.OutputRefWithAddrValue, 0)
 	for _, out := range outs {
 		if _, ok = ldb.spendingTxsByOutputRefId[*out.Id()]; !ok {
-			ret = append(ret, value.MustGetOutputAddrValue(out))
+			if outav, err := value.GetOutputAddrValue(out); err == nil {
+				ret = append(ret, outav)
+			} else {
+				// TODO with err
+			}
 		}
 	}
 	return ret
