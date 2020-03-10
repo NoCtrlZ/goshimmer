@@ -144,27 +144,3 @@ func (op *AssemblyOperator) assemblySize() uint16 {
 func (op *AssemblyOperator) peerIndex() uint16 {
 	return op.cfgData.Index
 }
-
-func (op *AssemblyOperator) Dismiss() {
-	if op.stopClock != nil {
-		op.stopClock()
-	}
-	op.Lock()
-	op.dismissed = true
-	close(op.inChan)
-	op.Unlock()
-}
-
-func (op *AssemblyOperator) IsDismissed() bool {
-	op.Lock()
-	defer op.Unlock()
-	return op.dismissed
-}
-
-func (op *AssemblyOperator) DispatchEvent(msg interface{}) {
-	op.Lock()
-	if !op.dismissed {
-		op.inChan <- msg
-	}
-	op.Unlock()
-}

@@ -120,7 +120,7 @@ func (q *QServer) processState(tx sc.Transaction, assemblyData *registry.Assembl
 	oper, operatorAvailable := ServerInstance.getOperator(state.AssemblyId())
 	if operatorAvailable {
 		// process config update as normal request
-		oper.DispatchEvent(&sc.StateUpdateMsg{
+		oper.ReceiveStateUpdate(&sc.StateUpdateMsg{
 			Tx: tx,
 		})
 		return
@@ -142,7 +142,7 @@ func (q *QServer) processState(tx sc.Transaction, assemblyData *registry.Assembl
 func (q *QServer) processRequest(reqRef *sc.RequestRef, assemblyData *registry.AssemblyData) {
 	req := reqRef.RequestBlock()
 	if oper, ok := ServerInstance.getOperator(req.AssemblyId()); ok {
-		oper.DispatchEvent(reqRef)
+		oper.ReceiveRequest(reqRef)
 	}
 }
 

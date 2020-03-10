@@ -4,7 +4,6 @@ import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 	"io"
@@ -143,56 +142,9 @@ func (op *AssemblyOperator) sendMsgToPeers(msg interface{}) {
 	}
 }
 
-func (op *AssemblyOperator) ReceiveUDPData(udpAddr *net.UDPAddr, senderIndex uint16, msgType byte, msgData []byte) error {
-	if !op.validSender(udpAddr, senderIndex) {
-		return errors.New("invalid sender")
-	}
-	switch msgType {
-	case MSG_PUSH_MSG:
-		msg, err := decodePushResultMsg(senderIndex, msgData)
-		if err != nil {
-			return err
-		}
-		op.DispatchEvent(msg)
-
-	case MSG_PULL_MSG:
-		msg, err := decodePullResultMsg(senderIndex, msgData)
-		if err != nil {
-			return err
-		}
-		op.DispatchEvent(msg)
-
-	default:
-		return errors.New("wrong msg type")
-	}
-	return nil
-}
-
 func (op *AssemblyOperator) validSender(udpAddr *net.UDPAddr, senderIndex uint16) bool {
 	if senderIndex < 0 || senderIndex >= op.assemblySize() || senderIndex == op.peerIndex() {
 		return false
 	}
 	return op.peers[senderIndex].IP.String() == udpAddr.IP.String() && op.peers[senderIndex].Port == udpAddr.Port
-}
-
-func (op *AssemblyOperator) dispatchEvent(msg interface{}) {
-	if _, ok := msg.(timerMsg); !ok {
-		op.msgCounter++
-	}
-	switch msgt := msg.(type) {
-	case *sc.StateUpdateMsg:
-		op.EventStateUpdate(msgt.Tx)
-	case *sc.RequestRef:
-		op.EventRequestMsg(msgt)
-	case *runtimeContext:
-		op.EventResultCalculated(msgt)
-	case *pushResultMsg:
-		op.EventPushResultMsg(msgt)
-	case *pullResultMsg:
-		op.EventPullMsgReceived(msgt)
-	case timerMsg:
-		op.EventTimer(msgt)
-	default:
-		log.Panicf("dispatchEvent: wrong message type %T", msg)
-	}
 }

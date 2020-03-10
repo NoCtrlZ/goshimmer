@@ -7,14 +7,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
-func MustGetOutputAddrValue(or *generic.OutputRef) *generic.OutputRefWithAddrValue {
-	ret, err := GetOutputAddrValue(or)
-	if err != nil {
-		panic(err)
-	}
-	return ret
-}
-
 func GetOutputAddrValue(or *generic.OutputRef) (*generic.OutputRefWithAddrValue, error) {
 	tr := GetTransfer(or.TransferId)
 	if tr == nil {

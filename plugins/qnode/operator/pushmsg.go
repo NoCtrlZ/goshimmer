@@ -9,8 +9,11 @@ import (
 
 func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) {
 	resultHash := resultHash(msg.StateIndex, msg.RequestId, msg.MasterDataHash)
-	req, _ := op.requestFromId(msg.RequestId)
-
+	req, ok := op.requestFromId(msg.RequestId)
+	if !ok {
+		// request is already processed
+		return
+	}
 	if err := sc.VerifySignedBlocks(msg.SigBlocks, op); err != nil {
 		req.log.Errorf("accountNewPushMsg: %v", err)
 		return
