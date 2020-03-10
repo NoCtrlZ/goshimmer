@@ -7,7 +7,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 	"io"
-	"net"
 )
 
 // peer messages between operators
@@ -142,9 +141,9 @@ func (op *AssemblyOperator) sendMsgToPeers(msg interface{}) {
 	}
 }
 
-func (op *AssemblyOperator) validSender(udpAddr *net.UDPAddr, senderIndex uint16) bool {
-	if senderIndex < 0 || senderIndex >= op.assemblySize() || senderIndex == op.peerIndex() {
+func (op *AssemblyOperator) validSender(sender SenderId) bool {
+	if sender.Index < 0 || sender.Index >= op.assemblySize() || sender.Index == op.peerIndex() {
 		return false
 	}
-	return op.peers[senderIndex].IP.String() == udpAddr.IP.String() && op.peers[senderIndex].Port == udpAddr.Port
+	return op.peers[sender.Index].IP.String() == sender.IpAddr && op.peers[sender.Index].Port == sender.Port
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/iotaledger/hive.go/events"
@@ -62,11 +63,16 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 		ServerInstance.Events.NodeEvent.Trigger(tx)
 		return nil
 	}
-	ambly, ok := ServerInstance.getOperator(aid)
+	op, ok := ServerInstance.getOperator(aid)
 	if !ok {
 		return errors.New("no such assembly")
 	}
-	return ambly.ReceiveUDPData(updAddr, senderIndex, msgType, msgData)
+
+	return op.ReceiveMsgData(operator.SenderId{
+		IpAddr: updAddr.IP.String(),
+		Port:   updAddr.Port,
+		Index:  senderIndex,
+	}, msgType, msgData)
 }
 
 func UnwrapUDPPacket(data []byte) (*HashValue, uint16, byte, []byte, error) {

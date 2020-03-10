@@ -63,7 +63,7 @@ type resultCalculated struct {
 
 const inChanBufLen = 10
 
-func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {
+func newFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {
 	state, _ := tx.State()
 	oa, op := comm.GetOwnAddressAndPort()
 

@@ -1,25 +1,37 @@
 package operator
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/pkg/errors"
-	"net"
+	"time"
 )
 
-func (op *AssemblyOperator) ReceiveUDPData(udpAddr *net.UDPAddr, senderIndex uint16, msgType byte, msgData []byte) error {
-	if !op.validSender(udpAddr, senderIndex) {
+type SenderId struct {
+	IpAddr string
+	Port   int
+	Index  uint16
+}
+
+func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {
+	return newFromState(tx, comm)
+}
+
+func (op *AssemblyOperator) ReceiveMsgData(sender SenderId, msgType byte, msgData []byte) error {
+	if !op.validSender(sender) {
 		return errors.New("invalid sender")
 	}
 	switch msgType {
 	case MSG_PUSH_MSG:
-		msg, err := decodePushResultMsg(senderIndex, msgData)
+		msg, err := decodePushResultMsg(sender.Index, msgData)
 		if err != nil {
 			return err
 		}
 		op.postEventToQueue(msg)
 
 	case MSG_PULL_MSG:
-		msg, err := decodePullResultMsg(senderIndex, msgData)
+		msg, err := decodePullResultMsg(sender.Index, msgData)
 		if err != nil {
 			return err
 		}
@@ -82,5 +94,34 @@ func (op *AssemblyOperator) dispatchEvent(msg interface{}) {
 		op.eventTimer(msgt)
 	default:
 		log.Panicf("dispatchEvent: wrong message type %T", msg)
+	}
+}
+
+func (op *AssemblyOperator) startRoutines() {
+	// start msg queue routine
+	go func() {
+		for msg := range op.inChan {
+			op.dispatchEvent(msg)
+		}
+	}()
+	// start clock tick routine
+	if !parameters.TIMER_ON {
+		return
+	}
+	chCancel := make(chan struct{})
+	go func() {
+		index := 0
+		for {
+			select {
+			case <-chCancel:
+				return
+			case <-time.After(parameters.CLOCK_TICK_PERIOD):
+				op.postEventToQueue(timerMsg(index))
+				index++
+			}
+		}
+	}()
+	op.stopClock = func() {
+		close(chCancel)
 	}
 }
