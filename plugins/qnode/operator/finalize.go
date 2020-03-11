@@ -5,6 +5,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"time"
 )
 
@@ -27,33 +28,38 @@ func maxVotesFromPeers(req *request) (uint16, *HashValue) {
 	return retNumVotes, &retRsHash
 }
 
-func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) error {
-	// aggregates final signature, generates final result and posts to the tangle
+// aggregates final signature, generates final result and posts to the tangle
+
+func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) {
+	locLog := log
+	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
+		locLog = req.log
+	}
 	err := op.aggregateResult(res)
 	if err != nil {
-		return err
+		locLog.Errorf("aggregateResult returned: %v", err)
+		return
 	}
 	err = sc.VerifySignatures(res.res.resultTx, op)
 	if err != nil {
-		return err
+		locLog.Errorf("VerifySignatures returned: %v", err)
+		return
 	}
 
 	res.finalized = true
 	res.finalizedWhen = time.Now()
 	vtx, err := res.res.resultTx.ValueTx()
 	if err != nil {
-		return err
-	}
-	locLog := log
-	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
-		locLog = req.log
+		locLog.Errorf("%v", err)
+		return
 	}
 	locLog.Debugw("POST result to the ValueTangle",
 		"leader", op.peerIndex(),
 		"req", res.res.reqRef.Id().Short(),
 		"resTx id", res.res.resultTx.Id().Short())
-	locLog.Info("FINALIZED REQUEST")
-	return op.comm.PostToValueTangle(vtx)
+
+	locLog.Info("FINALIZED REQUEST. Posting to the Value Tangle..")
+	value.Post(vtx)
 }
 
 func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {

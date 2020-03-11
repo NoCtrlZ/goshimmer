@@ -21,9 +21,18 @@ type DB interface {
 }
 
 var valuetxdb DB
+var postFunction func(Transaction)
 
 func SetValuetxDB(db DB) {
 	valuetxdb = db
+}
+
+func SetPostFunction(fun func(Transaction)) {
+	postFunction = fun
+}
+
+func Post(vtx Transaction) {
+	postFunction(vtx)
 }
 
 func GetTransfer(id *hashing.HashValue) UTXOTransfer {

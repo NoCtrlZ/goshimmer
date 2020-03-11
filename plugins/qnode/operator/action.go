@@ -69,9 +69,7 @@ func (op *AssemblyOperator) checkQuorum() {
 			continue
 		}
 		// quorum reached for the current calculated result
-		if err := op.finalizeTheRequest(req.ownResultCalculated); err != nil {
-			log.Errorf("finalizeTheRequest: %v", err)
-		}
+		op.finalizeTheRequest(req.ownResultCalculated)
 		log.Debugf("finalized request %s", req.reqId.Short())
 	}
 }

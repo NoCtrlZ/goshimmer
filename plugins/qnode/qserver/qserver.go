@@ -49,16 +49,13 @@ func StartServer() {
 		log.Errorf("StartServer::LoadAllAssemblyData %v", err)
 		return
 	}
-	// mock the ValueTangle ontology
-	valuetxdb := txdb.NewLocalDb(log)
-	value.SetValuetxDB(valuetxdb)
 
 	ServerInstance = &QServer{
 		udpPort:     parameter.NodeConfig.GetInt(parameters.UDP_PORT),
 		mockTangle:  true,
 		mockAddress: parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
 		mockPort:    parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),
-		txdb:        valuetxdb,
+		txdb:        txdb.NewLocalDb(log),
 		udpServer:   createUDPServer(),
 		operators:   make(map[HashValue]*operator.AssemblyOperator),
 		Events: serverEvents{
@@ -67,6 +64,14 @@ func StartServer() {
 	}
 	// ServerInstance events
 	ServerInstance.Events.NodeEvent.Attach(events.NewClosure(nodeEventHandler))
+
+	// setup connection with Value Tangle layer
+	value.SetValuetxDB(ServerInstance.txdb)
+	value.SetPostFunction(func(vtx value.Transaction) {
+		postToValueTangle(ServerInstance, vtx)
+	})
+
+	// start UDP server
 	addr, port := ServerInstance.GetOwnAddressAndPort()
 	err = daemon.BackgroundWorker("Qnode UDP ServerInstance", func(shutdownSignal <-chan struct{}) {
 		log.Infof("UDP server listens on %s:%d", addr, port)
@@ -192,17 +197,19 @@ func (q *QServer) SendUDPData(data []byte, aid *HashValue, senderIndex uint16, m
 	return err
 }
 
-func (q *QServer) PostToValueTangle(tx value.Transaction) error {
-	if q.mockTangle {
-		a := net.UDPAddr{
-			IP:   net.ParseIP(q.mockAddress),
-			Port: q.mockPort,
-			Zone: "",
-		}
-		data := mustEncodeTx(tx)
-		return q.SendUDPData(data, NilHash, MockTangleIdx, 0, &a)
+func postToValueTangle(q *QServer, tx value.Transaction) {
+	if !q.mockTangle {
+		panic("postToValueTangle: not implemented")
 	}
-	panic("PostToValueTangle: not implemented")
+	a := net.UDPAddr{
+		IP:   net.ParseIP(q.mockAddress),
+		Port: q.mockPort,
+		Zone: "",
+	}
+	data := mustEncodeTx(tx)
+	if err := q.SendUDPData(data, NilHash, MockTangleIdx, 0, &a); err != nil {
+		log.Errorf("%v", err)
+	}
 }
 
 func mustEncodeTx(tx value.Transaction) []byte {
