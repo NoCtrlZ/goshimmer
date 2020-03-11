@@ -60,7 +60,7 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 		}
 		// -- for testing only
 
-		ServerInstance.Events.NodeEvent.Trigger(tx)
+		ServerInstance.Events.TransactionReceived.Trigger(tx)
 		return nil
 	}
 	op, ok := ServerInstance.getOperator(aid)
@@ -68,6 +68,7 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 		return errors.New("no such assembly")
 	}
 
+	// TODO check here it is expected sender id and te pass only sender index
 	return op.ReceiveMsgData(operator.SenderId{
 		IpAddr: updAddr.IP.String(),
 		Port:   updAddr.Port,

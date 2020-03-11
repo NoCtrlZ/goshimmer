@@ -9,7 +9,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"github.com/iotaledger/hive.go/logger"
-	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -29,7 +28,6 @@ type AssemblyOperator struct {
 	comm              messaging.Messaging
 	stopClock         func()
 	msgCounter        int
-	rand              *rand.Rand
 }
 
 // keeps stateTx of the request
@@ -103,7 +101,6 @@ func (op *AssemblyOperator) configure(cfgId *HashValue, ownAddr string, ownPort 
 	}
 	op.cfgData = cfg
 	op.peers = peers
-	op.rand = rand.New(rand.NewSource(int64(cfg.Index)))
 	return true, nil
 }
 

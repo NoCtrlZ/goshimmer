@@ -16,18 +16,27 @@ type AssemblyData struct {
 // can be several configurations of the assembly
 // each node in the assembly configurations must have identical copy of each configuration (except index)
 
+// changing configurations of the assembly means changing assembly account:
+//  -- stopping the assembly
+//  -- returning iotas for unprocessed requests (cancel pending requests)
+//  -- setting new configuration in the chain
+//  -- starting assembly again, with new configuration
+
 type ConfigData struct {
 	Index    uint16     `json:"index"`
 	ConfigId *HashValue `json:"config_id,omitempty"`
 	Created  int64      `json:"created"`
-	// config id
-	AssemblyId    *HashValue   `json:"assembly_id"`
-	N             uint16       `json:"n"`
-	T             uint16       `json:"t"`
-	NodeAddresses []*PortAddr  `json:"port_addr"`
-	Accounts      []*HashValue `json:"accounts"`
-	accounts      map[HashValue]bool
-	// TODO include additional vars
+
+	// config id 1 (hash)  -- collection of keys + node IP locations
+	// config id 0 (hash)  -- collection of keys
+	AssemblyId *HashValue   `json:"assembly_id"`
+	N          uint16       `json:"n"`
+	T          uint16       `json:"t"`
+	Accounts   []*HashValue `json:"accounts"`
+	// -- end config id 0
+	NodeAddresses []*PortAddr `json:"port_addr"`
+	// -- end of config id 1
+	accounts map[HashValue]bool
 }
 
 type PortAddr struct {

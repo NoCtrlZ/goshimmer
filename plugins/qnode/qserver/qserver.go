@@ -30,7 +30,7 @@ type QServer struct {
 }
 
 type serverEvents struct {
-	NodeEvent *events.Event
+	TransactionReceived *events.Event
 }
 
 const modulename = "Qserver"
@@ -59,11 +59,11 @@ func StartServer() {
 		udpServer:   createUDPServer(),
 		operators:   make(map[HashValue]*operator.AssemblyOperator),
 		Events: serverEvents{
-			NodeEvent: events.NewEvent(nodeEventCaller),
+			TransactionReceived: events.NewEvent(transactionCaller),
 		},
 	}
 	// ServerInstance events
-	ServerInstance.Events.NodeEvent.Attach(events.NewClosure(nodeEventHandler))
+	ServerInstance.Events.TransactionReceived.Attach(events.NewClosure(transactionEventHandler))
 
 	// setup connection with Value Tangle layer
 	value.SetValuetxDB(ServerInstance.txdb)
@@ -88,13 +88,13 @@ func StartServer() {
 	registry.LogLoadedConfigs()
 }
 
-func nodeEventCaller(handler interface{}, params ...interface{}) {
+func transactionCaller(handler interface{}, params ...interface{}) {
 	handler.(func(_ value.Transaction))(params[0].(value.Transaction))
 }
 
 // receiving tx from the Value Tangle ontology/layer
 
-func nodeEventHandler(vtx value.Transaction) {
+func transactionEventHandler(vtx value.Transaction) {
 	tx, err := sc.ParseTransaction(vtx)
 	if err != nil {
 		log.Errorf("%v", err)
