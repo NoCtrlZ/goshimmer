@@ -206,17 +206,13 @@ func postToValueTangle(q *QServer, tx value.Transaction) {
 		Port: q.mockPort,
 		Zone: "",
 	}
-	data := mustEncodeTx(tx)
-	if err := q.SendUDPData(data, NilHash, MockTangleIdx, 0, &a); err != nil {
-		log.Errorf("%v", err)
-	}
-}
-
-func mustEncodeTx(tx value.Transaction) []byte {
 	var buf bytes.Buffer
 	err := tx.Encode().Write(&buf)
 	if err != nil {
-		panic(err)
+		log.Errorf("%v", err)
+		return
 	}
-	return buf.Bytes()
+	if err = q.SendUDPData(buf.Bytes(), NilHash, MockTangleIdx, 0, &a); err != nil {
+		log.Errorf("%v", err)
+	}
 }
