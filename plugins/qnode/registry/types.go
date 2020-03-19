@@ -1,6 +1,9 @@
 package registry
 
-import . "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+import (
+	"fmt"
+	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+)
 
 // general data about assembly
 // each node in the assembly configurations must have identical assembly data
@@ -44,9 +47,13 @@ type PortAddr struct {
 	Addr string `json:"addr"`
 }
 
-func (oa PortAddr) AdjustedIP() (string, int) {
+func (oa *PortAddr) AdjustedIP() (string, int) {
 	if oa.Addr == "localhost" {
 		return "127.0.0.1", oa.Port
 	}
 	return oa.Addr, oa.Port
+}
+
+func (oa *PortAddr) String() string {
+	return fmt.Sprintf("%s:%d", oa.Addr, oa.Port)
 }

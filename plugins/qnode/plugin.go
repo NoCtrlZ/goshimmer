@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
+	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
@@ -16,17 +17,20 @@ import (
 	"github.com/iotaledger/hive.go/node"
 )
 
-func init() {
-	modelimpl.Init()
-	signedblock.Init()
-}
-
 const name = "Qnode"
 
 var PLUGIN = node.NewPlugin(name, node.Enabled, config)
 
+func initModules() {
+	modelimpl.Init()
+	signedblock.Init()
+	messaging.Init()
+}
+
 func config(_ *node.Plugin) {
 	initLoggers()
+	initModules()
+
 	qserver.StartServer()
 	api.InitEndpoints()
 	logParams()

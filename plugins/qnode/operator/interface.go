@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
+	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/pkg/errors"

@@ -182,21 +182,6 @@ func (q *QServer) IAmInConfig(configData *registry.ConfigData) bool {
 	return false
 }
 
-// Comm interface
-
-func (q *QServer) GetOwnAddressAndPort() (string, int) {
-	return "127.0.0.1", q.udpPort
-}
-
-func (q *QServer) SendUDPData(data []byte, aid *HashValue, senderIndex uint16, msgType byte, addr *net.UDPAddr) error {
-	wrapped := WrapUDPPacket(aid, senderIndex, msgType, data)
-	if len(wrapped) > parameters.UDP_BUFFER_SIZE {
-		return fmt.Errorf("len(wrapped) > parameters.UDP_BUFFER_SIZE. Message wasnt't send")
-	}
-	_, err := q.udpServer.GetSocket().WriteTo(wrapped, addr)
-	return err
-}
-
 func postToValueTangle(q *QServer, tx value.Transaction) {
 	if !q.mockTangle {
 		panic("postToValueTangle: not implemented")

@@ -3,7 +3,7 @@ package operator
 import (
 	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/messaging"
+	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"

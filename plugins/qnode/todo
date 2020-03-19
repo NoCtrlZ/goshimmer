@@ -1,0 +1,29 @@
+
+- communication layer
+    - to TCP
+    - exchange with arbitrary size transactions
+    - PM buffcon
+    - abstract communication within committee
+- consensus
+    - Hashgraph type of consensus for selecting the request and the leader
+    - pull_timestamp first, then push signed result hash
+- data structures
+    - optimize key/value data structure (vs json marshaling a map)
+    - optimize state data structures by tracking incremental state updates
+    - saving or caching state chain in own db partition
+    - propose gossip optimizations
+- DKG
+    - owners knowledge of private keys
+    - admin front end
+    - node side access control from the owner's side
+    - multisig owners
+- qnode
+    - define behavior on configuration change
+- VM
+    - runtime API
+    - Wasm integration
+    - Rust API and integrations with Wasm environment
+- PoC
+    - FairRoulette
+    - price Oracle a la Chainlink
+

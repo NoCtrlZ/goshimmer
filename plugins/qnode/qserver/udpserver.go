@@ -68,7 +68,7 @@ func receiveUDPDataErr(updAddr *net.UDPAddr, data []byte) error {
 		return errors.New("no such assembly")
 	}
 
-	// TODO check here it is expected sender id and te pass only sender index
+	// TODO check here it is expected sender id and then pass only sender index
 	return op.ReceiveMsgData(operator.SenderId{
 		IpAddr: updAddr.IP.String(),
 		Port:   updAddr.Port,
