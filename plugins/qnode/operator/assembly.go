@@ -129,15 +129,3 @@ func makePeers(addrs []*registry.PortAddr, index uint16, ownAddr string, ownPort
 	}
 	return ret, nil
 }
-
-func (op *AssemblyOperator) assemblyQuorum() uint16 {
-	return op.cfgData.T
-}
-
-func (op *AssemblyOperator) assemblySize() uint16 {
-	return op.cfgData.N
-}
-
-func (op *AssemblyOperator) peerIndex() uint16 {
-	return op.cfgData.Index
-}

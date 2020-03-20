@@ -54,7 +54,7 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) {
 		return
 	}
 	locLog.Debugw("POST result to the ValueTangle",
-		"leader", op.peerIndex(),
+		"leader", op.PeerIndex(),
 		"req", res.res.reqRef.Id().Short(),
 		"resTx id", res.res.resultTx.Id().Short())
 
@@ -78,7 +78,7 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 			numNotNil++
 		}
 	}
-	if numNotNil+1 < op.assemblyQuorum() {
+	if numNotNil+1 < op.Quorum() {
 		// must be checked before
 		log.Panic("aggregateResult: inconsistency: not enough shares to finalize result")
 	}
@@ -88,7 +88,7 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 	}
 
 	for i, sigBlock := range ownSignedBlocks {
-		receivedSigBlocks := make([]generic.SignedBlock, 0, op.assemblySize())
+		receivedSigBlocks := make([]generic.SignedBlock, 0, op.CommitteeSize())
 		for _, rh := range rhlst {
 			if rh == nil {
 				continue

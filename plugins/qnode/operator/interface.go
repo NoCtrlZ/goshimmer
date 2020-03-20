@@ -1,9 +1,11 @@
 package operator
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
+	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -14,27 +16,46 @@ type SenderId struct {
 	Index  uint16
 }
 
+func (op *AssemblyOperator) SContractID() *hashing.HashValue {
+	return op.assemblyId
+}
+
+func (op *AssemblyOperator) Quorum() uint16 {
+	return op.cfgData.T
+}
+
+func (op *AssemblyOperator) CommitteeSize() uint16 {
+	return op.cfgData.N
+}
+
+func (op *AssemblyOperator) PeerIndex() uint16 {
+	return op.cfgData.Index
+}
+
+func (op *AssemblyOperator) NodeAddresses() []*registry.PortAddr {
+	return op.cfgData.NodeAddresses
+}
+
 func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {
 	return newFromState(tx, comm)
 }
 
-func (op *AssemblyOperator) ReceiveMsgData(sender SenderId, msgType byte, msgData []byte) error {
-	if !op.validSender(sender) {
-		return errors.New("invalid sender")
-	}
+func (op *AssemblyOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {
 	switch msgType {
 	case MSG_PUSH_MSG:
-		msg, err := decodePushResultMsg(sender.Index, msgData)
+		msg, err := decodePushResultMsg(msgData)
 		if err != nil {
 			return err
 		}
+		msg.SenderIndex = senderIndex
 		op.postEventToQueue(msg)
 
 	case MSG_PULL_MSG:
-		msg, err := decodePullResultMsg(sender.Index, msgData)
+		msg, err := decodePullResultMsg(msgData)
 		if err != nil {
 			return err
 		}
+		msg.SenderIndex = senderIndex
 		op.postEventToQueue(msg)
 
 	default:

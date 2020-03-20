@@ -39,7 +39,7 @@ func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
 	_ = generic.WriteSignedBlocks(buf, msg.SigBlocks)
 }
 
-func decodePushResultMsg(senderIndex uint16, data []byte) (*pushResultMsg, error) {
+func decodePushResultMsg(data []byte) (*pushResultMsg, error) {
 	rdr := bytes.NewReader(data)
 	var reqId HashValue
 	_, err := rdr.Read(reqId.Bytes())
@@ -61,7 +61,6 @@ func decodePushResultMsg(senderIndex uint16, data []byte) (*pushResultMsg, error
 		return nil, err
 	}
 	return &pushResultMsg{
-		SenderIndex:    senderIndex,
 		MasterDataHash: &masterDataHash,
 		RequestId:      &reqId,
 		StateIndex:     stateIndex,
@@ -77,7 +76,7 @@ func encodePullResultMsg(msg *pullResultMsg, w io.Writer) {
 
 var unexp2 = errors.New("decodePullResultMsg: unexpected end of buffer")
 
-func decodePullResultMsg(senderIndex uint16, data []byte) (*pullResultMsg, error) {
+func decodePullResultMsg(data []byte) (*pullResultMsg, error) {
 	rdr := bytes.NewReader(data)
 	var reqId HashValue
 	_, err := rdr.Read(reqId.Bytes())
@@ -98,10 +97,9 @@ func decodePullResultMsg(senderIndex uint16, data []byte) (*pullResultMsg, error
 	}
 
 	ret := &pullResultMsg{
-		SenderIndex: senderIndex,
-		RequestId:   &reqId,
-		StateIndex:  stateIndex,
-		HaveVotes:   haveVotes,
+		RequestId:  &reqId,
+		StateIndex: stateIndex,
+		HaveVotes:  haveVotes,
 	}
 	return ret, nil
 }
@@ -127,23 +125,16 @@ func (op *AssemblyOperator) sendMsgToPeer(msg interface{}, index int16) error {
 		return errors.New("sendMsgToPeer: wrong peer index")
 	}
 	encodedMsg, typ := op.encodeMsg(msg)
-	return op.comm.SendUDPData(encodedMsg, op.assemblyId, op.peerIndex(), typ, op.peers[index])
+	return op.comm.SendUDPData(encodedMsg, op.assemblyId, op.PeerIndex(), typ, op.peers[index])
 }
 
 func (op *AssemblyOperator) sendMsgToPeers(msg interface{}) {
 	encodedMsg, typ := op.encodeMsg(msg)
 	for _, a := range op.peers {
 		if a != nil {
-			if err := op.comm.SendUDPData(encodedMsg, op.assemblyId, op.peerIndex(), typ, a); err != nil {
+			if err := op.comm.SendUDPData(encodedMsg, op.assemblyId, op.PeerIndex(), typ, a); err != nil {
 				log.Errorw("SendUDPData", "addr", a.IP.String(), "port", a.Port, "err", err)
 			}
 		}
 	}
-}
-
-func (op *AssemblyOperator) validSender(sender SenderId) bool {
-	if sender.Index < 0 || sender.Index >= op.assemblySize() || sender.Index == op.peerIndex() {
-		return false
-	}
-	return op.peers[sender.Index].IP.String() == sender.IpAddr && op.peers[sender.Index].Port == sender.Port
 }

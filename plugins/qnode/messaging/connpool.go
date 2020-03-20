@@ -2,69 +2,95 @@ package messaging
 
 import (
 	"fmt"
+	"github.com/iotaledger/goshimmer/packages/parameter"
+	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/hive.go/backoff"
 	"github.com/iotaledger/hive.go/daemon"
-	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
 	"net"
 	"sync"
 	"time"
 )
 
-type qnodeConnection struct {
-	sync.Mutex
-	*buffconn.BufferedConnection
-	portAddr      *registry.PortAddr
-	runOnce       *sync.Once
-	isRunning     bool
-	lastHeartbeat time.Time
+type SCOperator interface {
+	SContractID() *HashValue
+	Quorum() uint16
+	CommitteeSize() uint16
+	PeerIndex() uint16
+	NodeAddresses() []*registry.PortAddr
+	ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error
+	ReceiveStateUpdate(msg *sc.StateUpdateMsg)
+	ReceiveRequest(msg *sc.RequestRef)
+	IsDismissed() bool
 }
 
 var (
-	connections      map[registry.PortAddr]*qnodeConnection
-	connectionsMutex *sync.Mutex
+	connections      map[string]*qnodeConnection
+	committees       map[HashValue]*CommitteeConn
+	connectionsMutex *sync.RWMutex
 )
 
 func Init() {
 	initLogger()
-	connections = make(map[registry.PortAddr]*qnodeConnection)
-	connectionsMutex = &sync.Mutex{}
+	connections = make(map[string]*qnodeConnection)
+	committees = make(map[HashValue]*CommitteeConn)
+	connectionsMutex = &sync.RWMutex{}
 
-	if err := daemon.BackgroundWorker("Qnode connectLoop", func(shutdownSignal <-chan struct{}) {
-		log.Debugf("started connectLoop...")
+	if err := daemon.BackgroundWorker("Qnode connectOutboundLoop", func(shutdownSignal <-chan struct{}) {
+		log.Debugf("started connectOutboundLoop...")
 
-		go connectLoop()
+		go connectOutboundLoop()
 		<-shutdownSignal
 
-		log.Debugf("stopped connectLoop...")
+		log.Debugf("stopped connectOutboundLoop...")
 	}); err != nil {
 		panic(err)
 	}
 }
 
-func addConnection(portAddr *registry.PortAddr) bool {
-	connectionsMutex.Lock()
-	defer connectionsMutex.Unlock()
+func ownPortAddr() *registry.PortAddr {
+	return &registry.PortAddr{
+		Port: parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
+		Addr: "127.0.0.1",
+	}
+}
 
-	if _, ok := connections[*portAddr]; ok {
+func isInbound(pa *registry.PortAddr) bool {
+	own := ownPortAddr()
+	switch {
+	case pa.Addr < own.Addr:
+		return true
+	case pa.Addr > own.Addr:
 		return false
 	}
-	connections[*portAddr] = &qnodeConnection{
-		Mutex:         sync.Mutex{},
+	if pa.Port == own.Port {
+		panic("can't be same PortAddr")
+	}
+	return pa.Port < own.Port
+}
+
+func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
+	addr := portAddr.String()
+	if qconn, ok := connections[addr]; ok {
+		return qconn
+	}
+	connections[addr] = &qnodeConnection{
+		Mutex:         &sync.Mutex{},
 		portAddr:      portAddr,
 		lastHeartbeat: time.Now(),
 	}
-	return true
+	return connections[addr]
 }
 
-func connectLoop() {
+func connectOutboundLoop() {
 	for {
 		time.Sleep(100 * time.Millisecond)
 		connectionsMutex.Lock()
 		for _, c := range connections {
 			c.runOnce.Do(func() {
-				go c.run()
+				go c.handleOutbound()
 			})
 		}
 		connectionsMutex.Unlock()
@@ -80,47 +106,37 @@ func (c *qnodeConnection) runAfter(d time.Duration) {
 	}()
 }
 
-const restartAfter = 10 * time.Second
-const dialTimeout = 1 * time.Second
-
-// retry net.Dial once, on fail after 0.5s
-var dialRetryPolicy = backoff.ConstantBackOff(500 * time.Millisecond).With(backoff.MaxRetries(1))
-
-func (c *qnodeConnection) run() {
-	defer c.runAfter(restartAfter)
-
-	var conn net.Conn
-	addr := fmt.Sprintf("%s:%d", c.portAddr.Addr, c.portAddr.Port)
-	if err := backoff.Retry(dialRetryPolicy, func() error {
-		var err error
-		conn, err = net.DialTimeout("tcp", addr, dialTimeout)
-		if err != nil {
-			return fmt.Errorf("dial %s failed: %w", addr, err)
-		}
-		return nil
-	}); err != nil {
-		log.Error(err)
-		return
-	}
-	c.Lock()
-	c.BufferedConnection = buffconn.NewBufferedConnection(conn)
-	c.BufferedConnection.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
-		c.receiveData(data)
-	}))
-	c.isRunning = true
-	c.Unlock()
-
-	err := c.BufferedConnection.Read()
-
+func connectInboundLoop() {
+	port := parameter.NodeConfig.GetInt(parameters.QNODE_PORT)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Error(err)
+		log.Panicf("tcp listen on port %d failed: %v", port, err)
 	}
-
-	c.Lock()
-	c.BufferedConnection = nil
-	c.Unlock()
-}
-
-func (c *qnodeConnection) receiveData(data []byte) {
-	// parse data: assembly id, peer index
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Errorf("failed accepting a connection request: %v", err)
+			continue
+		}
+		addr := conn.RemoteAddr().String()
+		connectionsMutex.RLock()
+		cconn, ok := connections[addr]
+		connectionsMutex.RUnlock()
+		if !ok {
+			// connection from yet unknown. Drop
+			err = conn.Close()
+			if err != nil {
+				log.Errorf("error while closing connection: %v", err)
+			} else {
+				log.Debugf("dropped incoming connection from unexpected source %s", addr)
+			}
+			continue
+		}
+		cconn.Lock()
+		if cconn.BufferedConnection != nil {
+			log.Panicf("unexpected not nil connection")
+		}
+		cconn.BufferedConnection = buffconn.NewBufferedConnection(conn)
+		cconn.Unlock()
+	}
 }

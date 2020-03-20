@@ -66,7 +66,7 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) (*
 	}
 	state, _ := resRec.res.state.State()
 	return &pushResultMsg{
-		SenderIndex:    op.peerIndex(),
+		SenderIndex:    op.PeerIndex(),
 		RequestId:      resRec.res.reqRef.Id(),
 		StateIndex:     state.StateIndex(),
 		MasterDataHash: resRec.masterDataHash,
@@ -92,12 +92,12 @@ func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerInde
 
 	data, _ := op.encodeMsg(pushMsg)
 
-	if peerIndex == op.peerIndex() {
+	if peerIndex == op.PeerIndex() {
 		locLog.Error("error: attempt to send result hash to itself. Result hash wasn't sent")
 		return
 	}
 	addr := op.peers[peerIndex]
-	err = op.comm.SendUDPData(data, op.assemblyId, op.peerIndex(), MSG_PUSH_MSG, addr)
+	err = op.comm.SendUDPData(data, op.assemblyId, op.PeerIndex(), MSG_PUSH_MSG, addr)
 	if err != nil {
 		locLog.Errorf("SendUDPData returned error: `%v`", err)
 	}

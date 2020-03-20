@@ -50,13 +50,13 @@ func getPermutation(n uint16, reqHash *HashValue) []uint16 {
 }
 
 func (op *AssemblyOperator) iAmCurrentLeader(req *request) bool {
-	return op.peerIndex() == op.currentLeaderIndex(req)
+	return op.PeerIndex() == op.currentLeaderIndex(req)
 }
 
 func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
 	//return 3
 	if req.leaderPeerIndexList == nil {
-		req.leaderPeerIndexList = getPermutation(op.assemblySize(), req.reqId)
+		req.leaderPeerIndexList = getPermutation(op.CommitteeSize(), req.reqId)
 	}
 	return req.leaderPeerIndexList[req.currLeaderSeqIndex]
 }
@@ -67,7 +67,7 @@ func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
 	}
 	if time.Since(req.whenLastPushed) > parameters.LEADER_ROTATION_PERIOD {
 		clead := req.currLeaderSeqIndex
-		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.assemblySize())
+		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.CommitteeSize())
 		req.hasBeenPushedToCurrentLeader = false
 		req.log.Infof("LEADER ROTATED %d --> %d", clead, req.currLeaderSeqIndex)
 	}

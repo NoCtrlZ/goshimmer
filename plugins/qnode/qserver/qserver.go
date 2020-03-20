@@ -51,7 +51,7 @@ func StartServer() {
 	}
 
 	ServerInstance = &QServer{
-		udpPort:     parameter.NodeConfig.GetInt(parameters.UDP_PORT),
+		udpPort:     parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
 		mockTangle:  true,
 		mockAddress: parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
 		mockPort:    parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),

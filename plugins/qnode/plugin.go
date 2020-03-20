@@ -40,7 +40,7 @@ func logParams() {
 	log := logger.NewLogger(name)
 	log.Infow("Qnode plugin parameters:",
 		"UDP port",
-		parameter.NodeConfig.GetInt(parameters.UDP_PORT),
+		parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
 		"node emulator IP addr",
 		parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
 		"node emulator IP port",

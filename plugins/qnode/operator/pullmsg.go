@@ -9,7 +9,7 @@ func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes ui
 	reqId := res.res.reqRef.Id()
 	state, _ := res.res.state.State()
 	msg := &pullResultMsg{
-		SenderIndex: op.peerIndex(),
+		SenderIndex: op.PeerIndex(),
 		RequestId:   reqId,
 		StateIndex:  state.StateIndex(),
 		HaveVotes:   haveVotes,
@@ -20,7 +20,7 @@ func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes ui
 	}
 	lst := reqRec.pushMessages[*maxVotedForResultHash]
 	for idx, rh := range lst {
-		if rh == nil && uint16(idx) != op.peerIndex() {
+		if rh == nil && uint16(idx) != op.PeerIndex() {
 			err := op.sendMsgToPeer(msg, int16(idx))
 			if err != nil {
 				log.Errorf("SendUDPData returned error: `%v`", err)

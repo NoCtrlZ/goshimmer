@@ -21,7 +21,7 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) {
 
 	if _, ok := req.pushMessages[*resultHash]; !ok {
 		req.log.Debugf("new result hash %s from %d", resultHash.Short(), msg.SenderIndex)
-		req.pushMessages[*resultHash] = make([]*pushResultMsg, op.assemblySize())
+		req.pushMessages[*resultHash] = make([]*pushResultMsg, op.CommitteeSize())
 	}
 	if req.pushMessages[*resultHash][msg.SenderIndex] != nil {
 		// already received result hash from the same peer and the same result hash
