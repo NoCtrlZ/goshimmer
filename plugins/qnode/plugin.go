@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
+	"github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
@@ -28,6 +29,7 @@ func initModules() {
 	modelimpl.Init()
 	signedblock.Init()
 	messaging.Init()
+	events.Init(log)
 	mockclientlib.InitMockedValueTangle(log)
 }
 
@@ -49,12 +51,14 @@ func config(_ *node.Plugin) {
 
 func logParams() {
 	log.Infow("Qnode plugin parameters:",
-		"UDP port",
+		"Messaging port",
 		parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
+		"Tx pub port",
+		parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PUB_TX_PORT),
 		"node emulator IP addr",
-		parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_IP_ADDR),
+		parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_SERVER_IP_ADDR),
 		"node emulator IP port",
-		parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PORT),
+		parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_SERVER_PORT),
 		"web api ",
 		parameter.NodeConfig.GetString(webapi.BIND_ADDRESS),
 	)

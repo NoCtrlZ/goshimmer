@@ -70,6 +70,7 @@
   },
   "qnode": {
     "port": 4000,
+    "portPubTx": 3000,
     "mockTangleIpAddr": "127.0.0.1",
     "mockTanglePort": 1000
   }

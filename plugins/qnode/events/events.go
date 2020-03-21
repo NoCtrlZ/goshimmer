@@ -1,4 +1,4 @@
-package qnode
+package events
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
@@ -7,17 +7,22 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/events"
+	"github.com/iotaledger/hive.go/logger"
 )
 
 type qnodeEvents struct {
 	TransactionReceived *events.Event
 }
 
+const moduleName = "events"
+
 var (
+	log    *logger.Logger
 	Events qnodeEvents
 )
 
-func init() {
+func Init(log1 *logger.Logger) {
+	log = log1.Named(moduleName)
 	Events.TransactionReceived = events.NewEvent(transactionCaller)
 	Events.TransactionReceived.Attach(events.NewClosure(transactionEventHandler))
 }

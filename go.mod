@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/valyala/fasttemplate v1.1.0 // indirect
 	go.dedis.ch/kyber/v3 v3.0.11
-	go.nanomsg.org/mangos/v3 v3.0.0 // indirect
+	go.nanomsg.org/mangos/v3 v3.0.0
 	go.uber.org/atomic v1.5.1
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d
