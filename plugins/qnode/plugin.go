@@ -9,9 +9,9 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
-	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/signedblock"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools/mockclientlib"
 	"github.com/iotaledger/goshimmer/plugins/webapi"
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/node"
@@ -19,25 +19,35 @@ import (
 
 const name = "Qnode"
 
-var PLUGIN = node.NewPlugin(name, node.Enabled, config)
+var (
+	PLUGIN = node.NewPlugin(name, node.Enabled, config)
+	log    *logger.Logger
+)
 
 func initModules() {
 	modelimpl.Init()
 	signedblock.Init()
 	messaging.Init()
+	mockclientlib.InitMockedValueTangle(log)
 }
 
 func config(_ *node.Plugin) {
+	log = logger.NewLogger(name)
 	initLoggers()
 	initModules()
 
-	qserver.StartServer()
+	err := registry.RefreshAssemblyData()
+	if err != nil {
+		log.Panicf("StartServer::LoadAllAssemblyData %v", err)
+		return
+	}
+	registry.LogLoadedConfigs()
+
 	api.InitEndpoints()
 	logParams()
 }
 
 func logParams() {
-	log := logger.NewLogger(name)
 	log.Infow("Qnode plugin parameters:",
 		"UDP port",
 		parameter.NodeConfig.GetInt(parameters.QNODE_PORT),

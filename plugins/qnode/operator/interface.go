@@ -2,7 +2,6 @@ package operator
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
@@ -36,8 +35,8 @@ func (op *AssemblyOperator) NodeAddresses() []*registry.PortAddr {
 	return op.cfgData.NodeAddresses
 }
 
-func NewFromState(tx sc.Transaction, comm messaging.Messaging) (*AssemblyOperator, error) {
-	return newFromState(tx, comm)
+func NewFromState(tx sc.Transaction) (*AssemblyOperator, error) {
+	return newFromState(tx)
 }
 
 func (op *AssemblyOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {

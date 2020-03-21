@@ -9,27 +9,31 @@ import (
 	"github.com/iotaledger/hive.go/backoff"
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
+	"github.com/iotaledger/hive.go/network"
 	"net"
 	"sync"
 	"time"
 )
 
 type qnodeConnection struct {
-	*sync.Mutex
-	*buffconn.BufferedConnection
+	*sync.RWMutex
+	bufconn       *buffconn.BufferedConnection
 	portAddr      *registry.PortAddr
 	runOnce       *sync.Once
-	isRunning     bool
 	lastHeartbeat time.Time
 }
 
-const restartAfter = 10 * time.Second
-const dialTimeout = 1 * time.Second
+const (
+	restartAfter = 10 * time.Second
+	dialTimeout  = 1 * time.Second
+	dialRetries  = 10
+	backoffDelay = 500 * time.Millisecond
+)
 
 // retry net.Dial once, on fail after 0.5s
-var dialRetryPolicy = backoff.ConstantBackOff(500 * time.Millisecond).With(backoff.MaxRetries(1))
+var dialRetryPolicy = backoff.ConstantBackOff(backoffDelay).With(backoff.MaxRetries(dialRetries))
 
-func (c *qnodeConnection) handleOutbound() {
+func (c *qnodeConnection) runOutbound() {
 	if isInbound(c.portAddr) {
 		return
 	}
@@ -49,22 +53,45 @@ func (c *qnodeConnection) handleOutbound() {
 		return
 	}
 	c.Lock()
-	c.BufferedConnection = buffconn.NewBufferedConnection(conn)
-	c.BufferedConnection.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
+	manconn := network.NewManagedConnection(conn)
+	c.bufconn = buffconn.NewBufferedConnection(manconn)
+	c.bufconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
 		c.receiveData(data)
 	}))
-	c.isRunning = true
 	c.Unlock()
+	c.read()
+}
 
-	err := c.BufferedConnection.Read()
+func (c *qnodeConnection) close() {
+	c.RLock()
+	defer c.RUnlock()
+	var err error
+	if c.bufconn != nil {
+		err = c.bufconn.Close()
+		c.bufconn = nil
+	}
+	if err != nil {
+		log.Errorf("error while closing %s: %v", c.portAddr.String(), err)
+	}
+}
 
+func (c *qnodeConnection) runInbound() {
+	if !isInbound(c.portAddr) {
+		return
+	}
+	c.read()
+	defer c.runAfter(restartAfter)
+}
+
+func (c *qnodeConnection) read() {
+	err := c.bufconn.Read()
+
+	addr := fmt.Sprintf("%s:%d", c.portAddr.Addr, c.portAddr.Port)
+	log.Debugf("stopped reading %s", addr)
 	if err != nil {
 		log.Error(err)
 	}
-
-	c.Lock()
-	c.BufferedConnection = nil
-	c.Unlock()
+	c.close()
 }
 
 func (c *qnodeConnection) receiveData(data []byte) {
@@ -73,9 +100,9 @@ func (c *qnodeConnection) receiveData(data []byte) {
 		log.Errorw("msg error", "from", c.portAddr.String(), "err", err)
 		return
 	}
-	oper, ok := getOperator(scid)
+	oper, ok := GetOperator(scid)
 	if !ok {
-		log.Errorw("message for unexpected sc",
+		log.Errorw("message for unexpected scontract",
 			"from", c.portAddr.String(),
 			"scid", scid.Short(),
 			"senderIndex", senderIndex,
@@ -93,8 +120,17 @@ func (c *qnodeConnection) receiveData(data []byte) {
 }
 
 func (c *qnodeConnection) sendMsgData(data []byte) error {
-	// TODO sending
-	return nil
+	c.RLock()
+	defer c.RUnlock()
+
+	if c.bufconn == nil {
+		return fmt.Errorf("error while sending data: connection with %s not established", c.portAddr.String())
+	}
+	num, err := c.bufconn.Write(data)
+	if num != len(data) {
+		return fmt.Errorf("not all bytes written. err = %v", err)
+	}
+	return err
 }
 
 // returns sc id, sender index, msg type, msg data, error

@@ -9,6 +9,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/daemon"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
+	"github.com/iotaledger/hive.go/network"
 	"net"
 	"sync"
 	"time"
@@ -42,33 +43,45 @@ func Init() {
 		log.Debugf("started connectOutboundLoop...")
 
 		go connectOutboundLoop()
+		go connectInboundLoop()
+
 		<-shutdownSignal
 
-		log.Debugf("stopped connectOutboundLoop...")
+		closeAll()
+
+		log.Debugf("stopped qnode communications...")
 	}); err != nil {
 		panic(err)
 	}
 }
 
-func ownPortAddr() *registry.PortAddr {
+func OwnPortAddr() *registry.PortAddr {
 	return &registry.PortAddr{
 		Port: parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
 		Addr: "127.0.0.1",
 	}
 }
 
-func isInbound(pa *registry.PortAddr) bool {
-	own := ownPortAddr()
-	switch {
-	case pa.Addr < own.Addr:
-		return true
-	case pa.Addr > own.Addr:
-		return false
+func closeAll() {
+	connectionsMutex.Lock()
+	defer connectionsMutex.Unlock()
+
+	for _, cconn := range connections {
+		cconn.close()
 	}
-	if pa.Port == own.Port {
+}
+
+func isInbound(pa *registry.PortAddr) bool {
+	return isInboundAddr(pa.String())
+}
+
+func isInboundAddr(addr string) bool {
+	own := OwnPortAddr().String()
+	if own == addr {
+		// shouldn't come to this point due to checks before
 		panic("can't be same PortAddr")
 	}
-	return pa.Port < own.Port
+	return addr < own
 }
 
 func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
@@ -77,24 +90,11 @@ func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
 		return qconn
 	}
 	connections[addr] = &qnodeConnection{
-		Mutex:         &sync.Mutex{},
+		RWMutex:       &sync.RWMutex{},
 		portAddr:      portAddr,
 		lastHeartbeat: time.Now(),
 	}
 	return connections[addr]
-}
-
-func connectOutboundLoop() {
-	for {
-		time.Sleep(100 * time.Millisecond)
-		connectionsMutex.Lock()
-		for _, c := range connections {
-			c.runOnce.Do(func() {
-				go c.handleOutbound()
-			})
-		}
-		connectionsMutex.Unlock()
-	}
 }
 
 func (c *qnodeConnection) runAfter(d time.Duration) {
@@ -106,11 +106,31 @@ func (c *qnodeConnection) runAfter(d time.Duration) {
 	}()
 }
 
+func connectOutboundLoop() {
+	for {
+		time.Sleep(100 * time.Millisecond)
+		connectionsMutex.Lock()
+		for _, c := range connections {
+			if !isInbound(c.portAddr) {
+				c.runOnce.Do(func() {
+					go c.runOutbound()
+				})
+			}
+		}
+		connectionsMutex.Unlock()
+	}
+}
+
 func connectInboundLoop() {
 	port := parameter.NodeConfig.GetInt(parameters.QNODE_PORT)
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Panicf("tcp listen on port %d failed: %v", port, err)
+		log.Errorf("tcp listen on port %d failed: %v. Restarting connectInboundLoop after 1 sec", port, err)
+		go func() {
+			time.Sleep(1 * time.Second)
+			connectInboundLoop()
+		}()
+		return
 	}
 	for {
 		conn, err := listener.Accept()
@@ -118,25 +138,37 @@ func connectInboundLoop() {
 			log.Errorf("failed accepting a connection request: %v", err)
 			continue
 		}
+		wrongIncoming := false
 		addr := conn.RemoteAddr().String()
-		connectionsMutex.RLock()
-		cconn, ok := connections[addr]
-		connectionsMutex.RUnlock()
-		if !ok {
-			// connection from yet unknown. Drop
+		if isInboundAddr(addr) {
+			wrongIncoming = true
+		}
+		if !wrongIncoming {
+			connectionsMutex.RLock()
+			_, ok := connections[addr]
+			connectionsMutex.RUnlock()
+			if !ok {
+				wrongIncoming = true
+			}
+		}
+		if wrongIncoming {
+			// connection from (yet) unknown or wrong peer. Drop
 			err = conn.Close()
 			if err != nil {
-				log.Errorf("error while closing connection: %v", err)
+				log.Errorf("error while closing during dropping the connection: %v", err)
 			} else {
 				log.Debugf("dropped incoming connection from unexpected source %s", addr)
 			}
 			continue
 		}
+		cconn := connections[addr]
 		cconn.Lock()
-		if cconn.BufferedConnection != nil {
+		if cconn.bufconn != nil {
 			log.Panicf("unexpected not nil connection")
 		}
-		cconn.BufferedConnection = buffconn.NewBufferedConnection(conn)
+		manconn := network.NewManagedConnection(conn)
+		cconn.bufconn = buffconn.NewBufferedConnection(manconn)
 		cconn.Unlock()
+		go cconn.read()
 	}
 }

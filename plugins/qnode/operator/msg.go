@@ -103,38 +103,3 @@ func decodePullResultMsg(data []byte) (*pullResultMsg, error) {
 	}
 	return ret, nil
 }
-
-func (op *AssemblyOperator) encodeMsg(msg interface{}) ([]byte, byte) {
-	var encodedMsg bytes.Buffer
-	var typ byte
-	switch msgt := msg.(type) {
-	case *pushResultMsg:
-		encodePushResultMsg(msgt, &encodedMsg)
-		typ = MSG_PUSH_MSG
-	case *pullResultMsg:
-		encodePullResultMsg(msgt, &encodedMsg)
-		typ = MSG_PULL_MSG
-	default:
-		panic("wrong message type")
-	}
-	return encodedMsg.Bytes(), typ
-}
-
-func (op *AssemblyOperator) sendMsgToPeer(msg interface{}, index int16) error {
-	if index < 0 || int(index) >= len(op.peers) {
-		return errors.New("sendMsgToPeer: wrong peer index")
-	}
-	encodedMsg, typ := op.encodeMsg(msg)
-	return op.comm.SendUDPData(encodedMsg, op.assemblyId, op.PeerIndex(), typ, op.peers[index])
-}
-
-func (op *AssemblyOperator) sendMsgToPeers(msg interface{}) {
-	encodedMsg, typ := op.encodeMsg(msg)
-	for _, a := range op.peers {
-		if a != nil {
-			if err := op.comm.SendUDPData(encodedMsg, op.assemblyId, op.PeerIndex(), typ, a); err != nil {
-				log.Errorw("SendUDPData", "addr", a.IP.String(), "port", a.Port, "err", err)
-			}
-		}
-	}
-}

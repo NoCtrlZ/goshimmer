@@ -67,6 +67,7 @@ func LoadConfig(aid, cid *HashValue) (*ConfigData, error) {
 	}
 	return ret, nil
 }
+
 func (cfg *ConfigData) AccountIsDefined(addr *HashValue) bool {
 	ok, _ := cfg.accounts[*addr]
 	return ok

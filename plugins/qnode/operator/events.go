@@ -62,8 +62,7 @@ func (op *AssemblyOperator) eventStateUpdate(tx sc.Transaction) {
 	if stateUpd.Error() == nil {
 		if !state.Config().Id().Equal(stateUpd.Config().Id()) {
 			// configuration changed
-			ownAddr, ownPort := op.comm.GetOwnAddressAndPort()
-			iAmParticipant, err := op.configure(stateUpd.Config().Id(), ownAddr, ownPort)
+			iAmParticipant, err := op.configure(stateUpd.Config().Id())
 			if err != nil || !iAmParticipant {
 				op.dismiss()
 				return

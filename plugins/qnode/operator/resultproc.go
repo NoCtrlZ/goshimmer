@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"time"
@@ -90,14 +91,9 @@ func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerInde
 	locLog.Debugf("sendPushResultToPeer %d for state idx %d, res hash %s",
 		peerIndex, res.res.state.MustState().StateIndex(), resultHash.Short())
 
-	data, _ := op.encodeMsg(pushMsg)
-
-	if peerIndex == op.PeerIndex() {
-		locLog.Error("error: attempt to send result hash to itself. Result hash wasn't sent")
-		return
-	}
-	addr := op.peers[peerIndex]
-	err = op.comm.SendUDPData(data, op.assemblyId, op.PeerIndex(), MSG_PUSH_MSG, addr)
+	var encodedMsg bytes.Buffer
+	encodePushResultMsg(pushMsg, &encodedMsg)
+	err = op.comm.SendMsg(peerIndex, MSG_PUSH_MSG, encodedMsg.Bytes())
 	if err != nil {
 		locLog.Errorf("SendUDPData returned error: `%v`", err)
 	}

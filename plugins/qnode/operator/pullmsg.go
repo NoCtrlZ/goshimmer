@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"bytes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"time"
 )
@@ -21,9 +22,11 @@ func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes ui
 	lst := reqRec.pushMessages[*maxVotedForResultHash]
 	for idx, rh := range lst {
 		if rh == nil && uint16(idx) != op.PeerIndex() {
-			err := op.sendMsgToPeer(msg, int16(idx))
+			var buf bytes.Buffer
+			encodePullResultMsg(msg, &buf)
+			err := op.comm.SendMsg(uint16(idx), MSG_PULL_MSG, buf.Bytes())
 			if err != nil {
-				log.Errorf("SendUDPData returned error: `%v`", err)
+				log.Error(err)
 			}
 		}
 	}

@@ -10,7 +10,7 @@ type CommitteeConn struct {
 	connections []*qnodeConnection
 }
 
-func getOperator(scid *hashing.HashValue) (SCOperator, bool) {
+func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
 	connectionsMutex.RLock()
 	defer connectionsMutex.RUnlock()
 
@@ -21,7 +21,7 @@ func getOperator(scid *hashing.HashValue) (SCOperator, bool) {
 	return cconn.operator, true
 }
 
-func GetCommitteeConn(op SCOperator) *CommitteeConn {
+func RegisterNewOperator(op SCOperator) *CommitteeConn {
 	connectionsMutex.Lock()
 	defer connectionsMutex.Unlock()
 
