@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"net/http"
 )
 
@@ -34,13 +33,6 @@ func postOriginIfNeeded() {
 	ownerTxPosted = true
 	fmt.Printf("origin posted for assembly %s\n", tx.MustState().AssemblyId().Short())
 
-	postMsg(&wrapped{
-		senderIndex: qserver.MockTangleIdx,
-		tx:          ownerTx,
-	})
-
-	postMsg(&wrapped{
-		senderIndex: qserver.MockTangleIdx,
-		tx:          tx,
-	})
+	postTx(ownerTx)
+	postTx(tx)
 }

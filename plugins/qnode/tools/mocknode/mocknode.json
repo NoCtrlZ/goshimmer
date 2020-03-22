@@ -1,8 +1,8 @@
 {
  "web_address": "127.0.0.1",
  "web_port": 2000,
- "udp_address": "127.0.0.1",
- "udp_port": 7000,
+ "mock_pub_address": "127.0.0.1",
+ "mock_pub_port": 7000,
  "description": "test assembly 3",
  "n": 4,
  "t": 3,
@@ -12,19 +12,19 @@
  ],
  "peers": [
   {
-   "port": 4000,
+   "port": 3000,
    "addr": "127.0.0.1"
   },
   {
-   "port": 4001,
+   "port": 3001,
    "addr": "127.0.0.1"
   },
   {
-   "port": 4002,
+   "port": 3002,
    "addr": "127.0.0.1"
   },
   {
-   "port": 4003,
+   "port": 3003,
    "addr": "127.0.0.1"
   }
  ],

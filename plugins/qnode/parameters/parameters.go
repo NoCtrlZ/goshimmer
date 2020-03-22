@@ -8,7 +8,7 @@ const (
 	QNODE_PORT                 = "qnode.port"
 	MOCK_TANGLE_SERVER_IP_ADDR = "qnode.mockTangleIpAddr"
 	MOCK_TANGLE_SERVER_PORT    = "qnode.mockTanglePort"
-	MOCK_TANGLE_PUB_TX_PORT    = "qnode.mockPubTx"
+	MOCK_TANGLE_PUB_TX_PORT    = "qnode.mockPubTxPort"
 )
 
 func init() {

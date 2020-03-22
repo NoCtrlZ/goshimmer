@@ -9,7 +9,12 @@ import (
 	"time"
 )
 
-func readSub(uri string, chOut chan []byte) error {
+type InMessage struct {
+	Data []byte
+	Uri  string
+}
+
+func readSub(uri string, chIn chan InMessage) error {
 	var sock mangos.Socket
 	var err error
 
@@ -30,13 +35,16 @@ func readSub(uri string, chOut chan []byte) error {
 		if err != nil {
 			return err
 		}
-		chOut <- msg
+		chIn <- InMessage{
+			Data: msg,
+			Uri:  uri,
+		}
 	}
 }
 
-func ReadSub(uri string, chOut chan []byte) {
+func ReadSub(uri string, chIn chan InMessage) {
 	for {
-		err := readSub(uri, chOut)
+		err := readSub(uri, chIn)
 		fmt.Printf("disconnected %s: %v\n", uri, err)
 		time.Sleep(1 * time.Second)
 		fmt.Printf("reconnecting %s\n", uri)

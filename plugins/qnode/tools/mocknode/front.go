@@ -7,7 +7,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
-	"github.com/iotaledger/goshimmer/plugins/qnode/qserver"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm/fairroulette"
 	"html/template"
 	"io"
@@ -66,18 +65,12 @@ func getAccount(seed string) *hashing.HashValue {
 	accounts = append(accounts, h)
 
 	if !ownerTxPosted {
-		postMsg(&wrapped{
-			senderIndex: qserver.MockTangleIdx,
-			tx:          ownerTx,
-		})
+		postTx(ownerTx)
 		ownerTxPosted = true
 	}
 	// sending to nodes to update their value tx db
 	// for testing only
-	postMsg(&wrapped{
-		senderIndex: qserver.MockTangleIdx,
-		tx:          depoTx,
-	})
+	postTx(depoTx)
 	return h
 }
 
@@ -181,10 +174,7 @@ func placeBetHandler(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, err.Error())
 		return
 	}
-	postMsg(&wrapped{
-		senderIndex: qserver.MockTangleIdx,
-		tx:          tx,
-	})
+	postTx(tx)
 	respondErr(w, "")
 }
 
