@@ -19,12 +19,12 @@ type qnodeConnection struct {
 	*sync.RWMutex
 	bufconn             *buffconn.BufferedConnection
 	handshakeOutboundOk bool
-	portAddr            *registry.PortAddr
+	peerPortAddr        *registry.PortAddr
 	startOnce           *sync.Once
 }
 
 const (
-	restartAfter = 10 * time.Second
+	restartAfter = 1 * time.Second
 	dialTimeout  = 1 * time.Second
 	dialRetries  = 10
 	backoffDelay = 500 * time.Millisecond
@@ -34,17 +34,33 @@ const (
 var dialRetryPolicy = backoff.ConstantBackOff(backoffDelay).With(backoff.MaxRetries(dialRetries))
 
 func (c *qnodeConnection) isInbound() bool {
-	return isInboundAddr(c.portAddr.String())
+	return isInboundAddr(c.peerPortAddr.String())
+}
+
+func (c *qnodeConnection) isConnected() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.bufconn != nil
+}
+
+func (c *qnodeConnection) close() {
+	c.Lock()
+	defer c.Unlock()
+	if c.bufconn != nil {
+		_ = c.bufconn.Close()
+	}
 }
 
 func (c *qnodeConnection) runOutbound() {
 	if c.isInbound() {
 		return
 	}
+	log.Debugf("runOutbound %s", c.peerPortAddr.String())
+
 	defer c.runAfter(restartAfter)
 
 	var conn net.Conn
-	addr := fmt.Sprintf("%s:%d", c.portAddr.Addr, c.portAddr.Port)
+	addr := fmt.Sprintf("%s:%d", c.peerPortAddr.Addr, c.peerPortAddr.Port)
 	if err := backoff.Retry(dialRetryPolicy, func() error {
 		var err error
 		conn, err = net.DialTimeout("tcp", addr, dialTimeout)
@@ -58,60 +74,51 @@ func (c *qnodeConnection) runOutbound() {
 	}
 	manconn := network.NewManagedConnection(conn)
 	bconn := buffconn.NewBufferedConnection(manconn)
-	c.setBuferedConnection(bconn)
+	c.setBufferedConnection(bconn, func(data []byte) {
+		c.receiveDataOutbound(data)
+	})
 
 	if err := c.sendHandshake(); err != nil {
 		log.Errorf("error during sendHandshake: %v", err)
 		return
 	}
-	c.readLoopAndClose()
+	log.Debugf("starting reading outbound %s", c.peerPortAddr.String())
+	if err := c.bufconn.Read(); err != nil {
+		log.Error(err)
+	}
+	log.Debugf("stopped reading. Closing %s", c.peerPortAddr.String())
+	c.close()
 }
 
 func (c *qnodeConnection) sendHandshake() error {
-	_, err := c.bufconn.Write([]byte(OwnPortAddr().String()))
+	num, err := c.bufconn.Write([]byte(OwnPortAddr().String()))
+	log.Debugf("sendHandshake %d bytes to %s", num, c.peerPortAddr.String())
 	return err
 }
 
-func (c *qnodeConnection) setBuferedConnection(bconn *buffconn.BufferedConnection) {
+func (c *qnodeConnection) setBufferedConnection(bconn *buffconn.BufferedConnection, recvFun func(data []byte)) {
 	c.Lock()
 	defer c.Unlock()
-	c.bufconn = bconn
-	c.bufconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
-		c.receiveDataOutbound(data)
-	}))
-}
-
-func (c *qnodeConnection) close() {
-	c.RLock()
-	defer c.RUnlock()
-	if c.bufconn != nil {
-		_ = c.bufconn.Close() // don't check because it may be closed from the other end
+	bconn.Events.ReceiveMessage.DetachAll()
+	bconn.Events.ReceiveMessage.Attach(events.NewClosure(recvFun))
+	bconn.Events.Close.DetachAll()
+	bconn.Events.Close.Attach(events.NewClosure(func() {
 		c.bufconn = nil
 		c.handshakeOutboundOk = false
-	}
-}
-
-func (c *qnodeConnection) readLoopAndClose() {
-	// read loop. Triggers receive data events for each message
-	err := c.bufconn.Read()
-
-	addr := fmt.Sprintf("%s:%d", c.portAddr.Addr, c.portAddr.Port)
-	log.Debugf("stopped reading %s", addr)
-	if err != nil {
-		log.Error(err)
-	}
-	c.close()
+	}))
+	c.bufconn = bconn
 }
 
 func (c *qnodeConnection) receiveDataOutbound(data []byte) {
 	if !c.handshakeOutboundOk {
 		peerAddr := string(data)
-		if peerAddr != c.portAddr.String() {
+		log.Debugf("received handshake outbound %s", peerAddr)
+		if peerAddr != c.peerPortAddr.String() {
 			log.Error("close the peer connection: wrong handshake message from outbound peer: expected %s got '%s'",
-				c.portAddr.String(), peerAddr)
+				c.peerPortAddr.String(), peerAddr)
 			c.close()
 		} else {
-			log.Infof("handshake ok with outbound peer %s", peerAddr)
+			log.Infof("handshake ok with peer %s", peerAddr)
 			c.handshakeOutboundOk = true
 		}
 		return
@@ -122,13 +129,13 @@ func (c *qnodeConnection) receiveDataOutbound(data []byte) {
 func (c *qnodeConnection) receiveData(data []byte) {
 	scid, senderIndex, msgType, msgData, err := unwrapPacket(data)
 	if err != nil {
-		log.Errorw("msg error", "from", c.portAddr.String(), "err", err)
+		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
 		return
 	}
 	oper, ok := GetOperator(scid)
 	if !ok {
 		log.Errorw("message for unexpected scontract",
-			"from", c.portAddr.String(),
+			"from", c.peerPortAddr.String(),
 			"scid", scid.Short(),
 			"senderIndex", senderIndex,
 			"msgType", msgType,
@@ -136,11 +143,11 @@ func (c *qnodeConnection) receiveData(data []byte) {
 		return
 	}
 	if senderIndex >= oper.CommitteeSize() || senderIndex == oper.PeerIndex() {
-		log.Errorw("wrong sender index", "from", c.portAddr.String(), "senderIndex", senderIndex)
+		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", senderIndex)
 		return
 	}
 	if err = oper.ReceiveMsgData(senderIndex, msgType, msgData); err != nil {
-		log.Errorw("msg error", "from", c.portAddr.String(), "senderIndex", senderIndex)
+		log.Errorw("msg error", "from", c.peerPortAddr.String(), "senderIndex", senderIndex)
 	}
 }
 
@@ -149,7 +156,7 @@ func (c *qnodeConnection) sendMsgData(data []byte) error {
 	defer c.RUnlock()
 
 	if c.bufconn == nil {
-		return fmt.Errorf("error while sending data: connection with %s not established", c.portAddr.String())
+		return fmt.Errorf("error while sending data: connection with %s not established", c.peerPortAddr.String())
 	}
 	num, err := c.bufconn.Write(data)
 	if num != len(data) {

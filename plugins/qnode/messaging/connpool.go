@@ -87,10 +87,11 @@ func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
 		return qconn
 	}
 	connections[addr] = &qnodeConnection{
-		RWMutex:   &sync.RWMutex{},
-		portAddr:  portAddr,
-		startOnce: &sync.Once{},
+		RWMutex:      &sync.RWMutex{},
+		peerPortAddr: portAddr,
+		startOnce:    &sync.Once{},
 	}
+	log.Debugf("added new connection %s inbound = %v", addr, connections[addr].isInbound())
 	return connections[addr]
 }
 
@@ -100,19 +101,31 @@ func (c *qnodeConnection) runAfter(d time.Duration) {
 		c.Lock()
 		c.startOnce = &sync.Once{}
 		c.Unlock()
+		log.Debugf("will run %s again", c.peerPortAddr.String())
 	}()
 }
 
 func connectOutboundLoop() {
+	count := 0
+	numConnected := 0
 	for {
 		time.Sleep(100 * time.Millisecond)
+		numConnected = 0
+		count++
+		sumUp := (count % 50) == 0
 		connectionsMutex.Lock()
 		for _, c := range connections {
 			c.startOnce.Do(func() {
 				go c.runOutbound()
 			})
+			if sumUp && c.isConnected() {
+				numConnected++
+			}
 		}
 		connectionsMutex.Unlock()
+		if sumUp {
+			log.Debugf("number of connected peers: %d", numConnected)
+		}
 	}
 }
 
@@ -133,16 +146,29 @@ func connectInboundLoop() {
 			log.Errorf("failed accepting a connection request: %v", err)
 			continue
 		}
+		log.Debugf("accepted connection from %s", conn.RemoteAddr().String())
+
 		manconn := network.NewManagedConnection(conn)
 		bconn := buffconn.NewBufferedConnection(manconn)
 		bconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
 			receiveHandshakeInbound(bconn, data)
 		}))
+		bconn.Events.Close.Attach(events.NewClosure(func() {
+			log.Errorf("inbound closed during handshake %s", conn.RemoteAddr().String())
+		}))
+		go func() {
+			log.Debugf("starting reading inbound %s", conn.RemoteAddr().String())
+			if err := bconn.Read(); err != nil {
+				log.Error(err)
+			}
+			_ = bconn.Close()
+		}()
 	}
 }
 
 func receiveHandshakeInbound(bconn *buffconn.BufferedConnection, data []byte) {
 	peerAddr := string(data)
+	log.Debugf("received handshake inbound %s", peerAddr)
 
 	connectionsMutex.RLock()
 	cconn, ok := connections[peerAddr]
@@ -153,13 +179,13 @@ func receiveHandshakeInbound(bconn *buffconn.BufferedConnection, data []byte) {
 		_ = bconn.Close()
 		return
 	}
-	bconn.Events.ReceiveMessage.DetachAll()
-	cconn.setBuferedConnection(bconn)
+	cconn.setBufferedConnection(bconn, func(data []byte) {
+		cconn.receiveData(data)
+	})
 	if err := cconn.sendHandshake(); err != nil {
 		log.Errorf("error while sending handshake: %v", err)
 		cconn.close()
 		return
 	}
 	log.Infof("connected inbound %s", peerAddr)
-	go cconn.readLoopAndClose()
 }
