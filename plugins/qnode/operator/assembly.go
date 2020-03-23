@@ -95,5 +95,5 @@ func (op *AssemblyOperator) configure(cfgId *HashValue) (bool, error) {
 		return false, fmt.Errorf("inconsistent config data scid: %s cfg id: %s",
 			op.cfgData.AssemblyId, op.cfgData.ConfigId)
 	}
-	return messaging.OwnPortAddr().String() != op.cfgData.NodeAddresses[op.cfgData.Index].String(), nil
+	return messaging.OwnPortAddr().String() == op.cfgData.NodeAddresses[op.cfgData.Index].String(), nil
 }

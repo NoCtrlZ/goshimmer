@@ -8,6 +8,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/daemon"
+	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
 	"github.com/iotaledger/hive.go/network"
 	"net"
@@ -71,10 +72,6 @@ func closeAll() {
 	}
 }
 
-func isInbound(pa *registry.PortAddr) bool {
-	return isInboundAddr(pa.String())
-}
-
 func isInboundAddr(addr string) bool {
 	own := OwnPortAddr().String()
 	if own == addr {
@@ -90,9 +87,9 @@ func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
 		return qconn
 	}
 	connections[addr] = &qnodeConnection{
-		RWMutex:       &sync.RWMutex{},
-		portAddr:      portAddr,
-		lastHeartbeat: time.Now(),
+		RWMutex:   &sync.RWMutex{},
+		portAddr:  portAddr,
+		startOnce: &sync.Once{},
 	}
 	return connections[addr]
 }
@@ -101,7 +98,7 @@ func (c *qnodeConnection) runAfter(d time.Duration) {
 	go func() {
 		time.Sleep(d)
 		c.Lock()
-		c.runOnce = &sync.Once{}
+		c.startOnce = &sync.Once{}
 		c.Unlock()
 	}()
 }
@@ -111,11 +108,9 @@ func connectOutboundLoop() {
 		time.Sleep(100 * time.Millisecond)
 		connectionsMutex.Lock()
 		for _, c := range connections {
-			if !isInbound(c.portAddr) {
-				c.runOnce.Do(func() {
-					go c.runOutbound()
-				})
-			}
+			c.startOnce.Do(func() {
+				go c.runOutbound()
+			})
 		}
 		connectionsMutex.Unlock()
 	}
@@ -138,37 +133,33 @@ func connectInboundLoop() {
 			log.Errorf("failed accepting a connection request: %v", err)
 			continue
 		}
-		wrongIncoming := false
-		addr := conn.RemoteAddr().String()
-		if isInboundAddr(addr) {
-			wrongIncoming = true
-		}
-		if !wrongIncoming {
-			connectionsMutex.RLock()
-			_, ok := connections[addr]
-			connectionsMutex.RUnlock()
-			if !ok {
-				wrongIncoming = true
-			}
-		}
-		if wrongIncoming {
-			// connection from (yet) unknown or wrong peer. Drop
-			err = conn.Close()
-			if err != nil {
-				log.Errorf("error while closing during dropping the connection: %v", err)
-			} else {
-				log.Debugf("dropped incoming connection from unexpected source %s", addr)
-			}
-			continue
-		}
-		cconn := connections[addr]
-		cconn.Lock()
-		if cconn.bufconn != nil {
-			log.Panicf("unexpected not nil connection")
-		}
 		manconn := network.NewManagedConnection(conn)
-		cconn.bufconn = buffconn.NewBufferedConnection(manconn)
-		cconn.Unlock()
-		go cconn.read()
+		bconn := buffconn.NewBufferedConnection(manconn)
+		bconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
+			receiveHandshakeInbound(bconn, data)
+		}))
 	}
+}
+
+func receiveHandshakeInbound(bconn *buffconn.BufferedConnection, data []byte) {
+	peerAddr := string(data)
+
+	connectionsMutex.RLock()
+	cconn, ok := connections[peerAddr]
+	connectionsMutex.RUnlock()
+
+	if !ok || !cconn.isInbound() {
+		log.Errorf("inbound connection from unexpected peer %s. Closing..", peerAddr)
+		_ = bconn.Close()
+		return
+	}
+	bconn.Events.ReceiveMessage.DetachAll()
+	cconn.setBuferedConnection(bconn)
+	if err := cconn.sendHandshake(); err != nil {
+		log.Errorf("error while sending handshake: %v", err)
+		cconn.close()
+		return
+	}
+	log.Infof("connected inbound %s", peerAddr)
+	go cconn.readLoopAndClose()
 }

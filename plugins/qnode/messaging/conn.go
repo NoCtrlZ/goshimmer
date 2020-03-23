@@ -17,10 +17,10 @@ import (
 
 type qnodeConnection struct {
 	*sync.RWMutex
-	bufconn       *buffconn.BufferedConnection
-	portAddr      *registry.PortAddr
-	runOnce       *sync.Once
-	lastHeartbeat time.Time
+	bufconn             *buffconn.BufferedConnection
+	handshakeOutboundOk bool
+	portAddr            *registry.PortAddr
+	startOnce           *sync.Once
 }
 
 const (
@@ -33,8 +33,12 @@ const (
 // retry net.Dial once, on fail after 0.5s
 var dialRetryPolicy = backoff.ConstantBackOff(backoffDelay).With(backoff.MaxRetries(dialRetries))
 
+func (c *qnodeConnection) isInbound() bool {
+	return isInboundAddr(c.portAddr.String())
+}
+
 func (c *qnodeConnection) runOutbound() {
-	if isInbound(c.portAddr) {
+	if c.isInbound() {
 		return
 	}
 	defer c.runAfter(restartAfter)
@@ -52,38 +56,43 @@ func (c *qnodeConnection) runOutbound() {
 		log.Error(err)
 		return
 	}
-	c.Lock()
 	manconn := network.NewManagedConnection(conn)
-	c.bufconn = buffconn.NewBufferedConnection(manconn)
+	bconn := buffconn.NewBufferedConnection(manconn)
+	c.setBuferedConnection(bconn)
+
+	if err := c.sendHandshake(); err != nil {
+		log.Errorf("error during sendHandshake: %v", err)
+		return
+	}
+	c.readLoopAndClose()
+}
+
+func (c *qnodeConnection) sendHandshake() error {
+	_, err := c.bufconn.Write([]byte(OwnPortAddr().String()))
+	return err
+}
+
+func (c *qnodeConnection) setBuferedConnection(bconn *buffconn.BufferedConnection) {
+	c.Lock()
+	defer c.Unlock()
+	c.bufconn = bconn
 	c.bufconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
-		c.receiveData(data)
+		c.receiveDataOutbound(data)
 	}))
-	c.Unlock()
-	c.read()
 }
 
 func (c *qnodeConnection) close() {
 	c.RLock()
 	defer c.RUnlock()
-	var err error
 	if c.bufconn != nil {
-		err = c.bufconn.Close()
+		_ = c.bufconn.Close() // don't check because it may be closed from the other end
 		c.bufconn = nil
-	}
-	if err != nil {
-		log.Errorf("error while closing %s: %v", c.portAddr.String(), err)
+		c.handshakeOutboundOk = false
 	}
 }
 
-func (c *qnodeConnection) runInbound() {
-	if !isInbound(c.portAddr) {
-		return
-	}
-	c.read()
-	defer c.runAfter(restartAfter)
-}
-
-func (c *qnodeConnection) read() {
+func (c *qnodeConnection) readLoopAndClose() {
+	// read loop. Triggers receive data events for each message
 	err := c.bufconn.Read()
 
 	addr := fmt.Sprintf("%s:%d", c.portAddr.Addr, c.portAddr.Port)
@@ -92,6 +101,22 @@ func (c *qnodeConnection) read() {
 		log.Error(err)
 	}
 	c.close()
+}
+
+func (c *qnodeConnection) receiveDataOutbound(data []byte) {
+	if !c.handshakeOutboundOk {
+		peerAddr := string(data)
+		if peerAddr != c.portAddr.String() {
+			log.Error("close the peer connection: wrong handshake message from outbound peer: expected %s got '%s'",
+				c.portAddr.String(), peerAddr)
+			c.close()
+		} else {
+			log.Infof("handshake ok with outbound peer %s", peerAddr)
+			c.handshakeOutboundOk = true
+		}
+		return
+	}
+	c.receiveData(data)
 }
 
 func (c *qnodeConnection) receiveData(data []byte) {

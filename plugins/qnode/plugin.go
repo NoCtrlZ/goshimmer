@@ -30,7 +30,7 @@ func initModules() {
 	signedblock.Init()
 	messaging.Init()
 	events.Init(log)
-	mockclientlib.InitMockedValueTangle(log)
+	mockclientlib.InitMockedValueTangle()
 }
 
 func config(_ *node.Plugin) {
@@ -69,4 +69,5 @@ func initLoggers() {
 	dkgapi.InitLogger()
 	admapi.InitLogger()
 	registry.InitLogger()
+	mockclientlib.InitLogger()
 }

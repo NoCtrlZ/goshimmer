@@ -11,30 +11,36 @@ import (
 	"github.com/iotaledger/hive.go/logger"
 )
 
-var db value.DB
+var (
+	db  value.DB
+	log *logger.Logger
+)
 
-func InitMockedValueTangle(log *logger.Logger) {
-	locLog := log.Named("mockTangle")
+func InitLogger() {
+	log = logger.NewLogger("mockTangle")
+}
+
+func InitMockedValueTangle() {
 	db = txdb.NewLocalDb(log)
 	value.SetValuetxDB(db)
 	chPub := make(chan []byte)
 	pubPort := parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_PUB_TX_PORT)
 	if err := RunPub(pubPort, chPub); err != nil {
-		locLog.Panic(err)
+		log.Panic(err)
 	}
-	locLog.Infof("will be publishing txs to mocked tangle over port %d", pubPort)
+	log.Infof("will be publishing txs to mocked tangle over port %d", pubPort)
 
 	value.SetPostFunction(func(vtx value.Transaction) {
 		var buf bytes.Buffer
 		if err := vtx.Encode().Write(&buf); err != nil {
-			locLog.Error(err)
+			log.Error(err)
 		}
 		chPub <- buf.Bytes()
 	})
-	go listenIncoming(locLog)
+	go listenIncoming()
 }
 
-func listenIncoming(log *logger.Logger) {
+func listenIncoming() {
 	uri := fmt.Sprintf("tcp://%s:%d",
 		parameter.NodeConfig.GetString(parameters.MOCK_TANGLE_SERVER_IP_ADDR),
 		parameter.NodeConfig.GetInt(parameters.MOCK_TANGLE_SERVER_PORT),

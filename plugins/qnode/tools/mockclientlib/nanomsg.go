@@ -28,7 +28,7 @@ func readSub(uri string, chIn chan InMessage) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("connected to %s\n", uri)
+	Logf("connected to SUB %s", uri)
 	var msg []byte
 	for {
 		msg, err = sock.Recv()
@@ -45,9 +45,9 @@ func readSub(uri string, chIn chan InMessage) error {
 func ReadSub(uri string, chIn chan InMessage) {
 	for {
 		err := readSub(uri, chIn)
-		fmt.Printf("disconnected %s: %v\n", uri, err)
+		Logf("disconnected SUB %s: %v", uri, err)
 		time.Sleep(1 * time.Second)
-		fmt.Printf("reconnecting %s\n", uri)
+		Logf("reconnecting SUB %s", uri)
 	}
 }
 
@@ -60,12 +60,13 @@ func RunPub(port int, chIn chan []byte) error {
 	all.AddTransports(sock)
 
 	if err = sock.Listen(fmt.Sprintf("tcp://:%d", port)); err != nil {
-		return fmt.Errorf("can't listen on pub socket: %v", err)
+		return fmt.Errorf("can't listen on PUB socket: %v", err)
 	}
+
 	go func() {
 		for msg := range chIn {
 			if err := sock.Send(msg); err != nil {
-				fmt.Printf("can't send to pub: %v\n", err)
+				Logf("can't send to PUB: %v", err)
 				time.Sleep(1 * time.Second)
 			}
 		}

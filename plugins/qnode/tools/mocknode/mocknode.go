@@ -67,6 +67,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("publishing on port %d\n", params.MockPubPort)
 	for _, pa := range params.Peers {
 		go mockclientlib.ReadSub(fmt.Sprintf("tcp://%s:%d", pa.Addr, pa.Port), inCh)
 	}
