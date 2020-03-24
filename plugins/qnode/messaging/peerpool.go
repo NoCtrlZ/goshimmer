@@ -61,7 +61,7 @@ func isInboundAddr(addr string) bool {
 	return addr < own
 }
 
-func AddPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
+func addPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
 	peersMutex.Lock()
 	peersMutex.Unlock()
 

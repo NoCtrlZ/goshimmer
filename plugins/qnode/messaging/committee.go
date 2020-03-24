@@ -42,7 +42,7 @@ func RegisterNewOperator(op SCOperator) *CommitteeConn {
 		if i == int(op.PeerIndex()) {
 			continue
 		}
-		ret.peers[i] = AddPeerConnection(op.NodeAddresses()[i])
+		ret.peers[i] = addPeerConnection(op.NodeAddresses()[i])
 	}
 	committees[*op.SContractID()] = ret
 	return ret
