@@ -123,7 +123,7 @@ func (op *AssemblyOperator) eventResultCalculated(ctx *runtimeContext) {
 		return
 	}
 	// new result
-	err := sc.SignTransaction(ctx.resultTx, op)
+	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
 	if err != nil {
 		reqRec.log.Errorf("SignTransaction returned: %v", err)
 		return

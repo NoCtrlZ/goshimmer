@@ -40,7 +40,7 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) {
 		locLog.Errorf("aggregateResult returned: %v", err)
 		return
 	}
-	err = sc.VerifySignatures(res.res.resultTx, op)
+	err = sc.VerifySignatures(res.res.resultTx, op.keyPool())
 	if err != nil {
 		locLog.Errorf("VerifySignatures returned: %v", err)
 		return
@@ -99,12 +99,12 @@ func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
 			receivedSigBlocks = append(receivedSigBlocks, rh.SigBlocks[i])
 		}
 		receivedSigBlocks = append(receivedSigBlocks, sigBlock)
-		err := generic.AggregateBLSBlocks(receivedSigBlocks, sigBlock, op)
+		err := generic.AggregateBLSBlocks(receivedSigBlocks, sigBlock, op.keyPool())
 		if err != nil {
 			return err
 		}
 		// verify recovered signature (testing)
-		err = op.VerifySignature(sigBlock)
+		err = op.verifySignature(sigBlock)
 		if err != nil {
 			return err
 		}

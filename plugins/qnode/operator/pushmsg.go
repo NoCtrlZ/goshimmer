@@ -14,7 +14,7 @@ func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) {
 		// request is already processed
 		return
 	}
-	if err := sc.VerifySignedBlocks(msg.SigBlocks, op); err != nil {
+	if err := sc.VerifySignedBlocks(msg.SigBlocks, op.keyPool()); err != nil {
 		req.log.Errorf("accountNewPushMsg: %v", err)
 		return
 	}

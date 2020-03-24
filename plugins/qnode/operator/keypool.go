@@ -11,8 +11,26 @@ import (
 
 // implements KeyPool interface
 
-func (op *AssemblyOperator) SignBlock(sigblock generic.SignedBlock) error {
-	keyData, err := op.GetKeyData(sigblock.Account())
+type keyPoolType AssemblyOperator
+
+func (kp *keyPoolType) SignBlock(sigblock generic.SignedBlock) error {
+	return (*AssemblyOperator)(kp).signBlock(sigblock)
+}
+
+func (kp *keyPoolType) VerifySignature(blk generic.SignedBlock) error {
+	return (*AssemblyOperator)(kp).verifySignature(blk)
+}
+
+func (kp *keyPoolType) GetKeyData(addr *HashValue) (interface{}, error) {
+	return (*AssemblyOperator)(kp).getKeyData(addr)
+}
+
+func (op *AssemblyOperator) keyPool() generic.KeyPool {
+	return (*keyPoolType)(op)
+}
+
+func (op *AssemblyOperator) signBlock(sigblock generic.SignedBlock) error {
+	keyData, err := op.getKeyData(sigblock.Account())
 	if err != nil {
 		return err
 	}
@@ -25,9 +43,9 @@ func (op *AssemblyOperator) SignBlock(sigblock generic.SignedBlock) error {
 	return nil
 }
 
-func (op *AssemblyOperator) VerifySignature(blk generic.SignedBlock) error {
+func (op *AssemblyOperator) verifySignature(blk generic.SignedBlock) error {
 	signature, typ := blk.GetSignature()
-	keyData, err := op.GetKeyData(blk.Account())
+	keyData, err := op.getKeyData(blk.Account())
 	if err != nil {
 		return err
 	}
@@ -49,7 +67,7 @@ func (op *AssemblyOperator) VerifySignature(blk generic.SignedBlock) error {
 	return nil
 }
 
-func (op *AssemblyOperator) GetKeyData(addr *HashValue) (interface{}, error) {
+func (op *AssemblyOperator) getKeyData(addr *HashValue) (interface{}, error) {
 	if !op.cfgData.AccountIsDefined(addr) {
 		return nil, fmt.Errorf("account id %s is undefined for this configuration", addr.Short())
 	}
