@@ -1,11 +1,8 @@
 package messaging
 
 import (
-	"bytes"
 	"fmt"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/iotaledger/hive.go/backoff"
 	"net"
 	"sync"
@@ -117,7 +114,7 @@ func (c *qnodePeer) receiveData(data []byte) {
 	}
 }
 
-func (c *qnodePeer) sendMsgData(data []byte) error {
+func (c *qnodePeer) SendMsgData(data []byte) error {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -129,34 +126,4 @@ func (c *qnodePeer) sendMsgData(data []byte) error {
 		return fmt.Errorf("not all bytes written. err = %v", err)
 	}
 	return err
-}
-
-// returns sc id, sender index, msg type, msg data, error
-
-func unwrapPacket(data []byte) (*HashValue, uint16, byte, []byte, error) {
-	rdr := bytes.NewBuffer(data)
-	var aid HashValue
-	_, err := rdr.Read(aid.Bytes())
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	var senderIndex uint16
-	err = tools.ReadUint16(rdr, &senderIndex)
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	msgType, err := tools.ReadByte(rdr)
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	return &aid, senderIndex, msgType, rdr.Bytes(), nil
-}
-
-func wrapPacket(aid *HashValue, senderIndex uint16, msgType byte, data []byte) []byte {
-	var buf bytes.Buffer
-	buf.Write(aid.Bytes())
-	_ = tools.WriteUint16(&buf, senderIndex)
-	buf.WriteByte(msgType)
-	buf.Write(data)
-	return buf.Bytes()
 }

@@ -3,7 +3,6 @@ package messaging
 import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/packages/parameter"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/daemon"
@@ -13,19 +12,15 @@ import (
 )
 
 var (
-	peers      map[string]*qnodePeer
-	committees map[HashValue]*CommitteeConn
-	peersMutex *sync.RWMutex
+	peers      = make(map[string]*qnodePeer)
+	peersMutex = &sync.RWMutex{}
 )
 
 func Init() {
 	initLogger()
-	peers = make(map[string]*qnodePeer)
-	committees = make(map[HashValue]*CommitteeConn)
-	peersMutex = &sync.RWMutex{}
 
 	if err := daemon.BackgroundWorker("Qnode connectOutboundLoop", func(shutdownSignal <-chan struct{}) {
-		log.Debugf("started connectOutboundLoop...")
+		log.Debugf("starting qnode peering...")
 
 		go connectOutboundLoop()
 		go connectInboundLoop()
@@ -66,7 +61,10 @@ func isInboundAddr(addr string) bool {
 	return addr < own
 }
 
-func addPeerConnection_(portAddr *registry.PortAddr) *qnodePeer {
+func AddPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
+	peersMutex.Lock()
+	peersMutex.Unlock()
+
 	addr := portAddr.String()
 	if qconn, ok := peers[addr]; ok {
 		return qconn
