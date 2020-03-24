@@ -8,7 +8,7 @@ import (
 )
 
 // check if the request message is well formed
-func (op *AssemblyOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
+func (op *scOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 	cfg := op.stateTx.MustState().Config()
 	reward := uint64(0)
 	rewardOutput := reqRef.RequestBlock().MainOutputs(reqRef.Tx()).RewardOutput
@@ -21,7 +21,7 @@ func (op *AssemblyOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 	return nil
 }
 
-func (op *AssemblyOperator) newRequest(reqId *HashValue) *request {
+func (op *scOperator) newRequest(reqId *HashValue) *request {
 	reqLog := log.Named(reqId.Shortest())
 	ret := &request{
 		reqId:              reqId,
@@ -40,7 +40,7 @@ func (op *AssemblyOperator) newRequest(reqId *HashValue) *request {
 
 // request record retrieved (or created) by request message
 
-func (op *AssemblyOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
+func (op *scOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 	reqId := reqRef.Id()
 	ret, ok := op.requests[*reqId]
 	if ok && ret.reqRef == nil {
@@ -60,7 +60,7 @@ func (op *AssemblyOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 
 // request record retrieved (or created) by request id
 
-func (op *AssemblyOperator) requestFromId(reqId *HashValue) (*request, bool) {
+func (op *scOperator) requestFromId(reqId *HashValue) (*request, bool) {
 	if _, yes := op.isRequestProcessed(reqId); yes {
 		return nil, false
 	}
@@ -73,12 +73,12 @@ func (op *AssemblyOperator) requestFromId(reqId *HashValue) (*request, bool) {
 	return ret, true
 }
 
-func (op *AssemblyOperator) isRequestProcessed(reqid *HashValue) (time.Duration, bool) {
+func (op *scOperator) isRequestProcessed(reqid *HashValue) (time.Duration, bool) {
 	duration, ok := op.processedRequests[*reqid]
 	return duration, ok
 }
 
-func (op *AssemblyOperator) markRequestProcessed(req *request) {
+func (op *scOperator) markRequestProcessed(req *request) {
 	duration := time.Duration(0)
 	if req.reqRef != nil {
 		duration = time.Since(req.whenMsgReceived)

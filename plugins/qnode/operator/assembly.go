@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type AssemblyOperator struct {
+type scOperator struct {
 	sync.RWMutex
 	dismissed         bool
 	assemblyId        *HashValue
@@ -59,10 +59,10 @@ type resultCalculated struct {
 
 const inChanBufLen = 10
 
-func newFromState(tx sc.Transaction) (*AssemblyOperator, error) {
+func newFromState(tx sc.Transaction) (*scOperator, error) {
 	state, _ := tx.State()
 
-	ret := &AssemblyOperator{
+	ret := &scOperator{
 		assemblyId:        state.AssemblyId(),
 		processor:         fairroulette.New(),
 		requests:          make(map[HashValue]*request),
@@ -85,7 +85,7 @@ func newFromState(tx sc.Transaction) (*AssemblyOperator, error) {
 	return ret, nil
 }
 
-func (op *AssemblyOperator) configure(cfgId *HashValue) (bool, error) {
+func (op *scOperator) configure(cfgId *HashValue) (bool, error) {
 	var err error
 	op.cfgData, err = registry.LoadConfig(op.assemblyId, cfgId)
 	if err != nil {

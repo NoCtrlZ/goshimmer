@@ -7,7 +7,7 @@ import (
 	"sort"
 )
 
-func (op *AssemblyOperator) accountNewPushMsg(msg *pushResultMsg) {
+func (op *scOperator) accountNewPushMsg(msg *pushResultMsg) {
 	resultHash := resultHash(msg.StateIndex, msg.RequestId, msg.MasterDataHash)
 	req, ok := op.requestFromId(msg.RequestId)
 	if !ok {
@@ -43,7 +43,7 @@ func numberPushMessagesReceived(msgs []*pushResultMsg) uint16 {
 	return ret
 }
 
-func (op *AssemblyOperator) pickRequestToPush() *request {
+func (op *scOperator) pickRequestToPush() *request {
 	// with request message received and not led by me
 	reqs := make([]*request, 0, len(op.requests))
 	for _, req := range op.requests {

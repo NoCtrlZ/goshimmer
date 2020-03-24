@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (op *AssemblyOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, maxVotedForResultHash *hashing.HashValue) {
+func (op *scOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, maxVotedForResultHash *hashing.HashValue) {
 	reqId := res.res.reqRef.Id()
 	state, _ := res.res.state.State()
 	msg := &pullResultMsg{
@@ -46,7 +46,7 @@ func pullMsgMaxVotes(req *request) (uint16, uint16) {
 	return maxHaveVotes, retPeer
 }
 
-func (op *AssemblyOperator) selectRequestToRespondToPullMsg() (*request, uint16) {
+func (op *scOperator) selectRequestToRespondToPullMsg() (*request, uint16) {
 	var ret *request
 	var retPeer uint16
 	var maxVotes uint16

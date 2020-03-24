@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (op *AssemblyOperator) adjustToContext() {
+func (op *scOperator) adjustToContext() {
 	for _, req := range op.requests {
 		op.adjustToContextReq(req)
 	}
@@ -16,7 +16,7 @@ func (op *AssemblyOperator) adjustToContext() {
 	}
 }
 
-func (op *AssemblyOperator) checkForCheating(req *request) {
+func (op *scOperator) checkForCheating(req *request) {
 	// simplified: only checking for cheating when own request is known
 	// and it belongs to context
 	if req.ownResultCalculated == nil {
@@ -44,7 +44,7 @@ func (op *AssemblyOperator) checkForCheating(req *request) {
 }
 
 // delete all records from request which do not correspond to the new config id or stateTx id
-func (op *AssemblyOperator) adjustToContextReq(req *request) {
+func (op *scOperator) adjustToContextReq(req *request) {
 	if req.ownResultCalculated != nil {
 		resStateIndex := req.ownResultCalculated.res.state.MustState().StateIndex()
 		curStateIndex := op.stateTx.MustState().StateIndex()
@@ -78,7 +78,7 @@ func (op *AssemblyOperator) adjustToContextReq(req *request) {
 	}
 }
 
-func (op *AssemblyOperator) consistentState() error {
+func (op *scOperator) consistentState() error {
 	for _, req := range op.requests {
 		if req.ownResultCalculated != nil && !op.resultBelongsToContext(req.ownResultCalculated.res) {
 			return fmt.Errorf("request result out of context")
@@ -99,15 +99,15 @@ func (op *AssemblyOperator) consistentState() error {
 	return nil
 }
 
-func (op *AssemblyOperator) pushMsgConsistentWithContext(rh *pushResultMsg) bool {
+func (op *scOperator) pushMsgConsistentWithContext(rh *pushResultMsg) bool {
 	return rh.StateIndex >= op.stateTx.MustState().StateIndex()
 }
 
-func (op *AssemblyOperator) pullMsgConsistentWithContext(am *pullResultMsg) bool {
+func (op *scOperator) pullMsgConsistentWithContext(am *pullResultMsg) bool {
 	return am.StateIndex >= op.stateTx.MustState().StateIndex()
 }
 
-func (op *AssemblyOperator) resultBelongsToContext(res *runtimeContext) bool {
+func (op *scOperator) resultBelongsToContext(res *runtimeContext) bool {
 	// result didn't change during calculations
 	return op.stateTx.MustState().StateIndex() == res.state.MustState().StateIndex()
 }
@@ -116,7 +116,7 @@ func (op *AssemblyOperator) resultBelongsToContext(res *runtimeContext) bool {
 //  - has recorded request message
 //  - has some votes from peers
 
-func (op *AssemblyOperator) selectAdvanced() []*request {
+func (op *scOperator) selectAdvanced() []*request {
 	ret := make([]*request, 0)
 	for _, req := range op.requests {
 		if req.reqRef == nil {
@@ -132,7 +132,7 @@ func (op *AssemblyOperator) selectAdvanced() []*request {
 	return ret
 }
 
-func (op *AssemblyOperator) getStateSnapshot() tools.StatMap {
+func (op *scOperator) getStateSnapshot() tools.StatMap {
 	ret := make(tools.StatMap)
 	ret.Set("msgCounter", op.msgCounter)
 	ret.Set("numRequestsProcessed", len(op.processedRequests))

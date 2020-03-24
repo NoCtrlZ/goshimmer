@@ -9,7 +9,7 @@ import (
 // triggered by new request msg from the node
 // called from he main queue
 
-func (op *AssemblyOperator) eventRequestMsg(reqRef *sc.RequestRef) {
+func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 	if err := op.validateRequestBlock(reqRef); err != nil {
 		log.Errorw("invalid request message received. Ignored...",
 			"req", reqRef.Id().Short(),
@@ -29,7 +29,7 @@ func (op *AssemblyOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 
 // triggered by the new stateTx update
 
-func (op *AssemblyOperator) eventStateUpdate(tx sc.Transaction) {
+func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	log.Debugw("eventStateUpdate", "tx", tx.ShortStr())
 
 	stateUpd := tx.MustState()
@@ -80,7 +80,7 @@ func (op *AssemblyOperator) eventStateUpdate(tx sc.Transaction) {
 
 // triggered from main msg queue whenever calculation of new result is finished
 
-func (op *AssemblyOperator) eventResultCalculated(ctx *runtimeContext) {
+func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 	reqId := ctx.reqRef.Id()
 	reqRec, ok := op.requestFromId(reqId)
 	if !ok {
@@ -145,7 +145,7 @@ func (op *AssemblyOperator) eventResultCalculated(ctx *runtimeContext) {
 
 // triggered by new result hash received from another operator
 
-func (op *AssemblyOperator) eventPushResultMsg(pushMsg *pushResultMsg) {
+func (op *scOperator) eventPushResultMsg(pushMsg *pushResultMsg) {
 	req, ok := op.requestFromId(pushMsg.RequestId)
 	req.msgCounter++
 	if !ok {
@@ -158,7 +158,7 @@ func (op *AssemblyOperator) eventPushResultMsg(pushMsg *pushResultMsg) {
 	op.takeAction()
 }
 
-func (op *AssemblyOperator) eventPullMsgReceived(msg *pullResultMsg) {
+func (op *scOperator) eventPullMsgReceived(msg *pullResultMsg) {
 	req, ok := op.requestFromId(msg.RequestId)
 	if !ok {
 		return // already processed
@@ -170,7 +170,7 @@ func (op *AssemblyOperator) eventPullMsgReceived(msg *pullResultMsg) {
 	op.takeAction()
 }
 
-func (op *AssemblyOperator) eventTimer(msg timerMsg) {
+func (op *scOperator) eventTimer(msg timerMsg) {
 	if msg%300 == 0 {
 		log.Debugw("eventTimer", "#", int(msg))
 		snap := op.getStateSnapshot()

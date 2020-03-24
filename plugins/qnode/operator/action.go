@@ -4,7 +4,7 @@ package operator
 // 1. adjust stateTx of the operator. stateTx must be consistent after this step
 // 2. take action based on stateTx
 
-func (op *AssemblyOperator) takeAction() {
+func (op *scOperator) takeAction() {
 	if err := op.consistentState(); err != nil {
 		log.Errorf("inconsistent state: %v", err)
 		return
@@ -17,13 +17,13 @@ func (op *AssemblyOperator) takeAction() {
 	op.startCalculations()
 }
 
-func (op *AssemblyOperator) rotateLeaders() {
+func (op *scOperator) rotateLeaders() {
 	for _, req := range op.requests {
 		op.rotateLeaderIfNeeded(req)
 	}
 }
 
-func (op *AssemblyOperator) respondToPulls() {
+func (op *scOperator) respondToPulls() {
 	req, peer := op.selectRequestToRespondToPullMsg()
 	if req == nil {
 		return
@@ -37,7 +37,7 @@ func (op *AssemblyOperator) respondToPulls() {
 	//tools.Logf(1, "responded to pull from peer %d for req %s", peer, req.reqId.ShortStr())
 }
 
-func (op *AssemblyOperator) sendPull() {
+func (op *scOperator) sendPull() {
 	for _, req := range op.requests {
 		if req.ownResultCalculated == nil || req.ownResultCalculated.pullSent {
 			continue
@@ -52,7 +52,7 @@ func (op *AssemblyOperator) sendPull() {
 	}
 }
 
-func (op *AssemblyOperator) checkQuorum() {
+func (op *scOperator) checkQuorum() {
 	for _, req := range op.requests {
 		if req.ownResultCalculated == nil {
 			continue
@@ -74,7 +74,7 @@ func (op *AssemblyOperator) checkQuorum() {
 	}
 }
 
-func (op *AssemblyOperator) startCalculations() {
+func (op *scOperator) startCalculations() {
 	for _, req := range op.requests {
 		if req.reqRef == nil && req.ownResultCalculated != nil {
 			continue
@@ -88,7 +88,7 @@ func (op *AssemblyOperator) startCalculations() {
 }
 
 // one request to be processed
-func (op *AssemblyOperator) sendPush() {
+func (op *scOperator) sendPush() {
 	// select best to sendPush (which is not led by me)
 	req := op.pickRequestToPush()
 	if req == nil {

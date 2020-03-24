@@ -17,7 +17,7 @@ func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue 
 	return ret
 }
 
-func (op *AssemblyOperator) asyncCalculateResult(req *request) {
+func (op *scOperator) asyncCalculateResult(req *request) {
 	if req.ownResultCalculated != nil {
 		return
 	}
@@ -32,7 +32,7 @@ func (op *AssemblyOperator) asyncCalculateResult(req *request) {
 	}
 }
 
-func (op *AssemblyOperator) processRequest(req *request) {
+func (op *scOperator) processRequest(req *request) {
 	var ctx *runtimeContext
 	var err error
 	if req.reqRef.RequestBlock().IsConfigUpdateReq() {
@@ -60,7 +60,7 @@ func displayResult(req *request, ctx *runtimeContext) {
 	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
 }
 
-func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) (*pushResultMsg, error) {
+func (op *scOperator) pushResultMsgFromResult(resRec *resultCalculated) (*pushResultMsg, error) {
 	sigBlocks, err := resRec.res.resultTx.Signatures()
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (op *AssemblyOperator) pushResultMsgFromResult(resRec *resultCalculated) (*
 	}, nil
 }
 
-func (op *AssemblyOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
+func (op *scOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
 	locLog := log
 	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
 		locLog = req.log

@@ -49,11 +49,11 @@ func getPermutation(n uint16, reqHash *HashValue) []uint16 {
 	return ret
 }
 
-func (op *AssemblyOperator) iAmCurrentLeader(req *request) bool {
+func (op *scOperator) iAmCurrentLeader(req *request) bool {
 	return op.PeerIndex() == op.currentLeaderIndex(req)
 }
 
-func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
+func (op *scOperator) currentLeaderIndex(req *request) uint16 {
 	//return 3
 	if req.leaderPeerIndexList == nil {
 		req.leaderPeerIndexList = getPermutation(op.CommitteeSize(), req.reqId)
@@ -61,7 +61,7 @@ func (op *AssemblyOperator) currentLeaderIndex(req *request) uint16 {
 	return req.leaderPeerIndexList[req.currLeaderSeqIndex]
 }
 
-func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
+func (op *scOperator) rotateLeaderIfNeeded(req *request) {
 	if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
 		return
 	}
@@ -73,7 +73,7 @@ func (op *AssemblyOperator) rotateLeaderIfNeeded(req *request) {
 	}
 }
 
-func (op *AssemblyOperator) pushIfNeeded(req *request) {
+func (op *scOperator) pushIfNeeded(req *request) {
 	if !req.hasBeenPushedToCurrentLeader {
 		op.sendPushResultToPeer(req.ownResultCalculated, op.currentLeaderIndex(req))
 		req.hasBeenPushedToCurrentLeader = true

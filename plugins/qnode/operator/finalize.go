@@ -30,7 +30,7 @@ func maxVotesFromPeers(req *request) (uint16, *HashValue) {
 
 // aggregates final signature, generates final result and posts to the tangle
 
-func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) {
+func (op *scOperator) finalizeTheRequest(res *resultCalculated) {
 	locLog := log
 	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
 		locLog = req.log
@@ -62,7 +62,7 @@ func (op *AssemblyOperator) finalizeTheRequest(res *resultCalculated) {
 	value.Post(vtx)
 }
 
-func (op *AssemblyOperator) aggregateResult(res *resultCalculated) error {
+func (op *scOperator) aggregateResult(res *resultCalculated) error {
 	reqId := res.res.reqRef.Id()
 	reqRec, ok := op.requestFromId(reqId)
 	if !ok {

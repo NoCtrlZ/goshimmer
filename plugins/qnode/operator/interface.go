@@ -15,31 +15,31 @@ type SenderId struct {
 	Index  uint16
 }
 
-func (op *AssemblyOperator) SContractID() *hashing.HashValue {
+func (op *scOperator) SContractID() *hashing.HashValue {
 	return op.assemblyId
 }
 
-func (op *AssemblyOperator) Quorum() uint16 {
+func (op *scOperator) Quorum() uint16 {
 	return op.cfgData.T
 }
 
-func (op *AssemblyOperator) CommitteeSize() uint16 {
+func (op *scOperator) CommitteeSize() uint16 {
 	return op.cfgData.N
 }
 
-func (op *AssemblyOperator) PeerIndex() uint16 {
+func (op *scOperator) PeerIndex() uint16 {
 	return op.cfgData.Index
 }
 
-func (op *AssemblyOperator) NodeAddresses() []*registry.PortAddr {
+func (op *scOperator) NodeAddresses() []*registry.PortAddr {
 	return op.cfgData.NodeAddresses
 }
 
-func NewFromState(tx sc.Transaction) (*AssemblyOperator, error) {
+func NewFromState(tx sc.Transaction) (*scOperator, error) {
 	return newFromState(tx)
 }
 
-func (op *AssemblyOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {
+func (op *scOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {
 	switch msgType {
 	case MSG_PUSH_MSG:
 		msg, err := decodePushResultMsg(msgData)
@@ -63,21 +63,21 @@ func (op *AssemblyOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msg
 	return nil
 }
 
-func (op *AssemblyOperator) ReceiveStateUpdate(msg *sc.StateUpdateMsg) {
+func (op *scOperator) ReceiveStateUpdate(msg *sc.StateUpdateMsg) {
 	op.postEventToQueue(msg)
 }
 
-func (op *AssemblyOperator) ReceiveRequest(msg *sc.RequestRef) {
+func (op *scOperator) ReceiveRequest(msg *sc.RequestRef) {
 	op.postEventToQueue(msg)
 }
 
-func (op *AssemblyOperator) IsDismissed() bool {
+func (op *scOperator) IsDismissed() bool {
 	op.RLock()
 	defer op.RUnlock()
 	return op.dismissed
 }
 
-func (op *AssemblyOperator) dismiss() {
+func (op *scOperator) dismiss() {
 	if op.stopClock != nil {
 		op.stopClock()
 	}
@@ -87,7 +87,7 @@ func (op *AssemblyOperator) dismiss() {
 	op.Unlock()
 }
 
-func (op *AssemblyOperator) postEventToQueue(msg interface{}) {
+func (op *scOperator) postEventToQueue(msg interface{}) {
 	op.RLock()
 	defer op.RUnlock()
 	if !op.dismissed {
@@ -95,7 +95,7 @@ func (op *AssemblyOperator) postEventToQueue(msg interface{}) {
 	}
 }
 
-func (op *AssemblyOperator) dispatchEvent(msg interface{}) {
+func (op *scOperator) dispatchEvent(msg interface{}) {
 	if _, ok := msg.(timerMsg); !ok {
 		op.msgCounter++
 	}
@@ -117,7 +117,7 @@ func (op *AssemblyOperator) dispatchEvent(msg interface{}) {
 	}
 }
 
-func (op *AssemblyOperator) startRoutines() {
+func (op *scOperator) startRoutines() {
 	// start msg queue routine
 	go func() {
 		for msg := range op.inChan {

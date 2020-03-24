@@ -50,17 +50,18 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 	return cconn.connections[targetPeerIndex].sendMsgData(wrapped)
 }
 
-func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) uint16 {
-	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
-	var sentTo uint16
-	for i, conn := range cconn.connections {
-		if i == int(cconn.operator.PeerIndex()) {
-			continue
-		}
-		if err := conn.sendMsgData(wrapped); err == nil {
-			log.Debugf("%v", err)
-			sentTo++
-		}
-	}
-	return sentTo
-}
+//
+//func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) uint16 {
+//	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
+//	var sentTo uint16
+//	for i, conn := range cconn.connections {
+//		if i == int(cconn.operator.PeerIndex()) {
+//			continue
+//		}
+//		if err := conn.sendMsgData(wrapped); err == nil {
+//			log.Debugf("%v", err)
+//			sentTo++
+//		}
+//	}
+//	return sentTo
+//}
