@@ -8,9 +8,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/hive.go/daemon"
-	"github.com/iotaledger/hive.go/events"
-	"github.com/iotaledger/hive.go/netutil/buffconn"
-	"github.com/iotaledger/hive.go/network"
 	"net"
 	"sync"
 	"time"
@@ -29,22 +26,23 @@ type SCOperator interface {
 }
 
 var (
-	connections      map[string]*qnodeConnection
-	committees       map[HashValue]*CommitteeConn
-	connectionsMutex *sync.RWMutex
+	peers      map[string]*qnodePeer
+	committees map[HashValue]*CommitteeConn
+	peersMutex *sync.RWMutex
 )
 
 func Init() {
 	initLogger()
-	connections = make(map[string]*qnodeConnection)
+	peers = make(map[string]*qnodePeer)
 	committees = make(map[HashValue]*CommitteeConn)
-	connectionsMutex = &sync.RWMutex{}
+	peersMutex = &sync.RWMutex{}
 
 	if err := daemon.BackgroundWorker("Qnode connectOutboundLoop", func(shutdownSignal <-chan struct{}) {
 		log.Debugf("started connectOutboundLoop...")
 
 		go connectOutboundLoop()
 		go connectInboundLoop()
+		go countConnectionsLoop()
 
 		<-shutdownSignal
 
@@ -64,11 +62,11 @@ func OwnPortAddr() *registry.PortAddr {
 }
 
 func closeAll() {
-	connectionsMutex.Lock()
-	defer connectionsMutex.Unlock()
+	peersMutex.Lock()
+	defer peersMutex.Unlock()
 
-	for _, cconn := range connections {
-		cconn.close()
+	for _, cconn := range peers {
+		cconn.closeConn()
 	}
 }
 
@@ -81,21 +79,21 @@ func isInboundAddr(addr string) bool {
 	return addr < own
 }
 
-func addPeerConnection_(portAddr *registry.PortAddr) *qnodeConnection {
+func addPeerConnection_(portAddr *registry.PortAddr) *qnodePeer {
 	addr := portAddr.String()
-	if qconn, ok := connections[addr]; ok {
+	if qconn, ok := peers[addr]; ok {
 		return qconn
 	}
-	connections[addr] = &qnodeConnection{
+	peers[addr] = &qnodePeer{
 		RWMutex:      &sync.RWMutex{},
 		peerPortAddr: portAddr,
 		startOnce:    &sync.Once{},
 	}
-	log.Debugf("added new connection %s inbound = %v", addr, connections[addr].isInbound())
-	return connections[addr]
+	log.Debugf("added new peer connection %s inbound = %v", addr, peers[addr].isInbound())
+	return peers[addr]
 }
 
-func (c *qnodeConnection) runAfter(d time.Duration) {
+func (c *qnodePeer) runAfter(d time.Duration) {
 	go func() {
 		time.Sleep(d)
 		c.Lock()
@@ -105,41 +103,64 @@ func (c *qnodeConnection) runAfter(d time.Duration) {
 	}()
 }
 
+func countConnectionsLoop() {
+	var totalNum, inboundNum, outboundNum, inConnectedNum, outConnectedNum, inHSNum, outHSNum int
+	for {
+		time.Sleep(2 * time.Second)
+		totalNum, inboundNum, outboundNum, inConnectedNum, outConnectedNum, inHSNum, outHSNum = 0, 0, 0, 0, 0, 0, 0
+		peersMutex.Lock()
+		for _, c := range peers {
+			totalNum++
+			isConn, isHandshaken := c.connStatus()
+			if c.isInbound() {
+				inboundNum++
+				if isConn {
+					inConnectedNum++
+				}
+				if isHandshaken {
+					inHSNum++
+				}
+			} else {
+				outboundNum++
+				if isConn {
+					outConnectedNum++
+				}
+				if isHandshaken {
+					outHSNum++
+				}
+			}
+		}
+		peersMutex.Unlock()
+		log.Debugf("CONN STATUS: total conn: %d, in: %d, out: %d, inConnected: %d, outConnected: %d, inHS: %d, outHS: %d",
+			totalNum, inboundNum, outboundNum, inConnectedNum, outConnectedNum, inHSNum, outHSNum)
+	}
+}
+
 func connectOutboundLoop() {
-	count := 0
-	numConnected := 0
 	for {
 		time.Sleep(100 * time.Millisecond)
-		numConnected = 0
-		count++
-		sumUp := (count % 50) == 0
-		connectionsMutex.Lock()
-		for _, c := range connections {
+		peersMutex.Lock()
+		for _, c := range peers {
 			c.startOnce.Do(func() {
 				go c.runOutbound()
 			})
-			if sumUp && c.isConnected() {
-				numConnected++
-			}
 		}
-		connectionsMutex.Unlock()
-		if sumUp {
-			log.Debugf("number of connected peers: %d", numConnected)
-		}
+		peersMutex.Unlock()
 	}
 }
 
 func connectInboundLoop() {
-	port := parameter.NodeConfig.GetInt(parameters.QNODE_PORT)
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	listenOn := fmt.Sprintf(":%d", parameter.NodeConfig.GetInt(parameters.QNODE_PORT))
+	listener, err := net.Listen("tcp", listenOn)
 	if err != nil {
-		log.Errorf("tcp listen on port %d failed: %v. Restarting connectInboundLoop after 1 sec", port, err)
+		log.Errorf("tcp listen on %s failed: %v. Restarting connectInboundLoop after 1 sec", listenOn, err)
 		go func() {
 			time.Sleep(1 * time.Second)
 			connectInboundLoop()
 		}()
 		return
 	}
+	log.Infof("tcp listen inbound on %s", listenOn)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -148,14 +169,8 @@ func connectInboundLoop() {
 		}
 		log.Debugf("accepted connection from %s", conn.RemoteAddr().String())
 
-		manconn := network.NewManagedConnection(conn)
-		bconn := buffconn.NewBufferedConnection(manconn)
-		bconn.Events.ReceiveMessage.Attach(events.NewClosure(func(data []byte) {
-			receiveHandshakeInbound(bconn, data)
-		}))
-		bconn.Events.Close.Attach(events.NewClosure(func() {
-			log.Errorf("inbound closed during handshake %s", conn.RemoteAddr().String())
-		}))
+		//manconn := network.NewManagedConnection(conn)
+		bconn := newPeeredConnection(conn, nil)
 		go func() {
 			log.Debugf("starting reading inbound %s", conn.RemoteAddr().String())
 			if err := bconn.Read(); err != nil {
@@ -164,28 +179,4 @@ func connectInboundLoop() {
 			_ = bconn.Close()
 		}()
 	}
-}
-
-func receiveHandshakeInbound(bconn *buffconn.BufferedConnection, data []byte) {
-	peerAddr := string(data)
-	log.Debugf("received handshake inbound %s", peerAddr)
-
-	connectionsMutex.RLock()
-	cconn, ok := connections[peerAddr]
-	connectionsMutex.RUnlock()
-
-	if !ok || !cconn.isInbound() {
-		log.Errorf("inbound connection from unexpected peer %s. Closing..", peerAddr)
-		_ = bconn.Close()
-		return
-	}
-	cconn.setBufferedConnection(bconn, func(data []byte) {
-		cconn.receiveData(data)
-	})
-	if err := cconn.sendHandshake(); err != nil {
-		log.Errorf("error while sending handshake: %v", err)
-		cconn.close()
-		return
-	}
-	log.Infof("connected inbound %s", peerAddr)
 }

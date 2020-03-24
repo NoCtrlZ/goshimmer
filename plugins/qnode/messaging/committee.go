@@ -7,12 +7,12 @@ import (
 
 type CommitteeConn struct {
 	operator    SCOperator
-	connections []*qnodeConnection
+	connections []*qnodePeer
 }
 
 func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
-	connectionsMutex.RLock()
-	defer connectionsMutex.RUnlock()
+	peersMutex.RLock()
+	defer peersMutex.RUnlock()
 
 	cconn, ok := committees[*scid]
 	if !ok {
@@ -22,15 +22,15 @@ func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
 }
 
 func RegisterNewOperator(op SCOperator) *CommitteeConn {
-	connectionsMutex.Lock()
-	defer connectionsMutex.Unlock()
+	peersMutex.Lock()
+	defer peersMutex.Unlock()
 
 	if cconn, ok := committees[*op.SContractID()]; ok {
 		return cconn
 	}
 	ret := &CommitteeConn{
 		operator:    op,
-		connections: make([]*qnodeConnection, len(op.NodeAddresses())),
+		connections: make([]*qnodePeer, len(op.NodeAddresses())),
 	}
 	for i := range ret.connections {
 		if i == int(op.PeerIndex()) {
