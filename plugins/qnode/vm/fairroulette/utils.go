@@ -25,7 +25,7 @@ func distributePot(ctx vm.RuntimeContext, bets []*BetData, outputs []value.Outpu
 	for i, bet := range bets {
 		inputs[i] = bet.OutputRef
 	}
-	return ctx.SendOutputsToOutputs(inputs, outputs, ctx.AssemblyAccount())
+	return ctx.SendOutputsToOutputs(inputs, outputs, ctx.SContractAccount())
 }
 
 func collectWinners(bets []*BetData, color int) []value.Output {

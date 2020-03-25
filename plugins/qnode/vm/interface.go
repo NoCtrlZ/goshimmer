@@ -13,10 +13,9 @@ type Processor interface {
 }
 
 type RuntimeContext interface {
-	AssemblyAccount() *HashValue
+	SContractAccount() *HashValue
 	RequestVars() generic.ValueMap
 	StateVars() generic.ValueMap
-	ConfigVars() generic.ValueMap
 	SetError(error)
 	Error() error
 	MainRequestOutputs() sc.MainRequestOutputs

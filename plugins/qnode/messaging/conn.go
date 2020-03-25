@@ -112,7 +112,7 @@ func (c *qnodePeer) receiveData(data []byte) {
 	committee.recvDataCallback(senderIndex, msgType, msgData)
 }
 
-func (c *qnodePeer) SendMsgData(data []byte) error {
+func (c *qnodePeer) sendMsgData(data []byte) error {
 	c.RLock()
 	defer c.RUnlock()
 

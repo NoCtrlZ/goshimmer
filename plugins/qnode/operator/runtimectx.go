@@ -30,7 +30,7 @@ func (ctx *runtimeContext) ConfigVars() generic.ValueMap {
 	return ctx.state.MustState().Config().Vars()
 }
 
-func (ctx *runtimeContext) AssemblyAccount() *hashing.HashValue {
+func (ctx *runtimeContext) SContractAccount() *hashing.HashValue {
 	return ctx.state.MustState().Config().SContractAccount()
 }
 
@@ -90,8 +90,8 @@ func (ctx *runtimeContext) AddRequestToSelf(reqType uint16) error {
 	vars.SetInt("req_type", int(reqType))
 	_, err := clientapi.AddNewRequestBlock(ctx.resultTx, clientapi.NewRequestParams{
 		AssemblyId:       ctx.state.MustState().SContractId(),
-		AssemblyAccount:  ctx.AssemblyAccount(),
-		RequesterAccount: ctx.AssemblyAccount(),
+		AssemblyAccount:  ctx.SContractAccount(),
+		RequesterAccount: ctx.SContractAccount(),
 		Vars:             vars,
 	})
 	return err

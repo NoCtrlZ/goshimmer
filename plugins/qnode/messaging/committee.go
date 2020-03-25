@@ -63,7 +63,7 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 		return fmt.Errorf("attempt to send message to wrong peer index")
 	}
 	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
-	return cconn.peers[targetPeerIndex].SendMsgData(wrapped)
+	return cconn.peers[targetPeerIndex].sendMsgData(wrapped)
 }
 
 //
@@ -74,7 +74,7 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 //		if i == int(cconn.operator.PeerIndex()) {
 //			continue
 //		}
-//		if err := conn.SendMsgData(wrapped); err == nil {
+//		if err := conn.sendMsgData(wrapped); err == nil {
 //			log.Debugf("%v", err)
 //			sentTo++
 //		}

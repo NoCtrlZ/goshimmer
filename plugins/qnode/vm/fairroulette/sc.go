@@ -41,7 +41,7 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 	ctx.Log().Debugf("Req: %d StateVars: %+v", reqType, ctx.StateVars())
 
 	// taking values from the config section
-	minimumBet, _ := ctx.ConfigVars().GetInt("minimum_bet")
+	//minimumBet, _ := ctx.ConfigVars().GetInt("minimum_bet")
 
 	// current yet unlocked bets are stored as string in variable 'bets'
 	// as hex encoded json marshaled list of deposit outputs
@@ -100,14 +100,14 @@ func (_ *fairRoulette) Run(ctx vm.RuntimeContext) {
 			ctx.SetError(fmt.Errorf("deposit not found"))
 			return
 		}
-		if int(depositOutput.Value) < minimumBet {
-			ctx.SetError(fmt.Errorf("bet is too small, taken as donation"))
-			return
-		}
+		//if int(depositOutput.Value) < minimumBet {
+		//	ctx.SetError(fmt.Errorf("bet is too small, taken as donation"))
+		//	return
+		//}
 		payoutAddr, err := ctx.MainInputAddress()
 		if err != nil {
 			ctx.Log().Errorf("MainInputAddress returned: %v. Assuming payout to the smart contract account", err)
-			payoutAddr = ctx.AssemblyAccount()
+			payoutAddr = ctx.SContractAccount()
 		}
 		bets = append(bets, &BetData{
 			OutputRef:     &depositOutput.OutputRef,
