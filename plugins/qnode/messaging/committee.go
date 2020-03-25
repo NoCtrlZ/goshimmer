@@ -17,7 +17,7 @@ type CommitteeConn struct {
 	peers            []*qnodePeer
 }
 
-func GetCommittee(scid *hashing.HashValue) (*CommitteeConn, bool) {
+func getCommittee(scid *hashing.HashValue) (*CommitteeConn, bool) {
 	committeeMutex.RLock()
 	defer committeeMutex.RUnlock()
 
@@ -29,7 +29,7 @@ func GetCommittee(scid *hashing.HashValue) (*CommitteeConn, bool) {
 }
 
 func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
-	comm, ok := GetCommittee(scid)
+	comm, ok := getCommittee(scid)
 	if !ok {
 		return nil, false
 	}

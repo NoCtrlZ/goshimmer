@@ -95,7 +95,7 @@ func (c *qnodePeer) receiveData(data []byte) {
 		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
 		return
 	}
-	committee, ok := GetCommittee(scid)
+	committee, ok := getCommittee(scid)
 	if !ok {
 		log.Errorw("message for unexpected scontract",
 			"from", c.peerPortAddr.String(),
