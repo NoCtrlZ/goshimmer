@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/sha3"
+	"hash"
 	"math/rand"
 )
 
@@ -87,21 +89,29 @@ func HashValueFromString(s string) (*HashValue, error) {
 }
 
 func HashData(data ...[]byte) *HashValue {
+	return HashDataSha3(data...)
+}
+
+func HashDataBlake2b(data ...[]byte) *HashValue {
+	h, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+	return hashTheData(h, data)
+}
+
+func HashDataSha3(data ...[]byte) *HashValue {
 	h := sha3.New256()
+	return hashTheData(h, data)
+}
+
+func hashTheData(h hash.Hash, data [][]byte) *HashValue {
 	for _, d := range data {
 		h.Write(d)
 	}
 	var ret HashValue
 	copy(ret[:], h.Sum(nil))
 	return &ret
-}
-
-func HashHashes(hash ...*HashValue) *HashValue {
-	slices := make([][]byte, len(hash))
-	for i := range hash {
-		slices[i] = hash[i].Bytes()
-	}
-	return HashData(slices...)
 }
 
 func HashStrings(str ...string) *HashValue {
