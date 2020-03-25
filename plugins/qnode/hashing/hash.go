@@ -21,14 +21,6 @@ type HashableBytes []byte
 var nilHash HashValue
 var NilHash = &nilHash
 
-type Hashable interface {
-	Hash() *HashValue
-}
-
-func (hb HashableBytes) Hash() *HashValue {
-	return HashData(hb)
-}
-
 func (h *HashValue) Bytes() []byte {
 	return (*h)[:]
 }
