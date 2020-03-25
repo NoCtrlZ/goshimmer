@@ -20,6 +20,7 @@ require (
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
+	github.com/mr-tron/base58 v1.1.3
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.5.2

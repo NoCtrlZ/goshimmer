@@ -3,6 +3,7 @@ package hashing
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	// github.com/mr-tron/base58
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
@@ -33,14 +34,17 @@ func (h *HashValue) Bytes() []byte {
 }
 
 func (h *HashValue) String() string {
+	//return base58.Encode(h[:])
 	return hex.EncodeToString(h[:])
 }
 
 func (h *HashValue) Short() string {
+	//return base58.Encode((*h)[:6]) + ".."
 	return hex.EncodeToString((*h)[:6]) + ".."
 }
 
 func (h *HashValue) Shortest() string {
+	//return base58.Encode((*h)[:4])
 	return hex.EncodeToString((*h)[:4])
 }
 
@@ -76,6 +80,7 @@ func (h *HashValue) UnmarshalJSON(buf []byte) error {
 }
 
 func HashValueFromString(s string) (*HashValue, error) {
+	//b, err := base58.Decode(s)
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return nil, err
