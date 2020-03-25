@@ -12,11 +12,12 @@ var (
 )
 
 type CommitteeConn struct {
-	operator SCOperator
-	peers    []*qnodePeer
+	operator         SCOperator
+	recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte)
+	peers            []*qnodePeer
 }
 
-func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
+func GetCommittee(scid *hashing.HashValue) (*CommitteeConn, bool) {
 	committeeMutex.RLock()
 	defer committeeMutex.RUnlock()
 
@@ -24,10 +25,18 @@ func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
 	if !ok {
 		return nil, false
 	}
-	return cconn.operator, true
+	return cconn, true
 }
 
-func RegisterNewOperator(op SCOperator) *CommitteeConn {
+func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
+	comm, ok := GetCommittee(scid)
+	if !ok {
+		return nil, false
+	}
+	return comm.operator, true
+}
+
+func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte)) *CommitteeConn {
 	committeeMutex.Lock()
 	defer committeeMutex.Unlock()
 
@@ -35,8 +44,9 @@ func RegisterNewOperator(op SCOperator) *CommitteeConn {
 		return cconn
 	}
 	ret := &CommitteeConn{
-		operator: op,
-		peers:    make([]*qnodePeer, len(op.NodeAddresses())),
+		operator:         op,
+		recvDataCallback: recvDataCallback,
+		peers:            make([]*qnodePeer, len(op.NodeAddresses())),
 	}
 	for i := range ret.peers {
 		if i == int(op.PeerIndex()) {

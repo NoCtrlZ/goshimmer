@@ -12,8 +12,7 @@ type SCOperator interface {
 	CommitteeSize() uint16
 	PeerIndex() uint16
 	NodeAddresses() []*registry.PortAddr
-	ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error
-	ReceiveStateUpdate(msg *sc.StateUpdateMsg)
-	ReceiveRequest(msg *sc.RequestRef)
+	ReceiveStateUpdate(*sc.StateUpdateMsg)
+	ReceiveRequest(*sc.RequestRef)
 	IsDismissed() bool
 }

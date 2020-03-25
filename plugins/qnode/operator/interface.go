@@ -5,7 +5,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/pkg/errors"
 	"time"
 )
 
@@ -31,30 +30,6 @@ func (op *scOperator) NodeAddresses() []*registry.PortAddr {
 
 func NewFromState(tx sc.Transaction) (*scOperator, error) {
 	return newFromState(tx)
-}
-
-func (op *scOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {
-	switch msgType {
-	case msgTypePush:
-		msg, err := decodePushResultMsg(msgData)
-		if err != nil {
-			return err
-		}
-		msg.SenderIndex = senderIndex
-		op.postEventToQueue(msg)
-
-	case msgTypePull:
-		msg, err := decodePullResultMsg(msgData)
-		if err != nil {
-			return err
-		}
-		msg.SenderIndex = senderIndex
-		op.postEventToQueue(msg)
-
-	default:
-		return errors.New("wrong msg type")
-	}
-	return nil
 }
 
 func (op *scOperator) ReceiveStateUpdate(msg *sc.StateUpdateMsg) {

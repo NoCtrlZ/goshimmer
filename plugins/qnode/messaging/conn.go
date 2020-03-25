@@ -95,7 +95,7 @@ func (c *qnodePeer) receiveData(data []byte) {
 		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
 		return
 	}
-	oper, ok := GetOperator(scid)
+	committee, ok := GetCommittee(scid)
 	if !ok {
 		log.Errorw("message for unexpected scontract",
 			"from", c.peerPortAddr.String(),
@@ -105,13 +105,11 @@ func (c *qnodePeer) receiveData(data []byte) {
 		)
 		return
 	}
-	if senderIndex >= oper.CommitteeSize() || senderIndex == oper.PeerIndex() {
+	if senderIndex >= committee.operator.CommitteeSize() || senderIndex == committee.operator.PeerIndex() {
 		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", senderIndex)
 		return
 	}
-	if err = oper.ReceiveMsgData(senderIndex, msgType, msgData); err != nil {
-		log.Errorw("msg error", "from", c.peerPortAddr.String(), "senderIndex", senderIndex)
-	}
+	committee.recvDataCallback(senderIndex, msgType, msgData)
 }
 
 func (c *qnodePeer) SendMsgData(data []byte) error {

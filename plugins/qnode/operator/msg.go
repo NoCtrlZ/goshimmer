@@ -32,6 +32,31 @@ const (
 	msgTypePull = byte(2)
 )
 
+func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte) {
+	switch msgType {
+	case msgTypePush:
+		msg, err := decodePushResultMsg(msgData)
+		if err != nil {
+			log.Errorf("receiveMsgData: error while decoding push mseesage: %v", err)
+			return
+		}
+		msg.SenderIndex = senderIndex
+		op.postEventToQueue(msg)
+
+	case msgTypePull:
+		msg, err := decodePullResultMsg(msgData)
+		if err != nil {
+			log.Errorf("receiveMsgData: error while decoding pull mseesage: %v", err)
+			return
+		}
+		msg.SenderIndex = senderIndex
+		op.postEventToQueue(msg)
+
+	default:
+		log.Errorf("receiveMsgData: wrong msg type")
+	}
+}
+
 func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
 	buf.Write(msg.RequestId.Bytes())
 	buf.Write(msg.MasterDataHash.Bytes())
