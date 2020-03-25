@@ -89,14 +89,14 @@ func NewResultTransaction(reqRef *sc.RequestRef, config sc.Config) (sc.Transacti
 	if requestChainOutput.Value != 1 {
 		return nil, fmt.Errorf("request chain output must be 1i")
 	}
-	if !value.OutputCanBeChained(&requestChainOutput.OutputRef, config.AssemblyAccount()) {
+	if !value.OutputCanBeChained(&requestChainOutput.OutputRef, config.SContractAccount()) {
 		return nil, fmt.Errorf("invalid request chain output")
 	}
 	tx := sc.NewTransaction()
 	// add request chain link
 	// transfer 1i from RequestChainAddress to itself
 	tx.Transfer().AddInput(value.NewInputFromOutputRef(&requestChainOutput.OutputRef))
-	tx.Transfer().AddOutput(value.NewOutput(config.AssemblyAccount(), 1))
+	tx.Transfer().AddOutput(value.NewOutput(config.SContractAccount(), 1))
 	return tx, nil
 }
 
@@ -110,9 +110,9 @@ func NextStateUpdateTransaction(prevStateTx sc.Transaction, reqRef *sc.RequestRe
 		return nil, err
 	}
 	tx.Transfer().AddInput(value.NewInput(prevStateTx.Transfer().Id(), prevStateTx.MustState().StateChainOutputIndex()))
-	chainOutIdx := tx.Transfer().AddOutput(value.NewOutput(prevState.Config().AssemblyAccount(), 1))
+	chainOutIdx := tx.Transfer().AddOutput(value.NewOutput(prevState.Config().SContractAccount(), 1))
 
-	nextState := sc.NewStateBlock(prevState.AssemblyId(), prevState.Config().Id(), reqRef)
+	nextState := sc.NewStateBlock(prevState.SContractId(), prevState.Config().Id(), reqRef)
 	nextState.
 		WithStateIndex(prevState.StateIndex() + 1).
 		WithVars(prevState.Vars()).
@@ -125,7 +125,7 @@ func NextStateUpdateTransaction(prevStateTx sc.Transaction, reqRef *sc.RequestRe
 func ErrorTransaction(reqRef *sc.RequestRef, config sc.Config, resultErr error) (sc.Transaction, error) {
 	tx := sc.NewTransaction()
 	// with empty transfer
-	errState := sc.NewStateBlock(reqRef.RequestBlock().AssemblyId(), config.Id(), reqRef).
+	errState := sc.NewStateBlock(reqRef.RequestBlock().SContractId(), config.Id(), reqRef).
 		WithError(resultErr)
 	tx.SetState(errState)
 	return tx, nil

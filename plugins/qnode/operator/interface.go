@@ -9,14 +9,8 @@ import (
 	"time"
 )
 
-type SenderId struct {
-	IpAddr string
-	Port   int
-	Index  uint16
-}
-
 func (op *scOperator) SContractID() *hashing.HashValue {
-	return op.assemblyId
+	return op.scid
 }
 
 func (op *scOperator) Quorum() uint16 {
@@ -41,7 +35,7 @@ func NewFromState(tx sc.Transaction) (*scOperator, error) {
 
 func (op *scOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData []byte) error {
 	switch msgType {
-	case MSG_PUSH_MSG:
+	case msgTypePush:
 		msg, err := decodePushResultMsg(msgData)
 		if err != nil {
 			return err
@@ -49,7 +43,7 @@ func (op *scOperator) ReceiveMsgData(senderIndex uint16, msgType byte, msgData [
 		msg.SenderIndex = senderIndex
 		op.postEventToQueue(msg)
 
-	case MSG_PULL_MSG:
+	case msgTypePull:
 		msg, err := decodePullResultMsg(msgData)
 		if err != nil {
 			return err

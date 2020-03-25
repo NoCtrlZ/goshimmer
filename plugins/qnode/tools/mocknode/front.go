@@ -243,7 +243,7 @@ func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 	if tx == nil {
 		return ret
 	}
-	ret.ScId = tx.MustState().AssemblyId().String()
+	ret.ScId = tx.MustState().SContractId().String()
 	ret.LastGameTx = lastGameTx
 	ret.LastDistribTrid = lastDistribTrid
 	ret.NumBets = len(ret.Bets)
@@ -263,8 +263,8 @@ func getScAccount() accountInfo {
 	if tx == nil {
 		return ret
 	}
-	ret.Account = tx.MustState().Config().AssemblyAccount().String()
-	ret.Amount = value.GetBalance(tx.MustState().Config().AssemblyAccount())
+	ret.Account = tx.MustState().Config().SContractAccount().String()
+	ret.Amount = value.GetBalance(tx.MustState().Config().SContractAccount())
 	return ret
 }
 

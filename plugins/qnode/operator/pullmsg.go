@@ -24,7 +24,7 @@ func (op *scOperator) sendPullMessages(res *resultCalculated, haveVotes uint16, 
 		if rh == nil && uint16(idx) != op.PeerIndex() {
 			var buf bytes.Buffer
 			encodePullResultMsg(msg, &buf)
-			err := op.comm.SendMsg(uint16(idx), MSG_PULL_MSG, buf.Bytes())
+			err := op.comm.SendMsg(uint16(idx), msgTypePull, buf.Bytes())
 			if err != nil {
 				log.Error(err)
 			}

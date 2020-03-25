@@ -45,7 +45,7 @@ func (cfg *mockConfig) Vars() generic.ValueMap {
 	return cfg.vars
 }
 
-func (cfg *mockConfig) AssemblyAccount() *HashValue {
+func (cfg *mockConfig) SContractAccount() *HashValue {
 	addr, ok := cfg.vars.GetString(sc.MAP_KEY_ASSEMBLY_ACCOUNT)
 	if !ok {
 		return NilHash
@@ -97,7 +97,7 @@ func newStateBlock(aid, cid *HashValue, reqRef *sc.RequestRef) sc.State {
 
 // state
 
-func (st *mockStateBlock) AssemblyId() *HashValue {
+func (st *mockStateBlock) SContractId() *HashValue {
 	return st.assemblyId
 }
 

@@ -28,8 +28,8 @@ type pullResultMsg struct {
 type timerMsg int
 
 const (
-	MSG_PUSH_MSG = byte(1)
-	MSG_PULL_MSG = byte(2)
+	msgTypePush = byte(1)
+	msgTypePull = byte(2)
 )
 
 func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {

@@ -22,7 +22,7 @@ type Transaction interface {
 }
 
 type State interface {
-	AssemblyId() *HashValue
+	SContractId() *HashValue
 	RequestRef() (*RequestRef, bool)
 	StateIndex() uint32
 	Error() error
@@ -39,7 +39,7 @@ type State interface {
 type Config interface {
 	Id() *HashValue
 	Vars() generic.ValueMap
-	AssemblyAccount() *HashValue
+	SContractAccount() *HashValue
 	OwnerAccount() *HashValue
 	MinimumReward() uint64
 	OwnersMargin() byte // owner's take in percents
@@ -61,7 +61,7 @@ type MainRequestOutputs struct {
 }
 
 type Request interface {
-	AssemblyId() *HashValue
+	SContractId() *HashValue
 	IsConfigUpdateReq() bool
 	Vars() generic.ValueMap
 	MainOutputs(Transaction) MainRequestOutputs

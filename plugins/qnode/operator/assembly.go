@@ -16,7 +16,7 @@ import (
 type scOperator struct {
 	sync.RWMutex
 	dismissed         bool
-	assemblyId        *HashValue
+	scid              *HashValue
 	cfgData           *registry.ConfigData
 	processor         vm.Processor
 	stateTx           sc.Transaction
@@ -63,7 +63,7 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	state, _ := tx.State()
 
 	ret := &scOperator{
-		assemblyId:        state.AssemblyId(),
+		scid:              state.SContractId(),
 		processor:         fairroulette.New(),
 		requests:          make(map[HashValue]*request),
 		processedRequests: make(map[HashValue]time.Duration),
@@ -87,7 +87,7 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 
 func (op *scOperator) configure(cfgId *HashValue) (bool, error) {
 	var err error
-	op.cfgData, err = registry.LoadConfig(op.assemblyId, cfgId)
+	op.cfgData, err = registry.LoadConfig(op.scid, cfgId)
 	if err != nil {
 		return false, err
 	}

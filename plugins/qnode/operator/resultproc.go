@@ -42,7 +42,7 @@ func (op *scOperator) processRequest(req *request) {
 	}
 	if err != nil {
 		req.log.Warnw("can't create runtime context",
-			"aid", req.reqRef.RequestBlock().AssemblyId().Short(),
+			"aid", req.reqRef.RequestBlock().SContractId().Short(),
 			"isConfigUpdate", req.reqRef.RequestBlock().IsConfigUpdateReq(),
 			"err", err,
 		)
@@ -93,7 +93,7 @@ func (op *scOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint
 
 	var encodedMsg bytes.Buffer
 	encodePushResultMsg(pushMsg, &encodedMsg)
-	err = op.comm.SendMsg(peerIndex, MSG_PUSH_MSG, encodedMsg.Bytes())
+	err = op.comm.SendMsg(peerIndex, msgTypePush, encodedMsg.Bytes())
 	if err != nil {
 		locLog.Errorf("SendUDPData returned error: `%v`", err)
 	}

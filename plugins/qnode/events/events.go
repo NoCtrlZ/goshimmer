@@ -40,14 +40,14 @@ func transactionEventHandler(vtx value.Transaction) {
 	}
 	if st, ok := tx.State(); ok {
 		// it is state update
-		_, ok := registry.GetAssemblyData(st.AssemblyId())
+		_, ok := registry.GetAssemblyData(st.SContractId())
 		if ok {
 			// state update has to be processed by this node
 			processState(tx)
 		}
 	}
 	for i, req := range tx.Requests() {
-		aid := req.AssemblyId()
+		aid := req.SContractId()
 		_, ok := registry.GetAssemblyData(aid)
 		if ok {
 			// request has to be processed by the node
@@ -59,7 +59,7 @@ func transactionEventHandler(vtx value.Transaction) {
 
 func processState(tx sc.Transaction) {
 	state, _ := tx.State()
-	oper, operatorAvailable := messaging.GetOperator(state.AssemblyId())
+	oper, operatorAvailable := messaging.GetOperator(state.SContractId())
 	if operatorAvailable {
 		// process config update as normal request
 		oper.ReceiveStateUpdate(&sc.StateUpdateMsg{
@@ -76,12 +76,12 @@ func processState(tx sc.Transaction) {
 		log.Warnf("processState: this node does not process assembly %s", tx.ShortStr())
 		return
 	}
-	log.Infof("processState: new operator created for aid %s", state.AssemblyId().Short())
+	log.Infof("processState: new operator created for aid %s", state.SContractId().Short())
 }
 
 func processRequest(reqRef *sc.RequestRef) {
 	req := reqRef.RequestBlock()
-	if oper, ok := messaging.GetOperator(req.AssemblyId()); ok {
+	if oper, ok := messaging.GetOperator(req.SContractId()); ok {
 		oper.ReceiveRequest(reqRef)
 	}
 }

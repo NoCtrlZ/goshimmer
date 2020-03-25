@@ -31,7 +31,7 @@ func postOriginIfNeeded() {
 
 	originPosted = true
 	ownerTxPosted = true
-	fmt.Printf("origin posted for assembly %s\n", tx.MustState().AssemblyId().Short())
+	fmt.Printf("origin posted for assembly %s\n", tx.MustState().SContractId().Short())
 
 	postTx(ownerTx)
 	postTx(tx)

@@ -46,7 +46,7 @@ func (req *mockRequestBlock) Encode() generic.Encode {
 	return req
 }
 
-func (req *mockRequestBlock) AssemblyId() *HashValue {
+func (req *mockRequestBlock) SContractId() *HashValue {
 	return req.assemblyId
 }
 
