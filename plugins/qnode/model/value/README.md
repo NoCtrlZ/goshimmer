@@ -20,9 +20,9 @@ Each `input[i]` is an **output reference**, the reference to some output in anot
 #### Outputs
 `outputs` is an array: `output[0]`, `output[1]`, ..., `output[M-1]`
 
-Each `output[i]` is `address` and `balance`
+Each `output[i]` is `address` and `value`
 
-`output` ::= (`address`, `balance`)
+`output` ::= (`address`, `value`)
 
 Individual output within the UTXO transfer is uniquely identified by its **index** in the array.
 Sequence of outputs within the transfer is fixed and deterministic. 
