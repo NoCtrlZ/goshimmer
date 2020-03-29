@@ -6,14 +6,14 @@ UTXO transfer consists of:
 - M **outputs**
 - **signatures**
 
-UTXO transfer is part of the value transaction and can be located by transaction ID.
+UTXO transfer is part of the value transaction. It can be located by transaction ID.
 
 #### Inputs
 `Inputs` is an array: `input[0]`, `input[1]`, ..., `input[N-1]`
 
 Individual input within the UTXO transfer is uniquely identified by its **index**.
 
-Sequence of inputs with the transfer is fixed and deterministic. 
+Sequence of inputs within the transfer is fixed and deterministic. 
 
 Each `input[i]` is an **output reference**, the reference to some output in another transfer (see below).
 
@@ -28,12 +28,13 @@ Individual output within the UTXO transfer is uniquely identified by its **index
 Sequence of outputs within the transfer is fixed and deterministic. 
 
 Outside of the UTXO transaction is uniquely identified by `output reference`: 
-`transaction id` and `output index 
+`transaction id` and `output index` 
 within that transaction. 
 
-An input of the UTXO transfer references corresponding output by its output reference. 
-
 `output ref` ::= (`txid`, `output index`)
+
+An input of the UTXO transfer always references corresponding output in another UTXO transfer by its output reference. 
+
 
 `transaction id` is 32 bytes, index is 2 bytes (2^32 maximum number of outputs with the transfer)
 
