@@ -38,14 +38,14 @@ An input of the UTXO transfer always references corresponding output in another 
 
 `transaction id` is 32 bytes, index is 2 bytes (2^32 maximum number of outputs with the transfer)
 
-So reference to output will take 34 bytes.
+So reference to output (= input) will take 34 bytes.
 
-#### DB of outputs
+#### Database of outputs
 
-The node will have to maintain database of outputs. It will contain index of all outputs of solidified transactions. 
-There two main functions:
+The node will have to maintain index of all outputs. 
+There two main functions to access it:
 
-- `getOutputByOutputRefernce(txis, outputIdx)` it returns (`address`, `balance`). It is needed for example for signing   
+- `getOutputByOutputReference(txid, outputIdx)` it returns (`address`, `balance`). It is needed for example for signing   
 - `getUnspentOutputsForAddress(address)` it returns all unspent outputs. It is needed for the wallet and similar.
 
 #### Signing of the UTXO transfer
@@ -55,16 +55,19 @@ There two main functions:
 3. group inputs by addresses
 4. produce signature for each address
 
+Result is a deterministic order of signatures
+
 #### Validation of the transfer
 For an UTXO transfer to be correct the sum of input balances must be equal to the sum of output balances.
 Balances of outputs are in the transaction.
 
-Balances of inputs must be collected via output database using outputs references in the inouts. 
+Balances of inputs must be collected via output database using outputs references in the inputs. 
 
 #### Determinism
 
-Result is deterministic order if inputs, outputs and signatures.
+Result is deterministic order of inputs, outputs and signatures within the transaction.
 
-No need for Go maps and more complicated to overcome non-deterministic order of iteration along the Go map.    
+No need for Go maps and more complicated structures to solve a problem with non-deterministic order of iteration along Go maps.    
 
-    
+Almost 2 times less bytes needed for inputs -> significantly smaller value transactions
+
