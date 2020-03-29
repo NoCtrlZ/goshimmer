@@ -65,7 +65,7 @@ Balances of inputs must be collected via output database using outputs reference
 
 #### Determinism
 
-Result is deterministic order of inputs, outputs and signatures within the transaction.
+Result is deterministic order of inputs, outputs and signatures within the transaction. It also remains deterministically ordered when mashalling/unmarshalling
 
 No need for Go maps and more complicated structures to solve a problem with non-deterministic order of iteration along Go maps.    
 
