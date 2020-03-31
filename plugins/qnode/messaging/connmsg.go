@@ -8,7 +8,7 @@ import (
 
 // message type is 1 byte
 // from 0 until maxSpecMsgCode inclusive it is reserved for heartbeat and other message types
-// these messages are processed by receiveSpecMsg method
+// these messages are processed by receiveConnMsg method
 // the rest are forwarded to SC operator
 
 const (
