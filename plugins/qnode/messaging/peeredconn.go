@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-// extention of BufferedConnection
+// extension of BufferedConnection
 // handles handshake and links with peer according to handshake information
 
 type peeredConnection struct {
@@ -28,6 +28,10 @@ func newPeeredConnection(conn net.Conn, peer *qnodePeer) *peeredConnection {
 			bconn.peer.Lock()
 			bconn.peer.peerconn = nil
 			bconn.peer.handshakeOk = false
+			if bconn.peer.stopHeartbeat != nil {
+				bconn.peer.stopHeartbeat()
+				bconn.peer.stopHeartbeat = nil
+			}
 			bconn.peer.Unlock()
 		}
 	}))
@@ -52,6 +56,7 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 		} else {
 			log.Infof("handshake ok with peer %s", peerAddr)
 			bconn.peer.handshakeOk = true
+			bconn.peer.stopHeartbeat = bconn.peer.startHeartbeat()
 		}
 		return
 	}
@@ -73,6 +78,7 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 	peer.Lock()
 	peer.peerconn = bconn
 	peer.handshakeOk = true
+	peer.stopHeartbeat = peer.startHeartbeat()
 	peer.Unlock()
 
 	if err := peer.sendHandshake(); err != nil {

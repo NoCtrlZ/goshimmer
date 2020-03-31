@@ -73,6 +73,7 @@ func addPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
 		RWMutex:      &sync.RWMutex{},
 		peerPortAddr: portAddr,
 		startOnce:    &sync.Once{},
+		hbMutex:      &sync.RWMutex{},
 	}
 	log.Debugf("added new peer connection %s inbound = %v", addr, peers[addr].isInbound())
 	return peers[addr]

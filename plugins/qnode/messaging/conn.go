@@ -11,10 +11,16 @@ import (
 
 type qnodePeer struct {
 	*sync.RWMutex
-	peerconn     *peeredConnection // nil mean not connected
+	peerconn     *peeredConnection // nil means not connected
 	handshakeOk  bool
 	peerPortAddr *registry.PortAddr
 	startOnce    *sync.Once
+	// heartbeats and latencies
+	hbMutex       *sync.RWMutex
+	lastHeartbeat time.Time
+	latency       [lastHB]int64
+	latencyIdx    int
+	stopHeartbeat func()
 }
 
 const (
@@ -93,6 +99,11 @@ func (c *qnodePeer) receiveData(data []byte) {
 	scid, senderIndex, msgType, msgData, err := unwrapPacket(data)
 	if err != nil {
 		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
+		return
+	}
+	if msgType < FIRST_SC_MSG_TYPE {
+		// process special message
+		c.receiveConnMsg(msgType, msgData)
 		return
 	}
 	committee, ok := getCommittee(scid)
