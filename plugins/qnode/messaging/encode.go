@@ -2,47 +2,77 @@ package messaging
 
 import (
 	"bytes"
+	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
+	"time"
 )
 
-// structure of the spec message
-// type byte + data
-// structure of the committee msg
-// type byte, 32 bytes scid, 2 bytes sender index, data
+// structure of the message:
+// timestamp   8 bytes
+// msg type    1 byte
+// is type != 0, next:
+// scid 32 bytes
+// sender index 2 bytes
+// data variable bytes
 
-func unwrapPacket(data []byte) (*HashValue, uint16, byte, []byte, error) {
-	rdr := bytes.NewBuffer(data)
-	msgType, err := tools.ReadByte(rdr)
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	if msgType < FIRST_SC_MSG_TYPE {
-		// special comm message
-		return nil, 0, msgType, rdr.Bytes(), nil
-	}
-
-	var aid HashValue
-	_, err = rdr.Read(aid.Bytes())
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	var senderIndex uint16
-	err = tools.ReadUint16(rdr, &senderIndex)
-	if err != nil {
-		return nil, 0, 0, nil, err
-	}
-	return &aid, senderIndex, msgType, rdr.Bytes(), nil
+type unwrappedPacket struct {
+	ts          int64
+	msgType     byte
+	scid        *HashValue
+	senderIndex uint16
+	data        []byte
 }
 
-func wrapPacket(aid *HashValue, senderIndex uint16, msgType byte, data []byte) []byte {
-	var buf bytes.Buffer
-	buf.WriteByte(msgType)
-	if msgType >= FIRST_SC_MSG_TYPE {
-		// committee message
-		buf.Write(aid.Bytes())
-		_ = tools.WriteUint16(&buf, senderIndex)
+func unmarshalPacket(data []byte) (*unwrappedPacket, error) {
+	if len(data) < 9 {
+		return nil, fmt.Errorf("too short message")
 	}
-	buf.Write(data)
-	return buf.Bytes()
+	rdr := bytes.NewBuffer(data)
+	var uts uint64
+	err := tools.ReadUint64(rdr, &uts)
+	if err != nil {
+		return nil, err
+	}
+	ret := &unwrappedPacket{
+		ts: int64(uts),
+	}
+	ret.msgType, err = tools.ReadByte(rdr)
+	if err != nil {
+		return nil, err
+	}
+	if ret.msgType == 0 {
+		return ret, nil
+	}
+	// committee message
+	var scid HashValue
+	_, err = rdr.Read(scid.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	ret.scid = &scid
+	err = tools.ReadUint16(rdr, &ret.senderIndex)
+	if err != nil {
+		return nil, err
+	}
+	ret.data = rdr.Bytes()
+	return ret, nil
+}
+
+// also puts timestamp
+
+func marshalPacket(up *unwrappedPacket) ([]byte, time.Time) {
+	var buf bytes.Buffer
+	// puts timestamp
+	ts := time.Now()
+	_ = tools.WriteUint64(&buf, uint64(ts.UnixNano()))
+	if up == nil || up.msgType == 0 {
+		buf.WriteByte(0)
+		return buf.Bytes(), ts
+	}
+	buf.WriteByte(up.msgType)
+	buf.Write(up.scid.Bytes())
+	_ = tools.WriteUint16(&buf, up.senderIndex)
+	buf.Write(up.data)
+	return buf.Bytes(), ts
 }

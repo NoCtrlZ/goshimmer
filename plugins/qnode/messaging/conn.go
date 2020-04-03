@@ -16,11 +16,10 @@ type qnodePeer struct {
 	peerPortAddr *registry.PortAddr
 	startOnce    *sync.Once
 	// heartbeats and latencies
-	hbMutex       *sync.RWMutex
-	lastHeartbeat time.Time
-	latency       [lastHB]int64
-	latencyIdx    int
-	stopHeartbeat func()
+	lastHeartbeatReceived time.Time
+	lastHeartbeatSent     time.Time
+	latency               [numHeartBeatsToKeep]int64
+	hbIdx                 int
 }
 
 const (
@@ -52,11 +51,11 @@ func (c *qnodePeer) closeConn() {
 }
 
 func (c *qnodePeer) runOutbound() {
-	if c.peerconn != nil {
-		panic("c.peerconn != nil")
-	}
 	if c.isInbound() {
 		return
+	}
+	if c.peerconn != nil {
+		panic("c.peerconn != nil")
 	}
 	log.Debugf("runOutbound %s", c.peerPortAddr.String())
 
@@ -96,31 +95,31 @@ func (c *qnodePeer) sendHandshake() error {
 }
 
 func (c *qnodePeer) receiveData(data []byte) {
-	scid, senderIndex, msgType, msgData, err := unwrapPacket(data)
+	packet, err := unmarshalPacket(data)
 	if err != nil {
 		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
 		return
 	}
-	if msgType < FIRST_SC_MSG_TYPE {
-		// process special message
-		c.receiveConnMsg(msgType, msgData)
+	c.receiveHeartbeat(packet.ts)
+	if packet.msgType == 0 {
+		// heartbeat message
 		return
 	}
-	committee, ok := getCommittee(scid)
+	committee, ok := getCommittee(packet.scid)
 	if !ok {
 		log.Errorw("message for unexpected scontract",
 			"from", c.peerPortAddr.String(),
-			"scid", scid.Short(),
-			"senderIndex", senderIndex,
-			"msgType", msgType,
+			"scid", packet.scid.Short(),
+			"senderIndex", packet.senderIndex,
+			"msgType", packet.msgType,
 		)
 		return
 	}
-	if senderIndex >= committee.operator.CommitteeSize() || senderIndex == committee.operator.PeerIndex() {
-		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", senderIndex)
+	if packet.senderIndex >= committee.operator.CommitteeSize() || packet.senderIndex == committee.operator.PeerIndex() {
+		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", packet.senderIndex)
 		return
 	}
-	committee.recvDataCallback(senderIndex, msgType, msgData)
+	committee.recvDataCallback(packet.senderIndex, packet.msgType, packet.data)
 }
 
 func (c *qnodePeer) sendMsgData(data []byte) error {
@@ -134,5 +133,6 @@ func (c *qnodePeer) sendMsgData(data []byte) error {
 	if num != len(data) {
 		return fmt.Errorf("not all bytes written. err = %v", err)
 	}
+	go c.scheduleNexHeartbeat()
 	return err
 }

@@ -3,7 +3,6 @@ package operator
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
@@ -29,7 +28,7 @@ type pullResultMsg struct {
 type timerMsg int
 
 const (
-	msgTypePush = messaging.FIRST_SC_MSG_TYPE
+	msgTypePush = byte(1)
 	msgTypePull = msgTypePush + 1
 )
 
@@ -38,7 +37,7 @@ func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData [
 	case msgTypePush:
 		msg, err := decodePushResultMsg(msgData)
 		if err != nil {
-			log.Errorf("receiveMsgData: error while decoding push mseesage: %v", err)
+			log.Errorf("receiveMsgData: error while decoding push message: %v", err)
 			return
 		}
 		msg.SenderIndex = senderIndex
@@ -47,7 +46,7 @@ func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData [
 	case msgTypePull:
 		msg, err := decodePullResultMsg(msgData)
 		if err != nil {
-			log.Errorf("receiveMsgData: error while decoding pull mseesage: %v", err)
+			log.Errorf("receiveMsgData: error while decoding pull message: %v", err)
 			return
 		}
 		msg.SenderIndex = senderIndex

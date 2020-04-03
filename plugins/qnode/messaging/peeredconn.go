@@ -4,6 +4,7 @@ import (
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
 	"net"
+	"time"
 )
 
 // extension of BufferedConnection
@@ -28,10 +29,6 @@ func newPeeredConnection(conn net.Conn, peer *qnodePeer) *peeredConnection {
 			bconn.peer.Lock()
 			bconn.peer.peerconn = nil
 			bconn.peer.handshakeOk = false
-			if bconn.peer.stopHeartbeat != nil {
-				bconn.peer.stopHeartbeat()
-				bconn.peer.stopHeartbeat = nil
-			}
 			bconn.peer.Unlock()
 		}
 	}))
@@ -42,7 +39,7 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 	if bconn.peer != nil {
 		// it is peered but maybe not handshaked (outbound)
 		if bconn.peer.handshakeOk {
-			// is is handshaked
+			// it is handshaked
 			bconn.peer.receiveData(data)
 			return
 		}
@@ -56,7 +53,9 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 		} else {
 			log.Infof("handshake ok with peer %s", peerAddr)
 			bconn.peer.handshakeOk = true
-			bconn.peer.stopHeartbeat = bconn.peer.startHeartbeat()
+
+			bconn.peer.receiveHeartbeat(time.Now().UnixNano())
+			go bconn.peer.scheduleNexHeartbeat()
 		}
 		return
 	}
@@ -78,10 +77,12 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 	peer.Lock()
 	peer.peerconn = bconn
 	peer.handshakeOk = true
-	peer.stopHeartbeat = peer.startHeartbeat()
 	peer.Unlock()
 
-	if err := peer.sendHandshake(); err != nil {
+	if err := peer.sendHandshake(); err == nil {
+		bconn.peer.receiveHeartbeat(time.Now().UnixNano())
+		go bconn.peer.scheduleNexHeartbeat()
+	} else {
 		log.Error("error while responding to handshake: %v. Closing connection", err)
 		_ = bconn.Close()
 	}

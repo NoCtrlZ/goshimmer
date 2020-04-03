@@ -60,15 +60,34 @@ func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16
 
 func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgData []byte) error {
 	if targetPeerIndex == cconn.operator.PeerIndex() || int(targetPeerIndex) >= len(cconn.peers) {
-		return fmt.Errorf("attempt to send message to wrong peer index")
+		return fmt.Errorf("attempt to send message to the wrong peer index")
 	}
-	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
-	return cconn.peers[targetPeerIndex].sendMsgData(wrapped)
+	if msgType == 0 {
+		panic("reserved msg type 0")
+	}
+
+	peer := cconn.peers[targetPeerIndex]
+
+	var wrapped []byte
+
+	wrapped, ts := marshalPacket(&unwrappedPacket{
+		msgType:     msgType,
+		scid:        cconn.operator.SContractID(),
+		senderIndex: cconn.operator.PeerIndex(),
+		data:        msgData,
+	})
+
+	peer.Lock()
+	peer.lastHeartbeatSent = ts
+	peer.Unlock()
+
+	err := peer.sendMsgData(wrapped)
+	return err
 }
 
 //
 //func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) uint16 {
-//	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
+//	wrapped := marshalPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
 //	var sentTo uint16
 //	for i, conn := range cconn.peers {
 //		if i == int(cconn.operator.PeerIndex()) {
