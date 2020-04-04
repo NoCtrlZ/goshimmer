@@ -4,7 +4,6 @@ import (
 	"github.com/iotaledger/hive.go/events"
 	"github.com/iotaledger/hive.go/netutil/buffconn"
 	"net"
-	"time"
 )
 
 // extension of BufferedConnection
@@ -36,32 +35,64 @@ func newPeeredConnection(conn net.Conn, peer *qnodePeer) *peeredConnection {
 }
 
 func (bconn *peeredConnection) receiveData(data []byte) {
-	if bconn.peer != nil {
-		// it is peered but maybe not handshaked (outbound)
-		if bconn.peer.handshakeOk {
-			// it is handshaked
-			bconn.peer.receiveData(data)
-			return
-		}
-		// not handshaked => expected handshake message
-		peerAddr := string(data)
-		log.Debugf("received handshake %s", peerAddr)
-		if peerAddr != bconn.peer.peerPortAddr.String() {
-			log.Error("closeConn the peer connection: wrong handshake message from outbound peer: expected %s got '%s'",
-				bconn.peer.peerPortAddr.String(), peerAddr)
-			bconn.peer.closeConn()
-		} else {
-			log.Infof("handshake ok with peer %s", peerAddr)
-			bconn.peer.handshakeOk = true
-
-			bconn.peer.receiveHeartbeat(time.Now().UnixNano())
-			go bconn.peer.scheduleNexHeartbeat()
-		}
+	packet, err := unwrapPacket(data)
+	if err != nil {
+		log.Error("unwrapPacket: %v", err)
+		bconn.peer.closeConn()
 		return
 	}
-	// not peered, expected handshake message (inbound)
-	peerAddr := string(data)
-	log.Debugf("received handshake %s", peerAddr)
+	if bconn.peer != nil {
+		// it is peered but maybe not handshaked (can be only outbound)
+		if bconn.peer.handshakeOk {
+			// it is handshaked
+			// just receive data
+			bconn.peer.receiveData(packet)
+		} else {
+			// not handshaked => do handshake
+			bconn.processHandShakeOutbound(packet)
+		}
+	} else {
+		// not peered yet can be only inbound
+		// peer up and do handshhake
+		bconn.processHandShakeInbound(packet)
+	}
+}
+
+// receives handshake response from the outbound peer
+// assumes the connection is already peered (i can be only for outbound peers)
+
+func (bconn *peeredConnection) processHandShakeOutbound(packet *unwrappedPacket) {
+	if packet.msgType != MsgTypeHandshake {
+		log.Errorf("unexpected message during handshake")
+		return
+	}
+	peerAddr := string(packet.data)
+	log.Debugf("received handshake from outbound %s", peerAddr)
+	if peerAddr != bconn.peer.peerPortAddr.String() {
+		log.Error("closeConn the peer connection: wrong handshake message from outbound peer: expected %s got '%s'",
+			bconn.peer.peerPortAddr.String(), peerAddr)
+		bconn.peer.closeConn()
+	} else {
+		log.Infof("handshake ok with peer %s", peerAddr)
+		bconn.peer.handshakeOk = true
+
+		bconn.peer.initHeartbeats()
+		bconn.peer.receiveHeartbeat(packet.ts)
+		go bconn.peer.scheduleNexHeartbeat()
+	}
+}
+
+// receives handshake from the inbound peer
+// links connection with the peer
+// sends response back to finish the handshake
+
+func (bconn *peeredConnection) processHandShakeInbound(packet *unwrappedPacket) {
+	if packet.msgType != MsgTypeHandshake {
+		log.Errorf("unexpected message during handshake")
+		return
+	}
+	peerAddr := string(packet.data)
+	log.Debugf("received handshake from inbound %s", peerAddr)
 
 	peersMutex.RLock()
 	peer, ok := peers[peerAddr]
@@ -80,10 +111,12 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 	peer.Unlock()
 
 	if err := peer.sendHandshake(); err == nil {
-		bconn.peer.receiveHeartbeat(time.Now().UnixNano())
+		bconn.peer.initHeartbeats()
+		bconn.peer.receiveHeartbeat(packet.ts)
 		go bconn.peer.scheduleNexHeartbeat()
 	} else {
 		log.Error("error while responding to handshake: %v. Closing connection", err)
 		_ = bconn.Close()
 	}
+
 }

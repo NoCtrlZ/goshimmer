@@ -23,6 +23,11 @@ type qnodePeer struct {
 }
 
 const (
+	FirstCommitteeMsgType = byte(0x10) // equal and larger msg types are committee messages
+
+	MsgTypeHeartbeat = byte(0)
+	MsgTypeHandshake = byte(1)
+
 	restartAfter = 1 * time.Second
 	dialTimeout  = 1 * time.Second
 	dialRetries  = 10
@@ -89,17 +94,16 @@ func (c *qnodePeer) runOutbound() {
 }
 
 func (c *qnodePeer) sendHandshake() error {
-	num, err := c.peerconn.Write([]byte(OwnPortAddr().String()))
+	data, _ := wrapPacket(&unwrappedPacket{
+		msgType: MsgTypeHandshake,
+		data:    []byte(OwnPortAddr().String()),
+	})
+	num, err := c.peerconn.Write(data)
 	log.Debugf("sendHandshake %d bytes to %s", num, c.peerPortAddr.String())
 	return err
 }
 
-func (c *qnodePeer) receiveData(data []byte) {
-	packet, err := unmarshalPacket(data)
-	if err != nil {
-		log.Errorw("msg error", "from", c.peerPortAddr.String(), "err", err)
-		return
-	}
+func (c *qnodePeer) receiveData(packet *unwrappedPacket) {
 	c.receiveHeartbeat(packet.ts)
 	if packet.msgType == 0 {
 		// heartbeat message
@@ -122,7 +126,7 @@ func (c *qnodePeer) receiveData(data []byte) {
 	committee.recvDataCallback(packet.senderIndex, packet.msgType, packet.data)
 }
 
-func (c *qnodePeer) sendMsgData(data []byte) error {
+func (c *qnodePeer) sendData(data []byte) error {
 	c.RLock()
 	defer c.RUnlock()
 

@@ -16,6 +16,15 @@ const (
 	isDeadAfterMissing  = 2               // is dead after 4 heartbeat periods missing
 )
 
+func (c *qnodePeer) initHeartbeats() {
+	c.lastHeartbeatSent = time.Time{}
+	c.lastHeartbeatReceived = time.Time{}
+	c.hbIdx = 0
+	for i := range c.latency {
+		c.latency[i] = 0
+	}
+}
+
 func (c *qnodePeer) receiveHeartbeat(ts int64) {
 	c.Lock()
 	c.lastHeartbeatReceived = time.Now()
@@ -42,11 +51,11 @@ func (c *qnodePeer) scheduleNexHeartbeat() {
 		return
 	}
 	var hbMsgData []byte
-	hbMsgData, c.lastHeartbeatSent = marshalPacket(nil)
+	hbMsgData, c.lastHeartbeatSent = wrapPacket(nil)
 
 	c.Unlock()
 
-	_ = c.sendMsgData(hbMsgData)
+	_ = c.sendData(hbMsgData)
 	log.Debugf("sent heartbeat to %s", c.peerPortAddr.String())
 
 	// repeat after some time

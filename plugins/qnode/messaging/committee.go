@@ -70,7 +70,7 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 
 	var wrapped []byte
 
-	wrapped, ts := marshalPacket(&unwrappedPacket{
+	wrapped, ts := wrapPacket(&unwrappedPacket{
 		msgType:     msgType,
 		scid:        cconn.operator.SContractID(),
 		senderIndex: cconn.operator.PeerIndex(),
@@ -81,19 +81,19 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 	peer.lastHeartbeatSent = ts
 	peer.Unlock()
 
-	err := peer.sendMsgData(wrapped)
+	err := peer.sendData(wrapped)
 	return err
 }
 
 //
 //func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) uint16 {
-//	wrapped := marshalPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
+//	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
 //	var sentTo uint16
 //	for i, conn := range cconn.peers {
 //		if i == int(cconn.operator.PeerIndex()) {
 //			continue
 //		}
-//		if err := conn.sendMsgData(wrapped); err == nil {
+//		if err := conn.sendData(wrapped); err == nil {
 //			log.Debugf("%v", err)
 //			sentTo++
 //		}

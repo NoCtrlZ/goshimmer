@@ -3,6 +3,7 @@ package operator
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ type pullResultMsg struct {
 type timerMsg int
 
 const (
-	msgTypePush = byte(1)
+	msgTypePush = messaging.FirstCommitteeMsgType
 	msgTypePull = msgTypePush + 1
 )
 

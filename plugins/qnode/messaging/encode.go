@@ -24,7 +24,7 @@ type unwrappedPacket struct {
 	data        []byte
 }
 
-func unmarshalPacket(data []byte) (*unwrappedPacket, error) {
+func unwrapPacket(data []byte) (*unwrappedPacket, error) {
 	if len(data) < 9 {
 		return nil, fmt.Errorf("too short message")
 	}
@@ -41,38 +41,67 @@ func unmarshalPacket(data []byte) (*unwrappedPacket, error) {
 	if err != nil {
 		return nil, err
 	}
-	if ret.msgType == 0 {
+	switch {
+	case ret.msgType == MsgTypeHeartbeat:
+		return ret, nil
+
+	case ret.msgType == MsgTypeHandshake:
+		ret.data = rdr.Bytes()
+		return ret, nil
+
+	case ret.msgType >= FirstCommitteeMsgType:
+		// committee message
+		var scid HashValue
+		_, err = rdr.Read(scid.Bytes())
+		if err != nil {
+			return nil, err
+		}
+		ret.scid = &scid
+		err = tools.ReadUint16(rdr, &ret.senderIndex)
+		if err != nil {
+			return nil, err
+		}
+		var dataLen uint32
+		err = tools.ReadUint32(rdr, &dataLen)
+		if err != nil {
+			return nil, err
+		}
+		ret.data = rdr.Bytes()
+		if len(ret.data) != int(dataLen) {
+			return nil, fmt.Errorf("unexpected data length")
+		}
 		return ret, nil
 	}
-	// committee message
-	var scid HashValue
-	_, err = rdr.Read(scid.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	ret.scid = &scid
-	err = tools.ReadUint16(rdr, &ret.senderIndex)
-	if err != nil {
-		return nil, err
-	}
-	ret.data = rdr.Bytes()
-	return ret, nil
+	return nil, fmt.Errorf("wrong message type %d", ret.msgType)
 }
 
-// also puts timestamp
+// always puts timestamp into first 8 bytes and 1 byte msg type
 
-func marshalPacket(up *unwrappedPacket) ([]byte, time.Time) {
+func wrapPacket(up *unwrappedPacket) ([]byte, time.Time) {
 	var buf bytes.Buffer
 	// puts timestamp
 	ts := time.Now()
 	_ = tools.WriteUint64(&buf, uint64(ts.UnixNano()))
-	if up == nil || up.msgType == 0 {
-		buf.WriteByte(0)
-		return buf.Bytes(), ts
+	switch {
+	case up == nil:
+		buf.WriteByte(MsgTypeHeartbeat)
+
+	case up.msgType == MsgTypeHeartbeat:
+		buf.WriteByte(MsgTypeHeartbeat)
+
+	case up.msgType == MsgTypeHandshake:
+		buf.WriteByte(MsgTypeHandshake)
+		buf.Write(up.data)
+
+	case up.msgType >= FirstCommitteeMsgType:
+		buf.WriteByte(up.msgType)
+		buf.Write(up.scid.Bytes())
+		_ = tools.WriteUint16(&buf, up.senderIndex)
+		_ = tools.WriteUint32(&buf, uint32(len(up.data)))
+		buf.Write(up.data)
+
+	default:
+		log.Panicf("wrong msg type %d", up.msgType)
 	}
-	buf.WriteByte(up.msgType)
-	buf.Write(up.scid.Bytes())
-	_ = tools.WriteUint16(&buf, up.senderIndex)
-	buf.Write(up.data)
 	return buf.Bytes(), ts
 }
