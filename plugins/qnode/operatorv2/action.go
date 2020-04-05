@@ -1,5 +1,7 @@
 package operator
 
+import "bytes"
+
 // each message is porcessed according to the same scheme:
 // 1. adjust stateTx of the operator. stateTx must be consistent after this step
 // 2. take action based on stateTx
@@ -9,8 +11,9 @@ func (op *scOperator) takeAction() {
 		log.Errorf("inconsistent state: %v", err)
 		return
 	}
+	op.sendRequestNotifications(false)
 	op.rotateLeaders()
-	op.sendPush()
+	op.initRequest()
 	op.respondToPulls()
 	op.checkQuorum()
 	op.sendPull()
@@ -87,19 +90,30 @@ func (op *scOperator) startCalculations() {
 	}
 }
 
-// one request to be processed
-func (op *scOperator) sendPush() {
-	// select best to sendPush (which is not led by me)
-	req := op.pickRequestToPush()
-	if req == nil {
-		// nothing to process
+func (op *scOperator) initRequest() {
+	if !op.iAmCurrentLeader() {
 		return
 	}
-	// assert req is not led by me
-	if req.ownResultCalculated == nil {
-		// start calculation no matter who is leading
-		op.asyncCalculateResult(req)
+	if op.currentRequest != nil {
 		return
 	}
-	op.pushIfNeeded(req)
+	op.currentRequest = op.selectRequestToProcess()
+	if op.currentRequest == nil {
+		return
+	}
+	msg := &initReqMsg{
+		StateIndex: op.stateTx.MustState().StateIndex(),
+		RequestId:  op.currentRequest.reqId,
+	}
+	var buf bytes.Buffer
+	encodeInitReqMsg(msg, &buf)
+	numSucc, ts := op.comm.SendMsgToPeers(msgInitRequest, buf.Bytes())
+
+	if numSucc < op.Quorum() {
+		op.currentRequest.log.Errorf("only %d 'msgInitRequest' sends succeeded", numSucc)
+		op.currentRequest = nil
+		return
+	}
+	op.currentRequest.log.Debugf("msgInitRequest successfully sent to %d peers", numSucc)
+	op.asyncCalculateResult(op.currentRequest, ts)
 }

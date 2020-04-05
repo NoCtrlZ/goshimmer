@@ -22,13 +22,15 @@ type scOperator struct {
 	// peerIndex -> stateIndex -> list of req which are >= the current state index
 	requestNotificationsReceived []map[uint32][]*sc.RequestId
 
+	currentRequest *request
+
 	leaderPeerIndexList       []uint16
-	currLeaderSeqIndex        int16
+	currLeaderSeqIndex        uint16
 	leaderRotationDeadlineSet bool
 	leaderRotationDeadline    time.Time
 
-	requests          map[HashValue]*request
-	processedRequests map[HashValue]time.Duration
+	requests          map[sc.RequestId]*request
+	processedRequests map[sc.RequestId]time.Duration
 	inChan            chan interface{}
 	comm              *messaging.CommitteeConn
 	stopClock         func()
@@ -39,7 +41,7 @@ type scOperator struct {
 type request struct {
 
 	// id of the hash of request tx id and request block index
-	reqId *HashValue
+	reqId *sc.RequestId
 
 	// time when request message was received by the operator
 	whenMsgReceived time.Time

@@ -18,8 +18,8 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	ret := &scOperator{
 		scid:              state.SContractId(),
 		processor:         fairroulette.New(),
-		requests:          make(map[HashValue]*request),
-		processedRequests: make(map[HashValue]time.Duration),
+		requests:          make(map[sc.RequestId]*request),
+		processedRequests: make(map[sc.RequestId]time.Duration),
 		stateTx:           tx,
 		inChan:            make(chan interface{}, inChanBufLen),
 	}
@@ -31,6 +31,10 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	}
 	if !iAmParticipant {
 		return nil, nil
+	}
+	ret.requestNotificationsReceived = make([]map[uint32][]*sc.RequestId, ret.CommitteeSize())
+	for i := range ret.requestNotificationsReceived {
+		ret.requestNotificationsReceived[i] = make(map[uint32][]*sc.RequestId)
 	}
 	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte) {
 		ret.receiveMsgData(senderIndex, msgType, msgData)

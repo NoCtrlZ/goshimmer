@@ -8,11 +8,29 @@ import (
 )
 
 func (op *scOperator) adjustToContext() {
+	op.adjustNotifications()
 	for _, req := range op.requests {
 		op.adjustToContextReq(req)
 	}
 	if err := op.consistentState(); err != nil {
 		log.Panicf("inconsistent stateTx after adjustToContext: %v", err)
+	}
+}
+
+// delete notifications which belongs to the past state indices
+func (op *scOperator) adjustNotifications() {
+	obsoleteIndices := make([]uint32, 0)
+	currentStateIndex := op.stateTx.MustState().StateIndex()
+	for _, notifMap := range op.requestNotificationsReceived {
+		for stateIndex := range notifMap {
+			if stateIndex < currentStateIndex {
+				obsoleteIndices = append(obsoleteIndices, stateIndex)
+			}
+		}
+		for _, idx := range obsoleteIndices {
+			delete(notifMap, idx)
+		}
+		obsoleteIndices = obsoleteIndices[:0]
 	}
 }
 
@@ -164,7 +182,7 @@ func (op *scOperator) getStateSnapshot() tools.StatMap {
 			pullSent = "no"
 		}
 		s := fmt.Sprintf("%s: %+v: lead=%d res=%v pullSent=%s final=%v",
-			req.reqId.Short(), lst, op.currentLeaderIndex(req), result, pullSent, finalized)
+			req.reqId.Short(), lst, op.currentLeaderPeerIndex(req), result, pullSent, finalized)
 		maHashes = append(maHashes, s)
 	}
 	ret.Set("advanced", maHashes)

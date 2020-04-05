@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"sync"
+	"time"
 )
 
 var (
@@ -58,12 +59,13 @@ func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16
 	return ret
 }
 
+// sends message to specified peer
 func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgData []byte) error {
 	if targetPeerIndex == cconn.operator.PeerIndex() || int(targetPeerIndex) >= len(cconn.peers) {
 		return fmt.Errorf("attempt to send message to the wrong peer index")
 	}
-	if msgType == 0 {
-		panic("reserved msg type 0")
+	if msgType < FirstCommitteeMsgType {
+		panic("reserved msg type")
 	}
 
 	peer := cconn.peers[targetPeerIndex]
@@ -85,18 +87,34 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 	return err
 }
 
-//
-//func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) uint16 {
-//	wrapped := wrapPacket(cconn.operator.SContractID(), cconn.operator.PeerIndex(), msgType, msgData)
-//	var sentTo uint16
-//	for i, conn := range cconn.peers {
-//		if i == int(cconn.operator.PeerIndex()) {
-//			continue
-//		}
-//		if err := conn.sendData(wrapped); err == nil {
-//			log.Debugf("%v", err)
-//			sentTo++
-//		}
-//	}
-//	return sentTo
-//}
+// send message to peers.
+// returns number if successful sends and timestamp common for all messages
+func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) (uint16, time.Time) {
+	if msgType == FirstCommitteeMsgType {
+		panic("reserved msg type")
+	}
+
+	var wrapped []byte
+	wrapped, ts := wrapPacket(&unwrappedPacket{
+		msgType:     msgType,
+		scid:        cconn.operator.SContractID(),
+		senderIndex: cconn.operator.PeerIndex(),
+		data:        msgData,
+	})
+	var ret uint16
+
+	for i := uint16(0); i < cconn.operator.CommitteeSize(); i++ {
+		if i == cconn.operator.PeerIndex() {
+			continue
+		}
+		peer := cconn.peers[i]
+		peer.Lock()
+		peer.lastHeartbeatSent = ts
+		peer.Unlock()
+
+		if err := peer.sendData(wrapped); err == nil {
+			ret++
+		}
+	}
+	return ret, ts
+}

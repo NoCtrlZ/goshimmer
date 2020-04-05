@@ -32,12 +32,7 @@ func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 		return
 	}
 	reqRec := op.requestFromMsg(reqRef)
-	reqRec.log.Debugw("eventRequestMsg",
-		"tx", reqRef.Tx().ShortStr(),
-		"reqIdx", reqRef.Index(),
-		"leader", op.currentLeaderIndex(reqRec),
-		"iAmTheLeader", op.iAmCurrentLeader(reqRec),
-	)
+	reqRec.log.Debugw("eventRequestMsg", "id", reqRef.Id().Short())
 	op.takeAction()
 }
 
@@ -67,6 +62,7 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 		// delete processed request from pending queue
 		op.markRequestProcessed(req)
 	}
+	op.currentRequest = nil
 	log.Debugw("RECEIVE STATE UPD",
 		"stateIdx", stateUpd.StateIndex(),
 		"tx", tx.ShortStr(),
@@ -88,7 +84,12 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	} else {
 		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
 	}
+	// reset current leader
+	op.currLeaderSeqIndex = 0
+	op.leaderPeerIndexList = nil
+
 	op.adjustToContext()
+	op.sendRequestNotifications(true)
 	op.takeAction()
 }
 

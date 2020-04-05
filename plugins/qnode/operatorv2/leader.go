@@ -7,10 +7,10 @@ import (
 )
 
 func (op *scOperator) iAmCurrentLeader() bool {
-	return op.PeerIndex() == op.currentLeaderIndex()
+	return op.PeerIndex() == op.currentLeaderPeerIndex()
 }
 
-func (op *scOperator) currentLeaderIndex() uint16 {
+func (op *scOperator) currentLeaderPeerIndex() uint16 {
 	if op.leaderPeerIndexList == nil {
 		op.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), op.stateTx.Id().Bytes())
 	}
@@ -22,7 +22,7 @@ func (op *scOperator) rotateLeaderIfNeeded() {
 		return
 	}
 	clead := op.currLeaderSeqIndex
-	op.currLeaderSeqIndex = (op.currLeaderSeqIndex + 1) % int16(op.CommitteeSize())
+	op.currLeaderSeqIndex = (op.currLeaderSeqIndex + 1) % op.CommitteeSize()
 	log.Infof("LEADER ROTATED %d --> %d", clead, op.currLeaderSeqIndex)
 
 	req.hasBeenPushedToCurrentLeader = false
@@ -37,7 +37,7 @@ func (op *scOperator) rotateLeaderIfNeeded() {
 
 func (op *scOperator) pushIfNeeded(req *request) {
 	if !req.hasBeenPushedToCurrentLeader {
-		op.sendPushResultToPeer(req.ownResultCalculated, op.currentLeaderIndex(req))
+		op.sendPushResultToPeer(req.ownResultCalculated, op.currentLeaderPeerIndex(req))
 		req.hasBeenPushedToCurrentLeader = true
 		req.whenLastPushed = time.Now()
 	}
