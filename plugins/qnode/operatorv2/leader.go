@@ -6,22 +6,27 @@ import (
 	"time"
 )
 
-func (op *scOperator) iAmCurrentLeader(req *request) bool {
-	return op.PeerIndex() == op.currentLeaderIndex(req)
+func (op *scOperator) iAmCurrentLeader() bool {
+	return op.PeerIndex() == op.currentLeaderIndex()
 }
 
-func (op *scOperator) currentLeaderIndex(req *request) uint16 {
-	//return 3
-	if req.leaderPeerIndexList == nil {
-		req.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), req.reqId.Bytes())
+func (op *scOperator) currentLeaderIndex() uint16 {
+	if op.leaderPeerIndexList == nil {
+		op.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), op.stateTx.Id().Bytes())
 	}
-	return req.leaderPeerIndexList[req.currLeaderSeqIndex]
+	return op.leaderPeerIndexList[op.currLeaderSeqIndex]
 }
 
-func (op *scOperator) rotateLeaderIfNeeded(req *request) {
-	if req.reqRef == nil || !req.hasBeenPushedToCurrentLeader {
+func (op *scOperator) rotateLeaderIfNeeded() {
+	if !op.leaderRotationDeadlineSet || time.Now().Before(op.leaderRotationDeadline) {
 		return
 	}
+	clead := op.currLeaderSeqIndex
+	op.currLeaderSeqIndex = (op.currLeaderSeqIndex + 1) % int16(op.CommitteeSize())
+	log.Infof("LEADER ROTATED %d --> %d", clead, op.currLeaderSeqIndex)
+
+	req.hasBeenPushedToCurrentLeader = false
+
 	if time.Since(req.whenLastPushed) > parameters.LEADER_ROTATION_PERIOD {
 		clead := req.currLeaderSeqIndex
 		req.currLeaderSeqIndex = (req.currLeaderSeqIndex + 1) % int16(op.CommitteeSize())

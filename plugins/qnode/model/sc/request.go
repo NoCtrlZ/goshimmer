@@ -1,10 +1,12 @@
 package sc
 
 import (
+	"encoding/binary"
 	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
+	"github.com/mr-tron/base58"
 )
 
 func NewRequestRefFromTxId(reqTxId *HashValue, reqIdx uint16) *RequestRef {
@@ -62,10 +64,43 @@ func (rf *RequestRef) TxId() *HashValue {
 	return rf.reqTxId
 }
 
-func (rf *RequestRef) Id() *HashValue {
-	return RequestId(rf.TxId(), rf.Index())
+func (rf *RequestRef) Id() *RequestId {
+	return NewRequestId(rf.TxId(), rf.Index())
 }
 
-func RequestId(txId *HashValue, reqIndex uint16) *HashValue {
-	return HashData(txId.Bytes(), tools.Uint16To2Bytes(reqIndex))
+func NewRequestId(txid *HashValue, index uint16) *RequestId {
+	ret := new(RequestId)
+	copy(ret.Bytes()[:HashSize], txid.Bytes())
+	binary.LittleEndian.PutUint16(ret.Bytes()[HashSize:HashSize+2], index)
+	return ret
+}
+
+func (id *RequestId) NewRequestRef() *RequestRef {
+	return NewRequestRefFromTxId(id.TransactionId(), id.Index())
+}
+
+func (id *RequestId) Bytes() []byte {
+	return (*id)[:]
+}
+
+func (id *RequestId) TransactionId() *HashValue {
+	var ret HashValue
+	copy(ret.Bytes(), id[:HashSize])
+	return &ret
+}
+
+func (id *RequestId) Index() uint16 {
+	return tools.Uint16From2Bytes(id[HashSize : HashSize+2])
+}
+
+func (id *RequestId) String() string {
+	return base58.Encode(id.Bytes())
+}
+
+func (id *RequestId) Short() string {
+	return fmt.Sprintf("%s..[%d]", base58.Encode(id.TransactionId().Bytes()[:6]), id.Index())
+}
+
+func (id *RequestId) Shortest() string {
+	return fmt.Sprintf("%s..[%d]", base58.Encode(id.TransactionId().Bytes()[:4]), id.Index())
 }

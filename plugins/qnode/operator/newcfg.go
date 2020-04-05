@@ -20,8 +20,8 @@ type scOperator struct {
 	cfgData           *registry.ConfigData
 	processor         vm.Processor
 	stateTx           sc.Transaction
-	requests          map[HashValue]*request
-	processedRequests map[HashValue]time.Duration
+	requests          map[sc.RequestId]*request
+	processedRequests map[sc.RequestId]time.Duration
 	inChan            chan interface{}
 	comm              *messaging.CommitteeConn
 	stopClock         func()
@@ -30,7 +30,7 @@ type scOperator struct {
 
 // keeps stateTx of the request
 type request struct {
-	reqId                        *HashValue
+	reqId                        *sc.RequestId
 	whenMsgReceived              time.Time
 	reqRef                       *sc.RequestRef
 	pushMessages                 map[HashValue][]*pushResultMsg // by result hash. Some result hashes may be from future context
@@ -65,8 +65,8 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	ret := &scOperator{
 		scid:              state.SContractId(),
 		processor:         fairroulette.New(),
-		requests:          make(map[HashValue]*request),
-		processedRequests: make(map[HashValue]time.Duration),
+		requests:          make(map[sc.RequestId]*request),
+		processedRequests: make(map[sc.RequestId]time.Duration),
 		stateTx:           tx,
 		inChan:            make(chan interface{}, inChanBufLen),
 	}

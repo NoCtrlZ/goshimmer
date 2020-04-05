@@ -3,9 +3,7 @@ package operator
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 	"io"
@@ -14,7 +12,7 @@ import (
 // peer messages between operators
 type pushResultMsg struct {
 	SenderIndex    uint16
-	RequestId      *sc.RequestId
+	RequestId      *HashValue
 	MasterDataHash *HashValue
 	StateIndex     uint32
 	SigBlocks      []generic.SignedBlock
@@ -22,41 +20,9 @@ type pushResultMsg struct {
 
 type pullResultMsg struct {
 	SenderIndex uint16
-	RequestId   *sc.RequestId
+	RequestId   *HashValue
 	StateIndex  uint32
 	HaveVotes   uint16
-}
-
-type timerMsg int
-
-const (
-	msgTypePush = messaging.FirstCommitteeMsgType
-	msgTypePull = msgTypePush + 1
-)
-
-func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte) {
-	switch msgType {
-	case msgTypePush:
-		msg, err := decodePushResultMsg(msgData)
-		if err != nil {
-			log.Errorf("receiveMsgData: error while decoding push message: %v", err)
-			return
-		}
-		msg.SenderIndex = senderIndex
-		op.postEventToQueue(msg)
-
-	case msgTypePull:
-		msg, err := decodePullResultMsg(msgData)
-		if err != nil {
-			log.Errorf("receiveMsgData: error while decoding pull message: %v", err)
-			return
-		}
-		msg.SenderIndex = senderIndex
-		op.postEventToQueue(msg)
-
-	default:
-		log.Errorf("receiveMsgData: wrong msg type")
-	}
 }
 
 func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
@@ -68,7 +34,7 @@ func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
 
 func decodePushResultMsg(data []byte) (*pushResultMsg, error) {
 	rdr := bytes.NewReader(data)
-	var reqId sc.RequestId
+	var reqId HashValue
 	_, err := rdr.Read(reqId.Bytes())
 	if err != nil {
 		return nil, err
@@ -105,7 +71,7 @@ var unexp2 = errors.New("decodePullResultMsg: unexpected end of buffer")
 
 func decodePullResultMsg(data []byte) (*pullResultMsg, error) {
 	rdr := bytes.NewReader(data)
-	var reqId sc.RequestId
+	var reqId HashValue
 	_, err := rdr.Read(reqId.Bytes())
 	if err != nil {
 		return nil, unexp2

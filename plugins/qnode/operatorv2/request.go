@@ -21,7 +21,7 @@ func (op *scOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 	return nil
 }
 
-func (op *scOperator) newRequest(reqId *sc.RequestId) *request {
+func (op *scOperator) newRequest(reqId *HashValue) *request {
 	reqLog := log.Named(reqId.Shortest())
 	ret := &request{
 		reqId:              reqId,
@@ -60,7 +60,7 @@ func (op *scOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 
 // request record retrieved (or created) by request id
 
-func (op *scOperator) requestFromId(reqId *sc.RequestId) (*request, bool) {
+func (op *scOperator) requestFromId(reqId *HashValue) (*request, bool) {
 	if _, yes := op.isRequestProcessed(reqId); yes {
 		return nil, false
 	}
@@ -73,7 +73,7 @@ func (op *scOperator) requestFromId(reqId *sc.RequestId) (*request, bool) {
 	return ret, true
 }
 
-func (op *scOperator) isRequestProcessed(reqid *sc.RequestId) (time.Duration, bool) {
+func (op *scOperator) isRequestProcessed(reqid *HashValue) (time.Duration, bool) {
 	duration, ok := op.processedRequests[*reqid]
 	return duration, ok
 }

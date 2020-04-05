@@ -72,6 +72,10 @@ type Request interface {
 	Encode() generic.Encode
 }
 
+const RequestIdSize = HashSize + 2
+
+type RequestId [RequestIdSize]byte
+
 type RequestRef struct {
 	reqTxId      *HashValue
 	tx           Transaction

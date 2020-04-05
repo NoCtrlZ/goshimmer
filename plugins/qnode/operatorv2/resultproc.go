@@ -3,12 +3,11 @@ package operator
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"time"
 )
 
-func resultHash(stateIndex uint32, reqId *sc.RequestId, masterDataHash *HashValue) *HashValue {
+func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue {
 	ret := HashData(
 		tools.Uint32To4Bytes(stateIndex),
 		reqId.Bytes(),
