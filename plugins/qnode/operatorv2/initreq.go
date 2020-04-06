@@ -1,6 +1,9 @@
 package operator
 
-import "github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+import (
+	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+)
 
 // analyzes notifications and selects request to process next
 // return nil if request can't be selected
@@ -43,4 +46,18 @@ func (op *scOperator) selectRequestToProcess() *request {
 		}
 	}
 	return ret
+}
+
+// receiving operator checks if timestamp proposed by the leader is acceptable
+// if timestamps are too far from each other it can be rejected
+func (op *scOperator) validateRequestToProcess(r *requestToProcess) error {
+	state := op.stateTx.MustState()
+	if r.msg.StateIndex != state.StateIndex() {
+		return fmt.Errorf("requestToProcess is out of context")
+	}
+	if !r.msg.Timestamp.After(state.Time()) {
+		return fmt.Errorf("timestamp of the 'initReq' is not after the timestamp of the current state")
+	}
+	// TODO check if timestamp of the message fits the window of acceptance
+	return nil
 }

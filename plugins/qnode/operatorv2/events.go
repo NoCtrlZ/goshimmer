@@ -4,6 +4,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"time"
 )
 
 // triggered by new notifyReqMsg
@@ -88,9 +89,40 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	op.currLeaderSeqIndex = 0
 	op.leaderPeerIndexList = nil
 
+	// swap arrays of incoming initReq's
+	// clean the array of the next state
+	op.requestToProcessCurrentState, op.requestToProcessNextState = op.requestToProcessNextState, op.requestToProcessCurrentState
+	for i := range op.requestToProcessNextState {
+		op.requestToProcessNextState[i] = nil
+	}
 	op.adjustToContext()
 	op.sendRequestNotifications(true)
 	op.takeAction()
+}
+
+// triggered by `initReq` message sent from the leader
+// if timestamp is acceptable and the msg context is from the current state or the next
+// include the message into the state
+func (op *scOperator) eventInitReqProcessingMsg(msg *initReqMsg) {
+	stateIndex := op.stateTx.MustState().StateIndex()
+	var s []*requestToProcess
+	switch {
+	case msg.StateIndex == stateIndex:
+		s = op.requestToProcessCurrentState
+	case msg.StateIndex == stateIndex+1:
+		s = op.requestToProcessNextState
+	default:
+		log.Warnf("ignore 'initReq' message for %s: state index is out of context", msg.RequestId.Short())
+		return
+	}
+	if s[msg.SenderIndex] != nil {
+		log.Errorf("repeating 'initReq' message")
+		return
+	}
+	s[msg.SenderIndex] = &requestToProcess{
+		msg:          msg,
+		whenReceived: time.Now(),
+	}
 }
 
 // triggered from main msg queue whenever calculation of new result is finished
@@ -155,33 +187,6 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 		resultHash:     resultHash(ctx.state.MustState().StateIndex(), reqId, masterDataHash),
 		masterDataHash: masterDataHash,
 	}
-	op.takeAction()
-}
-
-// triggered by new result hash received from another operator
-
-func (op *scOperator) eventPushResultMsg(pushMsg *pushResultMsg) {
-	req, ok := op.requestFromId(pushMsg.RequestId)
-	req.msgCounter++
-	if !ok {
-		return // already processed, ignore
-	}
-	req.log.Debugf("eventPushResultMsg received from peer %d", pushMsg.SenderIndex)
-
-	op.accountNewPushMsg(pushMsg)
-	op.adjustToContext()
-	op.takeAction()
-}
-
-func (op *scOperator) eventPullMsgReceived(msg *pullResultMsg) {
-	req, ok := op.requestFromId(msg.RequestId)
-	if !ok {
-		return // already processed
-	}
-	req.msgCounter++
-	req.log.Debug("EventPullResultMsg")
-	req.pullMessages[msg.SenderIndex] = msg
-	op.adjustToContext()
 	op.takeAction()
 }
 

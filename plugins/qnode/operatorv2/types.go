@@ -22,19 +22,47 @@ type scOperator struct {
 	// peerIndex -> stateIndex -> list of req which are >= the current state index
 	requestNotificationsReceived []map[uint32][]*sc.RequestId
 
-	currentRequest *request
-
-	leaderPeerIndexList       []uint16
-	currLeaderSeqIndex        uint16
-	leaderRotationDeadlineSet bool
-	leaderRotationDeadline    time.Time
-
 	requests          map[sc.RequestId]*request
 	processedRequests map[sc.RequestId]time.Duration
 	inChan            chan interface{}
 	comm              *messaging.CommitteeConn
 	stopClock         func()
 	msgCounter        int
+
+	// request processing state
+	// peers, sorted according to the current state hash
+	// is used as leader's rotation round robin
+	leaderPeerIndexList []uint16
+	// current position in the round robin.
+	// it is increased modulo committee size whenever leader rotates
+	currLeaderSeqIndex uint16
+	// next leader rotation deadline. Normally is is set according to the timeout
+	// for the leader to finalize and confirm state update
+	// if deadline is set and time is due the event 'rotateLeader' is posted
+	leaderRotationDeadlineSet bool
+	leaderRotationDeadline    time.Time
+	// leader part
+	// when operator becomes the leader of the current state, it selects request to process
+	// stores it as currentRequest, posts 'initReq' messages and start async calculation of th result
+	// this part us only needed for the operator who once became the leader of the state
+	// once set, currentRequest only changes after change of the state
+	currentRequest *request          // can be nil
+	currentResult  *resultCalculated // if not nil, it is the result of the current context
+	// non-leader part
+	// requests to process, received as 'initReq' messages.
+	// requestToProcessCurrentState corresponds to the current state index
+	// requestToProcessNextState corresponds to the next state index
+	// 'initReq' messages with smaller and larger indices are ignored
+	// each is a slice with len = size of the committee, one element per peer
+	requestToProcessCurrentState []*requestToProcess
+	requestToProcessNextState    []*requestToProcess
+}
+
+type requestToProcess struct {
+	msg                   *initReqMsg
+	whenReceived          time.Time
+	resultBeingCalculated bool
+	resultSent            bool
 }
 
 // keeps stateTx of the request
@@ -55,17 +83,11 @@ type request struct {
 	lastNotifiedLeaderOfStateIndex uint32
 
 	// seq index of the leader last notified
-	// after leader rotation next leader must be notified and this index must be uodated
+	// after leader rotation next leader must be notified and this index must be updated
 	lastNotifiedLeaderSeqIndex uint16
 
-	pushMessages                 map[HashValue][]*pushResultMsg // by result hash. Some result hashes may be from future context
-	pullMessages                 map[uint16]*pullResultMsg
-	ownResultCalculated          *resultCalculated       // can be nil or the record with config and stateTx equal to the current
-	startedCalculation           map[HashValue]time.Time // by result hash. Flag inidcates asyn calculation started
-	whenLastPushed               time.Time
-	hasBeenPushedToCurrentLeader bool
-	msgCounter                   int
-	log                          *logger.Logger
+	msgCounter int
+	log        *logger.Logger
 }
 
 type resultCalculated struct {

@@ -9,22 +9,6 @@ import (
 	"io"
 )
 
-// peer messages between operators
-type pushResultMsg struct {
-	SenderIndex    uint16
-	RequestId      *HashValue
-	MasterDataHash *HashValue
-	StateIndex     uint32
-	SigBlocks      []generic.SignedBlock
-}
-
-type pullResultMsg struct {
-	SenderIndex uint16
-	RequestId   *HashValue
-	StateIndex  uint32
-	HaveVotes   uint16
-}
-
 func encodePushResultMsg(msg *pushResultMsg, buf *bytes.Buffer) {
 	buf.Write(msg.RequestId.Bytes())
 	buf.Write(msg.MasterDataHash.Bytes())

@@ -79,8 +79,8 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	if !iAmParticipant {
 		return nil, nil
 	}
-	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte) {
-		ret.receiveMsgData(senderIndex, msgType, msgData)
+	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
+		ret.receiveMsgData(senderIndex, msgType, msgData, ts)
 	})
 
 	ret.startRoutines()

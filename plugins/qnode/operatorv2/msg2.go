@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
+	"time"
 )
 
 type timerMsg int
@@ -38,6 +39,8 @@ type notifyReqMsg struct {
 type initReqMsg struct {
 	// is set upon receive the message
 	SenderIndex uint16
+	// timestamp of the message. Field is set upon receive the message to sender's timestamp
+	Timestamp time.Time
 	// state index in the context of which the message is sent
 	StateIndex uint32
 	// request id
@@ -109,7 +112,7 @@ func decodeInitReqMsg(data []byte) (*initReqMsg, error) {
 	return ret, nil
 }
 
-func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte) {
+func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
 	switch msgType {
 	case msgNotifyRequests:
 		msg, err := decodeNotifyReqMsg(msgData)
@@ -127,6 +130,7 @@ func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData [
 			return
 		}
 		msg.SenderIndex = senderIndex
+		msg.Timestamp = ts
 		op.postEventToQueue(msg)
 
 	default:

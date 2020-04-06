@@ -18,8 +18,7 @@ func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue 
 }
 
 func (op *scOperator) asyncCalculateResult(req *request, ts time.Time) {
-	// TODO
-	if req.ownResultCalculated != nil {
+	if op.currentResult != nil {
 		return
 	}
 	if req.reqRef == nil {

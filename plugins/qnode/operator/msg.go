@@ -9,6 +9,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"github.com/pkg/errors"
 	"io"
+	"time"
 )
 
 // peer messages between operators
@@ -34,7 +35,7 @@ const (
 	msgTypePull = msgTypePush + 1
 )
 
-func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte) {
+func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData []byte, _ time.Time) {
 	switch msgType {
 	case msgTypePush:
 		msg, err := decodePushResultMsg(msgData)

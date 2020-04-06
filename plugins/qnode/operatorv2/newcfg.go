@@ -36,8 +36,11 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	for i := range ret.requestNotificationsReceived {
 		ret.requestNotificationsReceived[i] = make(map[uint32][]*sc.RequestId)
 	}
-	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte) {
-		ret.receiveMsgData(senderIndex, msgType, msgData)
+	ret.requestToProcessCurrentState = make([]*requestToProcess, ret.CommitteeSize())
+	ret.requestToProcessNextState = make([]*requestToProcess, ret.CommitteeSize())
+
+	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
+		ret.receiveMsgData(senderIndex, msgType, msgData, ts)
 	})
 
 	ret.startRoutines()

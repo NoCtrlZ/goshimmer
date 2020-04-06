@@ -123,7 +123,7 @@ func (c *qnodePeer) receiveData(packet *unwrappedPacket) {
 		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", packet.senderIndex)
 		return
 	}
-	committee.recvDataCallback(packet.senderIndex, packet.msgType, packet.data)
+	committee.recvDataCallback(packet.senderIndex, packet.msgType, packet.data, time.Unix(0, packet.ts))
 }
 
 func (c *qnodePeer) sendData(data []byte) error {

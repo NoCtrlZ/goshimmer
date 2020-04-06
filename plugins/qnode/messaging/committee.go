@@ -14,7 +14,7 @@ var (
 
 type CommitteeConn struct {
 	operator         SCOperator
-	recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte)
+	recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time)
 	peers            []*qnodePeer
 }
 
@@ -37,7 +37,7 @@ func GetOperator(scid *hashing.HashValue) (SCOperator, bool) {
 	return comm.operator, true
 }
 
-func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte)) *CommitteeConn {
+func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time)) *CommitteeConn {
 	committeeMutex.Lock()
 	defer committeeMutex.Unlock()
 

@@ -66,7 +66,7 @@ func (op *scOperator) postEventToQueue(msg interface{}) {
 }
 
 func (op *scOperator) dispatchEvent(msg interface{}) {
-	if _, ok := msg.(msg2.timerMsg); !ok {
+	if _, ok := msg.(timerMsg); !ok {
 		op.msgCounter++
 	}
 	switch msgt := msg.(type) {
@@ -76,13 +76,11 @@ func (op *scOperator) dispatchEvent(msg interface{}) {
 		op.eventStateUpdate(msgt.Tx)
 	case *sc.RequestRef:
 		op.eventRequestMsg(msgt)
+	case *initReqMsg:
+		op.eventInitReqProcessingMsg(msgt)
 	case *runtimeContext:
 		op.eventResultCalculated(msgt)
-	case *pushResultMsg:
-		op.eventPushResultMsg(msgt)
-	case *pullResultMsg:
-		op.eventPullMsgReceived(msgt)
-	case msg2.timerMsg:
+	case timerMsg:
 		op.eventTimer(msgt)
 	default:
 		log.Panicf("dispatchEvent: wrong message type %T", msg)
