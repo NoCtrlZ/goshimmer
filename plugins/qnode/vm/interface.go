@@ -6,6 +6,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/hive.go/logger"
+	"time"
 )
 
 type Processor interface {
@@ -14,6 +15,8 @@ type Processor interface {
 
 type RuntimeContext interface {
 	SContractAccount() *HashValue
+	Time() time.Time
+	PrevTime() time.Time
 	RequestVars() generic.ValueMap
 	StateVars() generic.ValueMap
 	SetError(error)

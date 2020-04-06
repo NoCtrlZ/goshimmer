@@ -29,17 +29,17 @@ func (op *scOperator) asyncCalculateResult(req *request, ts time.Time) {
 	if _, ok := req.startedCalculation[*taskId]; !ok {
 		req.startedCalculation[*taskId] = time.Now()
 		req.log.Debugf("start calculation in state idx %d", op.stateTx.MustState().StateIndex())
-		go op.processRequest(req)
+		go op.processRequest(req, ts)
 	}
 }
 
-func (op *scOperator) processRequest(req *request) {
+func (op *scOperator) processRequest(req *request, ts time.Time) {
 	var ctx *runtimeContext
 	var err error
 	if req.reqRef.RequestBlock().IsConfigUpdateReq() {
-		ctx, err = newConfigUpdateRuntimeContext(req.reqRef, op.stateTx)
+		ctx, err = newConfigUpdateRuntimeContext(req.reqRef, op.stateTx, ts)
 	} else {
-		ctx, err = newStateUpdateRuntimeContext(req.reqRef, op.stateTx)
+		ctx, err = newStateUpdateRuntimeContext(req.reqRef, op.stateTx, ts)
 	}
 	if err != nil {
 		req.log.Warnw("can't create runtime context",

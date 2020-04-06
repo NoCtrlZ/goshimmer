@@ -4,6 +4,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
+	"time"
 )
 
 type Transaction interface {
@@ -25,9 +26,11 @@ type State interface {
 	SContractId() *HashValue
 	RequestRef() (*RequestRef, bool)
 	StateIndex() uint32
+	Time() time.Time
 	Error() error
 	Vars() generic.ValueMap
 	StateChainOutputIndex() uint16
+	WithTime(time.Time) State
 	WithError(error) State
 	WithStateIndex(uint32) State
 	WithVars(generic.ValueMap) State

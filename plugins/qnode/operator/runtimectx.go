@@ -8,6 +8,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/hive.go/logger"
+	"time"
 )
 
 type runtimeContext struct {
@@ -16,6 +17,14 @@ type runtimeContext struct {
 	resultTx sc.Transaction
 	log      *logger.Logger
 	err      error
+}
+
+func (ctx *runtimeContext) Time() time.Time {
+	panic("implement me")
+}
+
+func (ctx *runtimeContext) PrevTime() time.Time {
+	panic("implement me")
 }
 
 func (ctx *runtimeContext) RequestVars() generic.ValueMap {

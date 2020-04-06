@@ -7,6 +7,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"io"
+	"time"
 )
 
 type mockStateBlock struct {
@@ -14,6 +15,7 @@ type mockStateBlock struct {
 	config                *mockConfig
 	err                   error
 	stateIndex            uint32
+	ts                    time.Time
 	stateChainOutputIndex uint16
 	vars                  generic.ValueMap
 	requestRef            *sc.RequestRef
@@ -35,6 +37,10 @@ func newConfig(id *HashValue, state *mockStateBlock, minReward uint64, ownersMar
 		minReward:    minReward,
 		ownersMargin: ownersMargin,
 	}
+}
+
+func (st *mockStateBlock) Time() time.Time {
+	return st.ts
 }
 
 func (cfg *mockConfig) Id() *HashValue {
@@ -132,6 +138,11 @@ func (st *mockStateBlock) Error() error {
 	return st.err
 }
 
+func (st *mockStateBlock) WithTime(ts time.Time) sc.State {
+	st.ts = ts
+	return st
+}
+
 func (st *mockStateBlock) WithError(err error) sc.State {
 	st.err = err
 	return st
@@ -159,6 +170,10 @@ func (st *mockStateBlock) Write(w io.Writer) error {
 		return err
 	}
 	_, err = w.Write(st.config.id.Bytes())
+	if err != nil {
+		return err
+	}
+	err = tools.WriteTime(w, st.ts)
 	if err != nil {
 		return err
 	}
@@ -225,6 +240,12 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	var ts time.Time
+	err = tools.ReadTime(r, &ts)
+	if err != nil {
+		return err
+	}
+
 	var requestRefExist bool
 	var reqRef *sc.RequestRef
 
@@ -257,6 +278,7 @@ func (st *mockStateBlock) Read(r io.Reader) error {
 		}
 		st.assemblyId = &assemblyId
 		st.config.id = &configId
+		st.ts = ts
 		st.err = errors.New(string(errTxt))
 		st.config.vars = nil
 		st.stateIndex = 0

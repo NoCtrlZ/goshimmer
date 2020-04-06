@@ -8,14 +8,24 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/value"
 	"github.com/iotaledger/hive.go/logger"
+	"time"
 )
 
 type runtimeContext struct {
 	reqRef   *sc.RequestRef
+	ts       time.Time
 	state    sc.Transaction
 	resultTx sc.Transaction
 	log      *logger.Logger
 	err      error
+}
+
+func (ctx *runtimeContext) Time() time.Time {
+	return ctx.ts
+}
+
+func (ctx *runtimeContext) PrevTime() time.Time {
+	return ctx.state.MustState().Time()
 }
 
 func (ctx *runtimeContext) RequestVars() generic.ValueMap {
@@ -104,7 +114,7 @@ func (ctx *runtimeContext) Log() *logger.Logger {
 // creates context with skeleton resulting transaction
 // not signed
 
-func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
+func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction, ts time.Time) (*runtimeContext, error) {
 	ownerAccount := curStateTx.MustState().Config().OwnerAccount()
 	if !sc.AuthorizedForAddress(reqRef.Tx(), ownerAccount) {
 		return nil, fmt.Errorf("config update request is not authorized")
@@ -114,24 +124,29 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 	if err != nil {
 		return nil, err
 	}
+	resTx.MustState().WithTime(ts)
 	// just updates config variables
 	resTx.MustState().WithVars(reqRef.RequestBlock().Vars())
 
 	return &runtimeContext{
 		reqRef:   reqRef,
+		ts:       ts,
 		state:    curStateTx,
 		resultTx: resTx,
 		log:      logger.NewLogger("VM"),
 	}, nil
 }
 
-func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction) (*runtimeContext, error) {
+func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction, ts time.Time) (*runtimeContext, error) {
 	resTx, err := clientapi.NextStateUpdateTransaction(curStateTx, reqRef)
 	if err != nil {
 		return nil, err
 	}
+	resTx.MustState().WithTime(ts)
+
 	return &runtimeContext{
 		reqRef:   reqRef,
+		ts:       ts,
 		state:    curStateTx,
 		resultTx: resTx,
 		log:      logger.NewLogger("VM"),

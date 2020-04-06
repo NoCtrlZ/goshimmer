@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"github.com/pkg/errors"
 	"io"
+	"time"
 )
 
 func WriteByte(w io.Writer, val byte) error {
@@ -186,4 +187,18 @@ func Uint16InList(v uint16, lst []uint16) bool {
 		}
 	}
 	return false
+}
+
+func WriteTime(w io.Writer, ts time.Time) error {
+	return WriteUint64(w, uint64(ts.UnixNano()))
+}
+
+func ReadTime(r io.Reader, ts *time.Time) error {
+	var nano uint64
+	err := ReadUint64(r, &nano)
+	if err != nil {
+		return err
+	}
+	*ts = time.Unix(0, int64(nano))
+	return nil
 }
