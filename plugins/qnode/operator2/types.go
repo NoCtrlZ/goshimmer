@@ -1,4 +1,4 @@
-package operator
+package operator2
 
 import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -13,14 +13,15 @@ import (
 
 type scOperator struct {
 	sync.RWMutex
-	dismissed bool
-	scid      *HashValue
-	cfgData   *registry.ConfigData
-	processor vm.Processor
-	stateTx   sc.Transaction
+	dismissed    bool
+	scid         *HashValue
+	cfgData      *registry.ConfigData
+	processor    vm.Processor
+	stateTx      sc.Transaction
+	stateChanged bool
 
-	// peerIndex -> stateIndex -> list of req which are >= the current state index
-	requestNotificationsReceived []map[uint32][]*sc.RequestId
+	// peerIndex -> currState, nextState -> list of req which are >= the current state index
+	requestNotificationsReceived [][2][]*sc.RequestId
 
 	requests          map[sc.RequestId]*request
 	processedRequests map[sc.RequestId]time.Duration
@@ -50,12 +51,11 @@ type scOperator struct {
 	currentResult  *resultCalculated // if not nil, it is the result of the current context
 	// non-leader part
 	// requests to process, received as 'initReq' messages.
-	// requestToProcessCurrentState corresponds to the current state index
-	// requestToProcessNextState corresponds to the next state index
+	// requestToProcess[0] corresponds to the current state index
+	// requestToProcess[1] corresponds to the next state index
 	// 'initReq' messages with smaller and larger indices are ignored
 	// each is a slice with len = size of the committee, one element per peer
-	requestToProcessCurrentState []*requestToProcess
-	requestToProcessNextState    []*requestToProcess
+	requestToProcess [2][]*requestToProcess
 }
 
 type requestToProcess struct {

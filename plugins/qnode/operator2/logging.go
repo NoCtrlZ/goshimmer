@@ -1,4 +1,4 @@
-package operator
+package operator2
 
 import "github.com/iotaledger/hive.go/logger"
 

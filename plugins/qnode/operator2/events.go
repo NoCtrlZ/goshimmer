@@ -1,4 +1,4 @@
-package operator
+package operator2
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
@@ -7,23 +7,32 @@ import (
 	"time"
 )
 
-// triggered by new notifyReqMsg
+// triggered by new notifyReqMsg, when another node notifies about
+// its requests
 func (op *scOperator) eventNotifyReqMsg(msg *notifyReqMsg) {
-	if msg.StateIndex < op.stateTx.MustState().StateIndex() {
-		// ignore from state indices in the past
+	stateIndex := op.stateTx.MustState().StateIndex()
+	var pos int
+	switch {
+	case msg.StateIndex == stateIndex:
+		// current state index
+		pos = 0
+	case msg.StateIndex == stateIndex+1:
+		// next state index
+		pos = 1
+	default:
+		log.Warn("request notification is not for current or next state index. Ignored")
 		return
 	}
 	if msg.Renew {
-		op.requestNotificationsReceived[msg.SenderIndex][msg.StateIndex] = msg.RequestIds
-	} else {
-		op.requestNotificationsReceived[msg.SenderIndex][msg.StateIndex] =
-			append(op.requestNotificationsReceived[msg.SenderIndex][msg.StateIndex], msg.RequestIds...)
-		// may cause duplicates
+		op.requestNotificationsReceived[msg.SenderIndex][pos] =
+			op.requestNotificationsReceived[msg.SenderIndex][pos][:0]
 	}
+	op.requestNotificationsReceived[msg.SenderIndex][msg.StateIndex] =
+		append(op.requestNotificationsReceived[msg.SenderIndex][pos], msg.RequestIds...)
+	op.takeAction()
 }
 
 // triggered by new request msg from the node
-// called from he main queue
 func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 	if err := op.validateRequestBlock(reqRef); err != nil {
 		log.Errorw("invalid request message received. Ignored...",
@@ -85,18 +94,6 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	} else {
 		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
 	}
-	// reset current leader
-	op.currLeaderSeqIndex = 0
-	op.leaderPeerIndexList = nil
-
-	// swap arrays of incoming initReq's
-	// clean the array of the next state
-	op.requestToProcessCurrentState, op.requestToProcessNextState = op.requestToProcessNextState, op.requestToProcessCurrentState
-	for i := range op.requestToProcessNextState {
-		op.requestToProcessNextState[i] = nil
-	}
-	op.adjustToContext()
-	op.sendRequestNotifications(true)
 	op.takeAction()
 }
 
@@ -105,21 +102,23 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 // include the message into the state
 func (op *scOperator) eventInitReqProcessingMsg(msg *initReqMsg) {
 	stateIndex := op.stateTx.MustState().StateIndex()
-	var s []*requestToProcess
+	var pos int
 	switch {
 	case msg.StateIndex == stateIndex:
-		s = op.requestToProcessCurrentState
+		// current state
+		pos = 0
 	case msg.StateIndex == stateIndex+1:
-		s = op.requestToProcessNextState
+		// next state
+		pos = 1
 	default:
 		log.Warnf("ignore 'initReq' message for %s: state index is out of context", msg.RequestId.Short())
 		return
 	}
-	if s[msg.SenderIndex] != nil {
+	if op.requestToProcess[pos][msg.SenderIndex] != nil {
 		log.Errorf("repeating 'initReq' message")
 		return
 	}
-	s[msg.SenderIndex] = &requestToProcess{
+	op.requestToProcess[pos][msg.SenderIndex] = &requestToProcess{
 		msg:          msg,
 		whenReceived: time.Now(),
 	}

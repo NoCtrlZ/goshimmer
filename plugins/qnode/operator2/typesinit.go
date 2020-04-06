@@ -1,4 +1,4 @@
-package operator
+package operator2
 
 import (
 	"fmt"
@@ -32,12 +32,13 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	if !iAmParticipant {
 		return nil, nil
 	}
-	ret.requestNotificationsReceived = make([]map[uint32][]*sc.RequestId, ret.CommitteeSize())
+	ret.requestNotificationsReceived = make([][2][]*sc.RequestId, ret.CommitteeSize())
 	for i := range ret.requestNotificationsReceived {
-		ret.requestNotificationsReceived[i] = make(map[uint32][]*sc.RequestId)
+		var t [2][]*sc.RequestId
+		ret.requestNotificationsReceived[i] = t
 	}
-	ret.requestToProcessCurrentState = make([]*requestToProcess, ret.CommitteeSize())
-	ret.requestToProcessNextState = make([]*requestToProcess, ret.CommitteeSize())
+	ret.requestToProcess[0] = make([]*requestToProcess, ret.CommitteeSize())
+	ret.requestToProcess[1] = make([]*requestToProcess, ret.CommitteeSize())
 
 	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
 		ret.receiveMsgData(senderIndex, msgType, msgData, ts)

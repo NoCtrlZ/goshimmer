@@ -1,4 +1,4 @@
-package operator
+package operator2
 
 import (
 	"fmt"
@@ -6,33 +6,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"time"
 )
-
-func (op *scOperator) adjustToContext() {
-	op.adjustNotifications()
-	for _, req := range op.requests {
-		op.adjustToContextReq(req)
-	}
-	if err := op.consistentState(); err != nil {
-		log.Panicf("inconsistent stateTx after adjustToContext: %v", err)
-	}
-}
-
-// delete notifications which belongs to the past state indices
-func (op *scOperator) adjustNotifications() {
-	obsoleteIndices := make([]uint32, 0)
-	currentStateIndex := op.stateTx.MustState().StateIndex()
-	for _, notifMap := range op.requestNotificationsReceived {
-		for stateIndex := range notifMap {
-			if stateIndex < currentStateIndex {
-				obsoleteIndices = append(obsoleteIndices, stateIndex)
-			}
-		}
-		for _, idx := range obsoleteIndices {
-			delete(notifMap, idx)
-		}
-		obsoleteIndices = obsoleteIndices[:0]
-	}
-}
 
 func (op *scOperator) checkForCheating(req *request) {
 	// simplified: only checking for cheating when own request is known
