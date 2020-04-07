@@ -50,10 +50,10 @@ func (op *scOperator) selectRequestToProcess() *request {
 
 // receiving operator checks if timestamp proposed by the leader is acceptable
 // if timestamps are too far from each other it can be rejected
-func (op *scOperator) validateRequestToProcess(r *requestToProcess) error {
+func (op *scOperator) validateRequestToProcess(r *processingStatus) error {
 	state := op.stateTx.MustState()
 	if r.msg.StateIndex != state.StateIndex() {
-		return fmt.Errorf("requestToProcess is out of context")
+		return fmt.Errorf("processingStatus is out of context")
 	}
 	if !r.msg.Timestamp.After(state.Time()) {
 		return fmt.Errorf("timestamp of the 'initReq' is not after the timestamp of the current state")

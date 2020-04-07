@@ -2,7 +2,6 @@ package operator2
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
@@ -15,7 +14,7 @@ const (
 	// send when state changes or when new request arrives
 	// to notify the leader about requests this node has
 	msgNotifyRequests = messaging.FirstCommitteeMsgType
-	msgInitRequest    = msgNotifyRequests + 1
+	msgProcessRequest = msgNotifyRequests + 1
 )
 
 // message is sent to the leader of the state processing
@@ -33,7 +32,7 @@ type notifyReqMsg struct {
 // message is sent by the leader to other peers to initiate request processing
 // other peers are expected to check is timestamp is acceptable then
 // process request and sign the result hash with the timestamp proposed by the leader
-type initReqMsg struct {
+type processReqMsg struct {
 	// is set upon receive the message
 	SenderIndex uint16
 	// timestamp of the message. Field is set upon receive the message to sender's timestamp
@@ -47,23 +46,15 @@ type initReqMsg struct {
 func encodeNotifyReqMsg(msg *notifyReqMsg, buf *bytes.Buffer) {
 	_ = tools.WriteUint32(buf, msg.StateIndex)
 	_ = tools.WriteUint16(buf, uint16(len(msg.RequestIds)))
-	_ = tools.WriteBoolByte(buf, msg.Renew)
 	for _, reqid := range msg.RequestIds {
 		buf.Write(reqid.Bytes())
 	}
 }
 
 func decodeNotifyReqMsg(data []byte) (*notifyReqMsg, error) {
-	if len(data) < 4+2+1 {
-		return nil, fmt.Errorf("too short message")
-	}
 	ret := &notifyReqMsg{}
 	rdr := bytes.NewReader(data)
 	err := tools.ReadUint32(rdr, &ret.StateIndex)
-	if err != nil {
-		return nil, err
-	}
-	err = tools.ReadBoolByte(rdr, &ret.Renew)
 	if err != nil {
 		return nil, err
 	}
@@ -86,16 +77,13 @@ func decodeNotifyReqMsg(data []byte) (*notifyReqMsg, error) {
 	return ret, nil
 }
 
-func encodeInitReqMsg(msg *initReqMsg, buf *bytes.Buffer) {
+func encodeProcessReqMsg(msg *processReqMsg, buf *bytes.Buffer) {
 	_ = tools.WriteUint32(buf, msg.StateIndex)
 	buf.Write(msg.RequestId.Bytes())
 }
 
-func decodeInitReqMsg(data []byte) (*initReqMsg, error) {
-	if len(data) != 4+sc.RequestIdSize {
-		return nil, fmt.Errorf("wrong message size")
-	}
-	ret := &initReqMsg{}
+func decodeProcessReqMsg(data []byte) (*processReqMsg, error) {
+	ret := &processReqMsg{}
 	rdr := bytes.NewReader(data)
 	err := tools.ReadUint32(rdr, &ret.StateIndex)
 	if err != nil {
@@ -120,8 +108,8 @@ func (op *scOperator) receiveMsgData(senderIndex uint16, msgType byte, msgData [
 		msg.SenderIndex = senderIndex
 		op.postEventToQueue(msg)
 
-	case msgInitRequest:
-		msg, err := decodeInitReqMsg(msgData)
+	case msgProcessRequest:
+		msg, err := decodeProcessReqMsg(msgData)
 		if err != nil {
 			log.Error(err)
 			return

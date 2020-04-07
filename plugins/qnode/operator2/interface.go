@@ -76,8 +76,8 @@ func (op *scOperator) dispatchEvent(msg interface{}) {
 		op.eventStateUpdate(msgt.Tx)
 	case *sc.RequestRef:
 		op.eventRequestMsg(msgt)
-	case *initReqMsg:
-		op.eventInitReqProcessingMsg(msgt)
+	case *processReqMsg:
+		op.eventProcessReqMsg(msgt)
 	case *runtimeContext:
 		op.eventResultCalculated(msgt)
 	case timerMsg:

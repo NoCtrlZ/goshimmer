@@ -7,7 +7,44 @@ import (
 )
 
 func (op *scOperator) takeAction() {
-	op.initRequestProcessing()
+	op.doLeader()
+}
+
+func (op *scOperator) doLeader() {
+	op.initCalculations()
+}
+
+func (op *scOperator) initCalculations() {
+	if !op.iAmCurrentLeader() {
+		return
+	}
+	if op.requestToProcess[0][op.PeerIndex()].req != nil {
+		// request already selected and calculations initialized
+		return
+	}
+	req := op.selectRequestToProcess()
+	if req == nil {
+		// can't select request to process
+		return
+	}
+	msg := &processReqMsg{
+		StateIndex: op.stateTx.MustState().StateIndex(),
+		RequestId:  req.reqId,
+	}
+	var buf bytes.Buffer
+	encodeProcessReqMsg(msg, &buf)
+	numSucc, ts := op.comm.SendMsgToPeers(msgProcessRequest, buf.Bytes())
+
+	if numSucc < op.Quorum() {
+		// doesn't make sense to continue because less than quorum sends succeeded
+		req.log.Errorf("only %d 'msgProcessRequest' sends succeeded", numSucc)
+		return
+	}
+	op.requestToProcess[0][op.PeerIndex()].req = req
+	op.requestToProcess[0][op.PeerIndex()].ts = ts
+
+	req.log.Debugf("msgProcessRequest successfully sent to %d peers", numSucc)
+	op.asyncCalculateResult(req, ts)
 }
 
 // takes action when stateChanged flag is true
@@ -16,12 +53,18 @@ func (op *scOperator) setNewState(tx sc.Transaction) {
 	// reset current leader seq index
 	op.currLeaderSeqIndex = 0
 	op.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), op.stateTx.Id().Bytes())
+	for i, v := range op.leaderPeerIndexList {
+		if v == op.PeerIndex() {
+			op.myLeaderSeqIndex = uint16(i)
+			break
+		}
+	}
 
 	// swap arrays of incoming initReq's
 	// clean the array of the next state
 	op.requestToProcess[0], op.requestToProcess[1] = op.requestToProcess[1], op.requestToProcess[0]
 	for i := range op.requestToProcess[1] {
-		op.requestToProcess[1][i] = nil
+		op.requestToProcess[1][i] = processingStatus{}
 	}
 	// swap curr and next state request notifications for each peer
 	// clean the notifications for the next state index
@@ -40,33 +83,4 @@ func (op *scOperator) setNewState(tx sc.Transaction) {
 
 	// send notification about all requests to the current leader
 	op.sendRequestNotificationsAllToLeader()
-}
-
-func (op *scOperator) initRequestProcessing() {
-	if !op.iAmCurrentLeader() {
-		return
-	}
-	if op.currentRequest != nil {
-		return
-	}
-	op.currentResult = nil
-	op.currentRequest = op.selectRequestToProcess()
-	if op.currentRequest == nil {
-		return
-	}
-	msg := &initReqMsg{
-		StateIndex: op.stateTx.MustState().StateIndex(),
-		RequestId:  op.currentRequest.reqId,
-	}
-	var buf bytes.Buffer
-	encodeInitReqMsg(msg, &buf)
-	numSucc, ts := op.comm.SendMsgToPeers(msgInitRequest, buf.Bytes())
-
-	if numSucc < op.Quorum() {
-		op.currentRequest.log.Errorf("only %d 'msgInitRequest' sends succeeded", numSucc)
-		op.currentRequest = nil
-		return
-	}
-	op.currentRequest.log.Debugf("msgInitRequest successfully sent to %d peers", numSucc)
-	op.asyncCalculateResult(op.currentRequest, ts)
 }

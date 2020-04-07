@@ -37,8 +37,8 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 		var t [2][]*sc.RequestId
 		ret.requestNotificationsReceived[i] = t
 	}
-	ret.requestToProcess[0] = make([]*requestToProcess, ret.CommitteeSize())
-	ret.requestToProcess[1] = make([]*requestToProcess, ret.CommitteeSize())
+	ret.requestToProcess[0] = make([]processingStatus, ret.CommitteeSize())
+	ret.requestToProcess[1] = make([]processingStatus, ret.CommitteeSize())
 
 	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
 		ret.receiveMsgData(senderIndex, msgType, msgData, ts)

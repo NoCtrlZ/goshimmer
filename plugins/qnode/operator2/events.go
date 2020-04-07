@@ -69,7 +69,6 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 		// delete processed request from pending queue
 		op.markRequestProcessed(req)
 	}
-	op.currentRequest = nil
 	log.Debugw("RECEIVE STATE UPD",
 		"stateIdx", stateUpd.StateIndex(),
 		"tx", tx.ShortStr(),
@@ -95,10 +94,10 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	op.takeAction()
 }
 
-// triggered by `initReq` message sent from the leader
+// triggered by `processReq` message sent from the leader
 // if timestamp is acceptable and the msg context is from the current state or the next
 // include the message into the state
-func (op *scOperator) eventInitReqProcessingMsg(msg *initReqMsg) {
+func (op *scOperator) eventProcessReqMsg(msg *processReqMsg) {
 	stateIndex := op.stateTx.MustState().StateIndex()
 	var pos int
 	switch {
@@ -112,13 +111,19 @@ func (op *scOperator) eventInitReqProcessingMsg(msg *initReqMsg) {
 		log.Warnf("ignore 'initReq' message for %s: state index is out of context", msg.RequestId.Short())
 		return
 	}
-	if op.requestToProcess[pos][msg.SenderIndex] != nil {
-		log.Errorf("repeating 'initReq' message")
+	if op.requestToProcess[pos][msg.SenderIndex].reqId != nil {
+		log.Errorf("repeating 'processReq' message from peer %d", msg.SenderIndex)
 		return
 	}
-	op.requestToProcess[pos][msg.SenderIndex] = &requestToProcess{
-		msg:          msg,
-		whenReceived: time.Now(),
+	if op.requestToProcess[pos][msg.SenderIndex].req != nil {
+		log.Panicf("can't be: op.requestToProcess[pos][msg.SenderIndex].req != nil")
+	}
+	op.requestToProcess[pos][msg.SenderIndex].reqId = msg.RequestId
+
+	if req, ok := op.requestFromId(msg.RequestId); ok && req.reqRef != nil {
+		op.requestToProcess[pos][msg.SenderIndex].req = req
+		op.requestToProcess[pos][msg.SenderIndex].ts = msg.Timestamp
+		op.asyncCalculateResult(req, msg.Timestamp)
 	}
 }
 

@@ -26,10 +26,13 @@ func (op *scOperator) sendRequestNotificationsToLeader(reqs []*request) {
 	}
 }
 
+// only requests with reqRef != nil
 func (op *scOperator) sortedRequestsByAge() []*request {
 	ret := make([]*request, 0, len(op.requests))
 	for _, req := range op.requests {
-		ret = append(ret, req)
+		if req.reqRef != nil {
+			ret = append(ret, req)
+		}
 	}
 	sortRequestsByAge(ret)
 	return ret
