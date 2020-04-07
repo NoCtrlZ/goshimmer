@@ -1,6 +1,7 @@
 package sc
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -103,4 +104,8 @@ func (id *RequestId) Short() string {
 
 func (id *RequestId) Shortest() string {
 	return fmt.Sprintf("%s..[%d]", base58.Encode(id.TransactionId().Bytes()[:4]), id.Index())
+}
+
+func (id *RequestId) Equal(id1 *RequestId) bool {
+	return bytes.Compare(id.Bytes(), id1.Bytes()) == 0
 }

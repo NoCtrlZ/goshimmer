@@ -2,20 +2,17 @@ package operator2
 
 import (
 	"bytes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
 func (op *scOperator) takeAction() {
-	op.adjustToStateContext()
-	op.sendRequestNotifications(false)
 	op.initRequestProcessing()
 }
 
 // takes action when stateChanged flag is true
-func (op *scOperator) adjustToStateContext() {
-	if !op.stateChanged {
-		return
-	}
+func (op *scOperator) setNewState(tx sc.Transaction) {
+	op.stateTx = tx
 	// reset current leader seq index
 	op.currLeaderSeqIndex = 0
 	op.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), op.stateTx.Id().Bytes())
@@ -26,27 +23,23 @@ func (op *scOperator) adjustToStateContext() {
 	for i := range op.requestToProcess[1] {
 		op.requestToProcess[1][i] = nil
 	}
-	// send request notification to peers with renew flag = true
-	op.adjustNotifications()
-	op.sendRequestNotifications(true)
-	op.stateChanged = false
-}
-
-// delete notifications which belongs to the past state indices
-func (op *scOperator) adjustNotifications() {
-	obsoleteIndices := make([]uint32, 0)
-	currentStateIndex := op.stateTx.MustState().StateIndex()
-	for _, notifMap := range op.requestNotificationsReceived {
-		for stateIndex := range notifMap {
-			if stateIndex < currentStateIndex {
-				obsoleteIndices = append(obsoleteIndices, stateIndex)
-			}
-		}
-		for _, idx := range obsoleteIndices {
-			delete(notifMap, idx)
-		}
-		obsoleteIndices = obsoleteIndices[:0]
+	// swap curr and next state request notifications for each peer
+	// clean the notifications for the next state index
+	for i := range op.requestNotificationsReceived {
+		op.requestNotificationsReceived[i][0], op.requestNotificationsReceived[i][1] =
+			op.requestNotificationsReceived[i][1], op.requestNotificationsReceived[i][0]
+		op.requestNotificationsReceived[i][1] = op.requestNotificationsReceived[i][1][:0]
 	}
+	// in the notification for the current state add all req ids from own queue of requests
+	sortedReqs := op.sortedRequestsByAge()
+	ids := make([]*sc.RequestId, len(sortedReqs))
+	for i := range ids {
+		ids[i] = sortedReqs[i].reqId
+	}
+	op.accountRequestIdNotifications(op.PeerIndex(), false, ids...)
+
+	// send notification about all requests to the current leader
+	op.sendRequestNotificationsAllToLeader()
 }
 
 func (op *scOperator) initRequestProcessing() {

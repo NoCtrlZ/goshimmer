@@ -13,15 +13,14 @@ import (
 
 type scOperator struct {
 	sync.RWMutex
-	dismissed    bool
-	scid         *HashValue
-	cfgData      *registry.ConfigData
-	processor    vm.Processor
-	stateTx      sc.Transaction
-	stateChanged bool
+	dismissed bool
 
-	// peerIndex -> currState, nextState -> list of req which are >= the current state index
-	requestNotificationsReceived [][2][]*sc.RequestId
+	scid    *HashValue
+	cfgData *registry.ConfigData
+	// VM
+	processor vm.Processor
+	// current state transaction
+	stateTx sc.Transaction
 
 	requests          map[sc.RequestId]*request
 	processedRequests map[sc.RequestId]time.Duration
@@ -29,6 +28,9 @@ type scOperator struct {
 	comm              *messaging.CommitteeConn
 	stopClock         func()
 	msgCounter        int
+
+	// peerIndex -> currState [0], nextState [1] -> list of req which are >= the current state index
+	requestNotificationsReceived [][2][]*sc.RequestId
 
 	// request processing state
 	// peers, sorted according to the current state hash

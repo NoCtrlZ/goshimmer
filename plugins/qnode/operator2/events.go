@@ -11,24 +11,14 @@ import (
 // its requests
 func (op *scOperator) eventNotifyReqMsg(msg *notifyReqMsg) {
 	stateIndex := op.stateTx.MustState().StateIndex()
-	var pos int
-	switch {
-	case msg.StateIndex == stateIndex:
-		// current state index
-		pos = 0
-	case msg.StateIndex == stateIndex+1:
-		// next state index
-		pos = 1
-	default:
-		log.Warn("request notification is not for current or next state index. Ignored")
+	nextState := msg.StateIndex == stateIndex+1
+	if !nextState && msg.StateIndex != stateIndex {
+		log.Warn("request notification is not for current nor next state index. Ignored")
 		return
 	}
-	if msg.Renew {
-		op.requestNotificationsReceived[msg.SenderIndex][pos] =
-			op.requestNotificationsReceived[msg.SenderIndex][pos][:0]
-	}
-	op.requestNotificationsReceived[msg.SenderIndex][msg.StateIndex] =
-		append(op.requestNotificationsReceived[msg.SenderIndex][pos], msg.RequestIds...)
+	// account notifications
+	op.accountRequestIdNotifications(msg.SenderIndex, nextState, msg.RequestIds...)
+
 	op.takeAction()
 }
 
@@ -41,8 +31,15 @@ func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 		)
 		return
 	}
-	reqRec := op.requestFromMsg(reqRef)
-	reqRec.log.Debugw("eventRequestMsg", "id", reqRef.Id().Short())
+	req := op.requestFromMsg(reqRef)
+	req.log.Debugw("eventRequestMsg", "id", reqRef.Id().Short())
+
+	// include request in own list of the current state
+	op.accountRequestIdNotifications(op.PeerIndex(), false, req.reqId)
+
+	// the current leader is notified about new request
+	op.sendRequestNotification(req)
+
 	op.takeAction()
 }
 
@@ -56,7 +53,7 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	// current state is always present
 	state := op.stateTx.MustState()
 
-	if stateUpd.Error() == nil && stateUpd.StateIndex() <= state.StateIndex() {
+	if stateUpd.Error() == nil && stateUpd.StateIndex() != state.StateIndex()+1 {
 		// wrong sequence of stateTx indices. Ignore the message
 		log.Warnf("wrong sequence of stateTx indices. Ignore the message")
 		return
@@ -90,7 +87,8 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 		}
 		// update current state
 		log.Infof("STATE CHANGE %d --> %d", state.StateIndex(), stateUpd.StateIndex())
-		op.stateTx = tx
+
+		op.setNewState(tx)
 	} else {
 		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
 	}

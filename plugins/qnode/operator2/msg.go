@@ -26,9 +26,6 @@ type notifyReqMsg struct {
 	SenderIndex uint16
 	// state index in the context of which the message is sent
 	StateIndex uint32
-	// false if this is incremental update of the request list,
-	// true if it is the full list of requests, to be completely renewed
-	Renew bool
 	// list of request ids ordered by the time of arrival
 	RequestIds []*sc.RequestId
 }

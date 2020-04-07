@@ -5,32 +5,14 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 )
 
-// send request notifications to the current leader
-// if renew == true sends all request ids
-// if renew == false send only those which were not sent yet in the current context
-func (op *scOperator) sendRequestNotifications(renew bool) {
-	stateIndex := op.stateTx.MustState().StateIndex()
-	reqsToSend := make([]*request, 0, len(op.requests))
-	for _, req := range op.requests {
-		if renew {
-			reqsToSend = append(reqsToSend, req)
-		} else {
-			if req.lastNotifiedLeaderOfStateIndex < stateIndex || req.lastNotifiedLeaderSeqIndex != op.currLeaderSeqIndex {
-				reqsToSend = append(reqsToSend, req)
-			}
-		}
-	}
-	if len(reqsToSend) == 0 {
-		return
-	}
-	sortRequestsByAge(reqsToSend)
-	ids := make([]*sc.RequestId, len(reqsToSend))
+// notifies current leader about requests in the order of arrival
+func (op *scOperator) sendRequestNotificationsToLeader(reqs []*request) {
+	ids := make([]*sc.RequestId, len(reqs))
 	for i := range ids {
-		ids[i] = reqsToSend[i].reqId
+		ids[i] = reqs[i].reqId
 	}
 	msg := &notifyReqMsg{
-		StateIndex: stateIndex,
-		Renew:      renew,
+		StateIndex: op.stateTx.MustState().StateIndex(),
 		RequestIds: ids,
 	}
 	var buf bytes.Buffer
@@ -42,8 +24,43 @@ func (op *scOperator) sendRequestNotifications(renew bool) {
 		log.Errorf("sending req notifications: %v", err)
 		return
 	}
-	for _, req := range reqsToSend {
-		req.lastNotifiedLeaderOfStateIndex = stateIndex
-		req.lastNotifiedLeaderSeqIndex = op.currLeaderSeqIndex
+}
+
+func (op *scOperator) sortedRequestsByAge() []*request {
+	ret := make([]*request, 0, len(op.requests))
+	for _, req := range op.requests {
+		ret = append(ret, req)
 	}
+	sortRequestsByAge(ret)
+	return ret
+}
+
+func (op *scOperator) sendRequestNotificationsAllToLeader() {
+	op.sendRequestNotificationsToLeader(op.sortedRequestsByAge())
+}
+
+func (op *scOperator) sendRequestNotification(req *request) {
+	op.sendRequestNotificationsToLeader([]*request{req})
+}
+
+// includes request ids into the respective list of notifications
+func (op *scOperator) accountRequestIdNotifications(senderIndex uint16, nextState bool, reqs ...*sc.RequestId) {
+	pos := 0
+	if nextState {
+		pos = 1
+	}
+	for _, id := range reqs {
+		op.requestNotificationsReceived[senderIndex][pos] =
+			appendReqId(op.requestNotificationsReceived[senderIndex][pos], id)
+	}
+}
+
+// ensures each id is unique in the list
+func appendReqId(lst []*sc.RequestId, id *sc.RequestId) []*sc.RequestId {
+	for _, tid := range lst {
+		if tid.Equal(id) {
+			return lst
+		}
+	}
+	return append(lst, id)
 }
