@@ -11,13 +11,19 @@ func (op *scOperator) takeAction() {
 }
 
 func (op *scOperator) doLeader() {
-	op.initCalculations()
+	// when operator is rotated to the leader position,
+	// the 'leader' flag is up and doesn't change since
+	// the meaning is: the operator has been doing its job as the leader of the current state
+	op.requestToProcess[0][op.PeerIndex()].leader = op.requestToProcess[0][op.PeerIndex()].leader || op.iAmCurrentLeader()
+	op.startProcessing()
 }
 
-func (op *scOperator) initCalculations() {
+func (op *scOperator) startProcessing() {
 	if !op.iAmCurrentLeader() {
+		// only need to start processing of the request if it is current leader
 		return
 	}
+
 	if op.requestToProcess[0][op.PeerIndex()].req != nil {
 		// request already selected and calculations initialized
 		return
@@ -27,24 +33,25 @@ func (op *scOperator) initCalculations() {
 		// can't select request to process
 		return
 	}
-	msg := &processReqMsg{
+	msg := &startProcessingReqMsg{
 		StateIndex: op.stateTx.MustState().StateIndex(),
 		RequestId:  req.reqId,
 	}
 	var buf bytes.Buffer
 	encodeProcessReqMsg(msg, &buf)
-	numSucc, ts := op.comm.SendMsgToPeers(msgProcessRequest, buf.Bytes())
+	numSucc, ts := op.comm.SendMsgToPeers(msgStartProcessingRequest, buf.Bytes())
 
 	if numSucc < op.Quorum() {
 		// doesn't make sense to continue because less than quorum sends succeeded
-		req.log.Errorf("only %d 'msgProcessRequest' sends succeeded", numSucc)
+		req.log.Errorf("only %d 'msgStartProcessingRequest' sends succeeded", numSucc)
 		return
 	}
 	op.requestToProcess[0][op.PeerIndex()].req = req
 	op.requestToProcess[0][op.PeerIndex()].ts = ts
 
-	req.log.Debugf("msgProcessRequest successfully sent to %d peers", numSucc)
-	op.asyncCalculateResult(req, ts)
+	req.log.Debugf("msgStartProcessingRequest successfully sent to %d peers", numSucc)
+	// run calculations async.
+	go op.processRequest(op.PeerIndex())
 }
 
 // takes action when stateChanged flag is true

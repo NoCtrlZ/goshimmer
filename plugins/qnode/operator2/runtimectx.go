@@ -12,12 +12,13 @@ import (
 )
 
 type runtimeContext struct {
-	reqRef   *sc.RequestRef
-	ts       time.Time
-	state    sc.Transaction
-	resultTx sc.Transaction
-	log      *logger.Logger
-	err      error
+	leaderIndex uint16
+	reqRef      *sc.RequestRef
+	ts          time.Time
+	state       sc.Transaction
+	resultTx    sc.Transaction
+	log         *logger.Logger
+	err         error
 }
 
 func (ctx *runtimeContext) Time() time.Time {
@@ -137,7 +138,7 @@ func newConfigUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transact
 	}, nil
 }
 
-func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transaction, ts time.Time) (*runtimeContext, error) {
+func newStateUpdateRuntimeContext(leaderPeerIndex uint16, reqRef *sc.RequestRef, curStateTx sc.Transaction, ts time.Time) (*runtimeContext, error) {
 	resTx, err := clientapi.NextStateUpdateTransaction(curStateTx, reqRef)
 	if err != nil {
 		return nil, err
@@ -145,10 +146,11 @@ func newStateUpdateRuntimeContext(reqRef *sc.RequestRef, curStateTx sc.Transacti
 	resTx.MustState().WithTime(ts)
 
 	return &runtimeContext{
-		reqRef:   reqRef,
-		ts:       ts,
-		state:    curStateTx,
-		resultTx: resTx,
-		log:      logger.NewLogger("VM"),
+		leaderIndex: leaderPeerIndex,
+		reqRef:      reqRef,
+		ts:          ts,
+		state:       curStateTx,
+		resultTx:    resTx,
+		log:         logger.NewLogger("VM"),
 	}, nil
 }

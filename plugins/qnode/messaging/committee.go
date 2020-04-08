@@ -64,7 +64,7 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 	if targetPeerIndex == cconn.operator.PeerIndex() || int(targetPeerIndex) >= len(cconn.peers) {
 		return fmt.Errorf("attempt to send message to the wrong peer index")
 	}
-	if msgType < FirstCommitteeMsgType {
+	if msgType < FirstCommitteeMsgCode {
 		panic("reserved msg type")
 	}
 
@@ -90,7 +90,7 @@ func (cconn *CommitteeConn) SendMsg(targetPeerIndex uint16, msgType byte, msgDat
 // send message to peers.
 // returns number if successful sends and timestamp common for all messages
 func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) (uint16, time.Time) {
-	if msgType == FirstCommitteeMsgType {
+	if msgType == FirstCommitteeMsgCode {
 		panic("reserved msg type")
 	}
 

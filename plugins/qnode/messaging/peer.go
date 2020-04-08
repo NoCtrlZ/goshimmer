@@ -23,7 +23,7 @@ type qnodePeer struct {
 }
 
 const (
-	FirstCommitteeMsgType = byte(0x10) // equal and larger msg types are committee messages
+	FirstCommitteeMsgCode = byte(0x10) // equal and larger msg types are committee messages
 
 	MsgTypeHeartbeat = byte(0)
 	MsgTypeHandshake = byte(1)

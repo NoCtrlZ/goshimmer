@@ -3,6 +3,7 @@ package operator2
 import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/generic"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
@@ -51,11 +52,19 @@ type scOperator struct {
 }
 
 type processingStatus struct {
-	req            *request
-	reqId          *sc.RequestId
-	ts             time.Time
-	ownResult      *resultCalculated
-	receivedResult interface{}
+	// flag is true when operator becomes leader for the state
+	leader bool
+	// != nil when calculations started
+	req *request
+	// request, selected by the peer to process
+	reqId *sc.RequestId
+	// timestamp proposed by the leader
+	ts time.Time
+	// own calculated result
+	ownResult sc.Transaction
+	// received from other peers as partially signed result
+	MasterDataHash *HashValue
+	SigBlocks      []generic.SignedBlock
 }
 
 // keeps stateTx of the request

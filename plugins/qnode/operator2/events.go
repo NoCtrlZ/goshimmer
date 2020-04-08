@@ -94,10 +94,10 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 	op.takeAction()
 }
 
-// triggered by `processReq` message sent from the leader
+// triggered by `startProcessingReq` message sent from the leader
 // if timestamp is acceptable and the msg context is from the current state or the next
 // include the message into the state
-func (op *scOperator) eventProcessReqMsg(msg *processReqMsg) {
+func (op *scOperator) eventStartProcessingReqMsg(msg *startProcessingReqMsg) {
 	stateIndex := op.stateTx.MustState().StateIndex()
 	var pos int
 	switch {
@@ -119,37 +119,47 @@ func (op *scOperator) eventProcessReqMsg(msg *processReqMsg) {
 		log.Panicf("can't be: op.requestToProcess[pos][msg.SenderIndex].req != nil")
 	}
 	op.requestToProcess[pos][msg.SenderIndex].reqId = msg.RequestId
+	op.requestToProcess[pos][msg.SenderIndex].ts = msg.Timestamp
 
-	if req, ok := op.requestFromId(msg.RequestId); ok && req.reqRef != nil {
-		op.requestToProcess[pos][msg.SenderIndex].req = req
-		op.requestToProcess[pos][msg.SenderIndex].ts = msg.Timestamp
-		op.asyncCalculateResult(req, msg.Timestamp)
+	if pos != 0 {
+		// if not current state, do nothing
+		return
 	}
+	if req, ok := op.requestFromId(msg.RequestId); ok && req.reqRef != nil {
+		op.requestToProcess[0][msg.SenderIndex].req = req
+		go op.processRequest(msg.SenderIndex)
+	}
+}
+
+func (op *scOperator) eventSignedHashMsg(msg *signedHashMsg) {
+
 }
 
 // triggered from main msg queue whenever calculation of new result is finished
 
 func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
+	// check if result belongs to context
+	if ctx.state.MustState().StateIndex() != op.stateTx.MustState().StateIndex() {
+		// out of context. ignore
+		return
+	}
 	reqId := ctx.reqRef.Id()
-	reqRec, ok := op.requestFromId(reqId)
+	req, ok := op.requestFromId(reqId)
 	if !ok {
 		// processed
 		return
 	}
-	reqRec.log.Debugw("eventResultCalculated",
+	req.log.Debugw("eventResultCalculated",
 		"state idx", ctx.state.MustState().StateIndex(),
 		"cur state idx", op.stateTx.MustState().StateIndex(),
 		"resultErr", ctx.err,
 	)
 
-	taskId := hashing.HashData(reqId.Bytes(), ctx.state.Id().Bytes())
-	delete(reqRec.startedCalculation, *taskId)
-
 	if ctx.err != nil {
 		var err error
 		ctx.resultTx, err = clientapi.ErrorTransaction(ctx.reqRef, ctx.state.MustState().Config(), ctx.err)
 		if err != nil {
-			reqRec.log.Errorw("eventResultCalculated: error while processing error state",
+			req.log.Errorw("eventResultCalculated: error while processing error state",
 				"state idx", ctx.state.MustState().StateIndex(),
 				"current state idx", op.stateTx.MustState().StateIndex(),
 				"error", err,
@@ -157,37 +167,14 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 			return
 		}
 	}
-	if !op.resultBelongsToContext(ctx) {
-		// stateTx changed while it was being calculated
-		// dismiss the result
-		return
-	}
-
-	if reqRec.ownResultCalculated != nil {
-		// shouldn't be
-		if op.resultBelongsToContext(reqRec.ownResultCalculated.res) {
-			panic("inconsistency: duplicate result")
-		}
-		// dismiss new result, which is from another R,E,S context
-		return
-	}
-	// new result
-	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
-	if err != nil {
-		reqRec.log.Errorf("SignTransaction returned: %v", err)
-		return
-	}
-	masterDataHash := ctx.resultTx.MasterDataHash()
-	reqRec.log.Debugw("eventResultCalculated:",
+	req.log.Debugw("eventResultCalculated:",
 		"input tx", ctx.state.Id().Short(),
 		"res tx", ctx.resultTx.Id().Short(),
-		"master result hash", masterDataHash.Short(),
-		"err", err,
 	)
-	reqRec.ownResultCalculated = &resultCalculated{
-		res:            ctx,
-		resultHash:     resultHash(ctx.state.MustState().StateIndex(), reqId, masterDataHash),
-		masterDataHash: masterDataHash,
+	op.requestToProcess[ctx.leaderIndex][0].ownResult = ctx.resultTx
+	if ctx.leaderIndex != op.PeerIndex() {
+		// send result hash and signatures to the leader
+		op.sendResultToTheLeader(ctx.leaderIndex)
 	}
 	op.takeAction()
 }

@@ -3,8 +3,8 @@ package operator2
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
-	"time"
 )
 
 func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue {
@@ -17,29 +17,11 @@ func resultHash(stateIndex uint32, reqId, masterDataHash *HashValue) *HashValue 
 	return ret
 }
 
-func (op *scOperator) asyncCalculateResult(req *request, ts time.Time) {
-	if op.currentResult != nil {
-		return
-	}
-	if req.reqRef == nil {
-		return
-	}
-	taskId := HashData(req.reqId.Bytes(), op.stateTx.Id().Bytes())
-	if _, ok := req.startedCalculation[*taskId]; !ok {
-		req.startedCalculation[*taskId] = time.Now()
-		req.log.Debugf("start calculation in state idx %d", op.stateTx.MustState().StateIndex())
-		go op.processRequest(req, ts)
-	}
-}
-
-func (op *scOperator) processRequest(req *request, ts time.Time) {
+func (op *scOperator) processRequest(leaderPeerIndex uint16) {
+	req, ts := op.requestToProcess[0][leaderPeerIndex].req, op.requestToProcess[0][leaderPeerIndex].ts
 	var ctx *runtimeContext
 	var err error
-	if req.reqRef.RequestBlock().IsConfigUpdateReq() {
-		ctx, err = newConfigUpdateRuntimeContext(req.reqRef, op.stateTx, ts)
-	} else {
-		ctx, err = newStateUpdateRuntimeContext(req.reqRef, op.stateTx, ts)
-	}
+	ctx, err = newStateUpdateRuntimeContext(leaderPeerIndex, req.reqRef, op.stateTx, ts)
 	if err != nil {
 		req.log.Warnw("can't create runtime context",
 			"aid", req.reqRef.RequestBlock().SContractId().Short(),
@@ -48,11 +30,8 @@ func (op *scOperator) processRequest(req *request, ts time.Time) {
 		)
 		return
 	}
-	if !req.reqRef.RequestBlock().IsConfigUpdateReq() {
-		// non config updates are passed to processor
-		op.processor.Run(ctx)
-		displayResult(req, ctx)
-	}
+	op.processor.Run(ctx)
+	displayResult(req, ctx)
 	op.postEventToQueue(ctx)
 }
 
@@ -60,41 +39,28 @@ func displayResult(req *request, ctx *runtimeContext) {
 	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
 }
 
-func (op *scOperator) pushResultMsgFromResult(resRec *resultCalculated) (*pushResultMsg, error) {
-	sigBlocks, err := resRec.res.resultTx.Signatures()
+func (op *scOperator) sendResultToTheLeader(leaderPeerIndex uint16) {
+	resultTx := op.requestToProcess[0][leaderPeerIndex].ownResult
+	err := sc.SignTransaction(resultTx, op.keyPool())
 	if err != nil {
-		return nil, err
-	}
-	state, _ := resRec.res.state.State()
-	return &pushResultMsg{
-		SenderIndex:    op.PeerIndex(),
-		RequestId:      resRec.res.reqRef.Id(),
-		StateIndex:     state.StateIndex(),
-		MasterDataHash: resRec.masterDataHash,
-		SigBlocks:      sigBlocks,
-	}, nil
-}
-
-func (op *scOperator) sendPushResultToPeer(res *resultCalculated, peerIndex uint16) {
-	locLog := log
-	if req, ok := op.requestFromId(res.res.reqRef.Id()); ok {
-		locLog = req.log
-	}
-
-	pushMsg, err := op.pushResultMsgFromResult(res)
-	if err != nil {
-		locLog.Errorf("sendPushResultToPeer: %v", err)
+		op.requestToProcess[0][leaderPeerIndex].req.log.Errorf("SignTransaction returned: %v", err)
 		return
 	}
-
-	resultHash := resultHash(pushMsg.StateIndex, pushMsg.RequestId, pushMsg.MasterDataHash)
-	locLog.Debugf("sendPushResultToPeer %d for state idx %d, res hash %s",
-		peerIndex, res.res.state.MustState().StateIndex(), resultHash.Short())
-
-	var encodedMsg bytes.Buffer
-	encodePushResultMsg(pushMsg, &encodedMsg)
-	err = op.comm.SendMsg(peerIndex, msgTypePush, encodedMsg.Bytes())
+	sigs, err := resultTx.Signatures()
 	if err != nil {
-		locLog.Errorf("SendUDPData returned error: `%v`", err)
+		op.requestToProcess[0][leaderPeerIndex].req.log.Error(err)
+		return
+	}
+	msg := &signedHashMsg{
+		StateIndex:    op.stateTx.MustState().StateIndex(),
+		RequestId:     op.requestToProcess[0][leaderPeerIndex].reqId,
+		OrigTimestamp: op.requestToProcess[0][leaderPeerIndex].ts,
+		DataHash:      resultTx.MasterDataHash(),
+		SigBlocks:     sigs,
+	}
+	var buf bytes.Buffer
+	encodeSignedHashMsg(msg, &buf)
+	if err := op.comm.SendMsg(leaderPeerIndex, msgSignedHash, buf.Bytes()); err != nil {
+		op.requestToProcess[0][leaderPeerIndex].req.log.Error(err)
 	}
 }

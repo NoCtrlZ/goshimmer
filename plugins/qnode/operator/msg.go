@@ -31,7 +31,7 @@ type pullResultMsg struct {
 type timerMsg int
 
 const (
-	msgTypePush = messaging.FirstCommitteeMsgType
+	msgTypePush = messaging.FirstCommitteeMsgCode
 	msgTypePull = msgTypePush + 1
 )
 

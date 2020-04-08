@@ -72,12 +72,14 @@ func (op *scOperator) dispatchEvent(msg interface{}) {
 	switch msgt := msg.(type) {
 	case *notifyReqMsg:
 		op.eventNotifyReqMsg(msgt)
+	case *startProcessingReqMsg:
+		op.eventStartProcessingReqMsg(msgt)
+	case *signedHashMsg:
+		op.eventSignedHashMsg(msgt)
 	case *sc.StateUpdateMsg:
 		op.eventStateUpdate(msgt.Tx)
 	case *sc.RequestRef:
 		op.eventRequestMsg(msgt)
-	case *processReqMsg:
-		op.eventProcessReqMsg(msgt)
 	case *runtimeContext:
 		op.eventResultCalculated(msgt)
 	case timerMsg:

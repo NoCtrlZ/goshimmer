@@ -49,7 +49,7 @@ func unwrapPacket(data []byte) (*unwrappedPacket, error) {
 		ret.data = rdr.Bytes()
 		return ret, nil
 
-	case ret.msgType >= FirstCommitteeMsgType:
+	case ret.msgType >= FirstCommitteeMsgCode:
 		// committee message
 		var scid HashValue
 		_, err = rdr.Read(scid.Bytes())
@@ -93,7 +93,7 @@ func wrapPacket(up *unwrappedPacket) ([]byte, time.Time) {
 		buf.WriteByte(MsgTypeHandshake)
 		buf.Write(up.data)
 
-	case up.msgType >= FirstCommitteeMsgType:
+	case up.msgType >= FirstCommitteeMsgCode:
 		buf.WriteByte(up.msgType)
 		buf.Write(up.scid.Bytes())
 		_ = tools.WriteUint16(&buf, up.senderIndex)
