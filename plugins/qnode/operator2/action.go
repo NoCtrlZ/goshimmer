@@ -15,15 +15,17 @@ func (op *scOperator) doLeader() {
 	// the 'leader' flag is up and doesn't change since
 	// the meaning is: the operator has been doing its job as the leader of the current state
 	op.requestToProcess[0][op.PeerIndex()].leader = op.requestToProcess[0][op.PeerIndex()].leader || op.iAmCurrentLeader()
-	op.startProcessing()
+	if !op.iAmCurrentLeader() {
+		op.startProcessing()
+	}
+	if op.requestToProcess[0][op.PeerIndex()].leader && !op.requestToProcess[0][op.PeerIndex()].finalized {
+		if op.checkQuorum() {
+			op.finalizeProcessing()
+		}
+	}
 }
 
 func (op *scOperator) startProcessing() {
-	if !op.iAmCurrentLeader() {
-		// only need to start processing of the request if it is current leader
-		return
-	}
-
 	if op.requestToProcess[0][op.PeerIndex()].req != nil {
 		// request already selected and calculations initialized
 		return
@@ -52,6 +54,41 @@ func (op *scOperator) startProcessing() {
 	req.log.Debugf("msgStartProcessingRequest successfully sent to %d peers", numSucc)
 	// run calculations async.
 	go op.processRequest(op.PeerIndex())
+}
+
+func (op *scOperator) checkQuorum() bool {
+	if !op.requestToProcess[0][op.PeerIndex()].leader {
+		return false
+	}
+	mainHash := op.requestToProcess[0][op.PeerIndex()].MasterDataHash
+	if mainHash == nil || op.requestToProcess[0][op.PeerIndex()].ownResult == nil {
+		return false
+	}
+	quorumIndices := make([]int, 0, op.CommitteeSize())
+	for i := range op.requestToProcess[0] {
+		if op.requestToProcess[0][i].MasterDataHash == nil {
+			continue
+		}
+		if op.requestToProcess[0][i].MasterDataHash.Equal(mainHash) &&
+			len(op.requestToProcess[0][i].SigBlocks) == len(op.requestToProcess[0][op.PeerIndex()].SigBlocks) {
+			quorumIndices = append(quorumIndices, i)
+		}
+	}
+	if len(quorumIndices) < int(op.Quorum()) {
+		return false
+	}
+	// quorum detected
+	err := op.aggregateResult(quorumIndices, len(op.requestToProcess[0][op.PeerIndex()].SigBlocks))
+	if err != nil {
+		op.requestToProcess[0][op.PeerIndex()].req.log.Errorf("aggregateResult returned: %v", err)
+		return false
+	}
+	err = sc.VerifySignatures(op.requestToProcess[0][op.PeerIndex()].ownResult, op.keyPool())
+	if err != nil {
+		op.requestToProcess[0][op.PeerIndex()].req.log.Errorf("VerifySignatures returned: %v", err)
+		return false
+	}
+	return true
 }
 
 // takes action when stateChanged flag is true

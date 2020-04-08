@@ -108,7 +108,7 @@ func (op *scOperator) startRoutines() {
 			case <-chCancel:
 				return
 			case <-time.After(parameters.CLOCK_TICK_PERIOD):
-				op.postEventToQueue(msg2.timerMsg(index))
+				op.postEventToQueue(timerMsg(index))
 				index++
 			}
 		}

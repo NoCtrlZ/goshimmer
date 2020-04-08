@@ -65,6 +65,8 @@ type processingStatus struct {
 	// received from other peers as partially signed result
 	MasterDataHash *HashValue
 	SigBlocks      []generic.SignedBlock
+	// was sent to tangle
+	finalized bool
 }
 
 // keeps stateTx of the request

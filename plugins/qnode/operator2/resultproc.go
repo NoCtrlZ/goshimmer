@@ -3,7 +3,6 @@ package operator2
 import (
 	"bytes"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
@@ -40,23 +39,12 @@ func displayResult(req *request, ctx *runtimeContext) {
 }
 
 func (op *scOperator) sendResultToTheLeader(leaderPeerIndex uint16) {
-	resultTx := op.requestToProcess[0][leaderPeerIndex].ownResult
-	err := sc.SignTransaction(resultTx, op.keyPool())
-	if err != nil {
-		op.requestToProcess[0][leaderPeerIndex].req.log.Errorf("SignTransaction returned: %v", err)
-		return
-	}
-	sigs, err := resultTx.Signatures()
-	if err != nil {
-		op.requestToProcess[0][leaderPeerIndex].req.log.Error(err)
-		return
-	}
 	msg := &signedHashMsg{
 		StateIndex:    op.stateTx.MustState().StateIndex(),
 		RequestId:     op.requestToProcess[0][leaderPeerIndex].reqId,
 		OrigTimestamp: op.requestToProcess[0][leaderPeerIndex].ts,
-		DataHash:      resultTx.MasterDataHash(),
-		SigBlocks:     sigs,
+		DataHash:      op.requestToProcess[0][leaderPeerIndex].MasterDataHash,
+		SigBlocks:     op.requestToProcess[0][leaderPeerIndex].SigBlocks,
 	}
 	var buf bytes.Buffer
 	encodeSignedHashMsg(msg, &buf)

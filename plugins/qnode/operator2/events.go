@@ -2,9 +2,7 @@ package operator2
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/clientapi"
-	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"time"
 )
 
 // triggered by new notifyReqMsg, when another node notifies about
@@ -131,8 +129,25 @@ func (op *scOperator) eventStartProcessingReqMsg(msg *startProcessingReqMsg) {
 	}
 }
 
+// triggered by the signed result, sent by the the node to the leader
 func (op *scOperator) eventSignedHashMsg(msg *signedHashMsg) {
-
+	// validate
+	req := op.requestToProcess[0][op.PeerIndex()].req
+	if op.requestToProcess[0][op.PeerIndex()].reqId == nil || req == nil {
+		log.Errorf("eventSignedHashMsg: wrong state of the leader ")
+		return
+	}
+	if op.requestToProcess[0][msg.SenderIndex].MasterDataHash != nil ||
+		op.requestToProcess[0][msg.SenderIndex].SigBlocks != nil {
+		log.Errorf("eventSignedHashMsg: wrong state of the peer %d", msg.SenderIndex)
+		return
+	}
+	req.log.Debugw("eventSignedHashMsg",
+		"senderIndex", msg.SenderIndex,
+		"stateIndex", msg.StateIndex)
+	op.requestToProcess[0][msg.SenderIndex].MasterDataHash = msg.DataHash
+	op.requestToProcess[0][msg.SenderIndex].SigBlocks = msg.SigBlocks
+	// do not check master hash because at this point own calculations may not be finished yet
 }
 
 // triggered from main msg queue whenever calculation of new result is finished
@@ -171,7 +186,20 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 		"input tx", ctx.state.Id().Short(),
 		"res tx", ctx.resultTx.Id().Short(),
 	)
+	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
+	if err != nil {
+		req.log.Errorf("SignTransaction returned: %v", err)
+		return
+	}
+	sigs, err := ctx.resultTx.Signatures()
+	if err != nil {
+		req.log.Errorf("Signatures returned: %v", err)
+		return
+	}
 	op.requestToProcess[ctx.leaderIndex][0].ownResult = ctx.resultTx
+	op.requestToProcess[ctx.leaderIndex][0].MasterDataHash = ctx.resultTx.MasterDataHash()
+	op.requestToProcess[ctx.leaderIndex][0].SigBlocks = sigs
+
 	if ctx.leaderIndex != op.PeerIndex() {
 		// send result hash and signatures to the leader
 		op.sendResultToTheLeader(ctx.leaderIndex)
@@ -179,7 +207,7 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 	op.takeAction()
 }
 
-func (op *scOperator) eventTimer(msg msg.timerMsg) {
+func (op *scOperator) eventTimer(msg timerMsg) {
 	if msg%300 == 0 {
 		log.Debugw("eventTimer", "#", int(msg))
 		snap := op.getStateSnapshot()
