@@ -47,23 +47,29 @@ func (op *scOperator) sendRequestNotification(req *request) {
 }
 
 // includes request ids into the respective list of notifications
-func (op *scOperator) accountRequestIdNotifications(senderIndex uint16, nextState bool, reqs ...*sc.RequestId) {
-	pos := 0
-	if nextState {
-		pos = 1
-	}
-	for _, id := range reqs {
-		op.requestNotificationsReceived[senderIndex][pos] =
-			appendReqId(op.requestNotificationsReceived[senderIndex][pos], id)
+func (op *scOperator) accountRequestIdNotifications(senderIndex uint16, stateIndex uint32, reqs ...*sc.RequestId) {
+
+	switch {
+	case stateIndex == op.stateTx.MustState().StateIndex():
+		for _, id := range reqs {
+			op.requestNotificationsCurrentState = appendNotification(op.requestNotificationsCurrentState, id, senderIndex)
+		}
+	case stateIndex == op.stateTx.MustState().StateIndex()+1:
+		for _, id := range reqs {
+			op.requestNotificationsNextState = appendNotification(op.requestNotificationsNextState, id, senderIndex)
+		}
 	}
 }
 
 // ensures each id is unique in the list
-func appendReqId(lst []*sc.RequestId, id *sc.RequestId) []*sc.RequestId {
+func appendNotification(lst []*requestNotification, id *sc.RequestId, peerIndex uint16) []*requestNotification {
 	for _, tid := range lst {
-		if tid.Equal(id) {
+		if tid.reqId.Equal(id) && tid.peerIndex == peerIndex {
 			return lst
 		}
 	}
-	return append(lst, id)
+	return append(lst, &requestNotification{
+		reqId:     id,
+		peerIndex: peerIndex,
+	})
 }

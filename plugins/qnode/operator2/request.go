@@ -2,7 +2,6 @@ package operator2
 
 import (
 	"fmt"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
 	"time"
 )
@@ -24,11 +23,8 @@ func (op *scOperator) validateRequestBlock(reqRef *sc.RequestRef) error {
 func (op *scOperator) newRequest(reqId *sc.RequestId) *request {
 	reqLog := log.Named(reqId.Shortest())
 	ret := &request{
-		reqId:              reqId,
-		pushMessages:       make(map[HashValue][]*pushResultMsg),
-		pullMessages:       make(map[uint16]*pullResultMsg),
-		startedCalculation: make(map[HashValue]time.Time),
-		log:                reqLog,
+		reqId: reqId,
+		log:   reqLog,
 	}
 	reqLog.Info("NEW REQUEST")
 	return ret

@@ -8,8 +8,8 @@ import (
 // aggregates final signature, generates final result and posts to the tangle
 
 func (op *scOperator) finalizeProcessing() {
-	req := op.requestToProcess[0][op.PeerIndex()].req
-	vtx, err := op.requestToProcess[0][op.PeerIndex()].ownResult.ValueTx()
+	req := op.leaderStatus.req
+	vtx, err := op.leaderStatus.resultTx.ValueTx()
 	if err != nil {
 		req.log.Error(err)
 		return
@@ -17,23 +17,22 @@ func (op *scOperator) finalizeProcessing() {
 	req.log.Debugw("POST result to the ValueTangle",
 		"leader", op.PeerIndex(),
 		"req", req.reqId.Short(),
-		"resTx id", op.requestToProcess[0][op.PeerIndex()].ownResult.Id().Short())
+		"resTx id", vtx.Id().Short())
 
 	req.log.Info("FINALIZED REQUEST. Posting to the Value Tangle..")
 	value.Post(vtx)
 }
 
 func (op *scOperator) aggregateResult(quorumIndices []int, numSignatures int) error {
-	resTx := op.requestToProcess[0][op.PeerIndex()].ownResult
+	resTx := op.leaderStatus.resultTx
 	targetSigs, err := resTx.Signatures()
 	if err != nil {
 		return err
 	}
-
 	sigs := make([]generic.SignedBlock, len(quorumIndices))
 	for i := 0; i < numSignatures; i++ {
 		for _, j := range quorumIndices {
-			sigs[j] = op.requestToProcess[0][j].SigBlocks[i]
+			sigs[j] = op.leaderStatus.signedHashes[j].SigBlocks[i]
 		}
 		err = generic.AggregateBLSBlocks(sigs, targetSigs[i], op.keyPool())
 		if err != nil {

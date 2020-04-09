@@ -30,8 +30,8 @@ type scOperator struct {
 	stopClock         func()
 	msgCounter        int
 
-	// peerIndex -> currState [0], nextState [1] -> list of req which are >= the current state index
-	requestNotificationsReceived [][2][]*sc.RequestId
+	requestNotificationsCurrentState []*requestNotification
+	requestNotificationsNextState    []*requestNotification
 
 	// request processing state
 	// peers, sorted according to the current state hash
@@ -48,25 +48,35 @@ type scOperator struct {
 	leaderRotationDeadlineSet bool
 	leaderRotationDeadline    time.Time
 	// states of requests being processed: as leader and as subordinate
-	requestToProcess [2][]processingStatus
+
+	leaderStatus             *leaderStatus
+	currentStateCompRequests []*computationRequest
+	nextStateCompRequests    []*computationRequest
 }
 
-type processingStatus struct {
-	// flag is true when operator becomes leader for the state
-	leader bool
-	// != nil when calculations started
-	req *request
-	// request, selected by the peer to process
-	reqId *sc.RequestId
-	// timestamp proposed by the leader
-	ts time.Time
-	// own calculated result
-	ownResult sc.Transaction
-	// received from other peers as partially signed result
+type requestNotification struct {
+	reqId     *sc.RequestId
+	peerIndex uint16
+}
+
+type leaderStatus struct {
+	req          *request
+	ts           time.Time
+	resultTx     sc.Transaction
+	finalized    bool
+	signedHashes []signedHash
+}
+
+type signedHash struct {
 	MasterDataHash *HashValue
 	SigBlocks      []generic.SignedBlock
-	// was sent to tangle
-	finalized bool
+}
+
+type computationRequest struct {
+	ts              time.Time
+	leaderPeerIndex uint16
+	req             *request
+	processed       bool
 }
 
 // keeps stateTx of the request
@@ -81,14 +91,6 @@ type request struct {
 	// request message as received by the operator.
 	// Contains parsed SC transaction and the request block index
 	reqRef *sc.RequestRef
-
-	// index of state leader of which last notified about the request message
-	// after change of the state next leader seq idx 0 must be notified and this index will be changed
-	lastNotifiedLeaderOfStateIndex uint32
-
-	// seq index of the leader last notified
-	// after leader rotation next leader must be notified and this index must be updated
-	lastNotifiedLeaderSeqIndex uint16
 
 	msgCounter int
 	log        *logger.Logger

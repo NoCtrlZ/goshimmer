@@ -8,25 +8,33 @@ import (
 
 func (op *scOperator) takeAction() {
 	op.doLeader()
+	op.doSubordinate()
+}
+
+func (op *scOperator) doSubordinate() {
+	for _, cr := range op.currentStateCompRequests {
+		if cr.processed {
+			continue
+		}
+		if cr.req.reqRef == nil {
+			continue
+		}
+		cr.processed = true
+		go op.processRequest(cr.req, cr.ts, cr.leaderPeerIndex)
+	}
 }
 
 func (op *scOperator) doLeader() {
-	// when operator is rotated to the leader position,
-	// the 'leader' flag is up and doesn't change since
-	// the meaning is: the operator has been doing its job as the leader of the current state
-	op.requestToProcess[0][op.PeerIndex()].leader = op.requestToProcess[0][op.PeerIndex()].leader || op.iAmCurrentLeader()
 	if !op.iAmCurrentLeader() {
 		op.startProcessing()
 	}
-	if op.requestToProcess[0][op.PeerIndex()].leader && !op.requestToProcess[0][op.PeerIndex()].finalized {
-		if op.checkQuorum() {
-			op.finalizeProcessing()
-		}
+	if op.checkQuorum() {
+		op.finalizeProcessing()
 	}
 }
 
 func (op *scOperator) startProcessing() {
-	if op.requestToProcess[0][op.PeerIndex()].req != nil {
+	if op.leaderStatus != nil {
 		// request already selected and calculations initialized
 		return
 	}
@@ -48,29 +56,31 @@ func (op *scOperator) startProcessing() {
 		req.log.Errorf("only %d 'msgStartProcessingRequest' sends succeeded", numSucc)
 		return
 	}
-	op.requestToProcess[0][op.PeerIndex()].req = req
-	op.requestToProcess[0][op.PeerIndex()].ts = ts
-
+	op.leaderStatus = &leaderStatus{
+		req:          req,
+		ts:           ts,
+		signedHashes: make([]signedHash, op.CommitteeSize()),
+	}
 	req.log.Debugf("msgStartProcessingRequest successfully sent to %d peers", numSucc)
 	// run calculations async.
-	go op.processRequest(op.PeerIndex())
+	go op.processRequest(req, ts, op.PeerIndex())
 }
 
 func (op *scOperator) checkQuorum() bool {
-	if !op.requestToProcess[0][op.PeerIndex()].leader {
+	if op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized {
 		return false
 	}
-	mainHash := op.requestToProcess[0][op.PeerIndex()].MasterDataHash
-	if mainHash == nil || op.requestToProcess[0][op.PeerIndex()].ownResult == nil {
+	mainHash := op.leaderStatus.signedHashes[op.PeerIndex()].MasterDataHash
+	if mainHash == nil {
 		return false
 	}
 	quorumIndices := make([]int, 0, op.CommitteeSize())
-	for i := range op.requestToProcess[0] {
-		if op.requestToProcess[0][i].MasterDataHash == nil {
+	for i := range op.leaderStatus.signedHashes {
+		if op.leaderStatus.signedHashes[i].MasterDataHash == nil {
 			continue
 		}
-		if op.requestToProcess[0][i].MasterDataHash.Equal(mainHash) &&
-			len(op.requestToProcess[0][i].SigBlocks) == len(op.requestToProcess[0][op.PeerIndex()].SigBlocks) {
+		if op.leaderStatus.signedHashes[i].MasterDataHash.Equal(mainHash) &&
+			len(op.leaderStatus.signedHashes[i].SigBlocks) == len(op.leaderStatus.signedHashes[op.PeerIndex()].SigBlocks) {
 			quorumIndices = append(quorumIndices, i)
 		}
 	}
@@ -78,14 +88,14 @@ func (op *scOperator) checkQuorum() bool {
 		return false
 	}
 	// quorum detected
-	err := op.aggregateResult(quorumIndices, len(op.requestToProcess[0][op.PeerIndex()].SigBlocks))
+	err := op.aggregateResult(quorumIndices, len(op.leaderStatus.signedHashes[op.PeerIndex()].SigBlocks))
 	if err != nil {
-		op.requestToProcess[0][op.PeerIndex()].req.log.Errorf("aggregateResult returned: %v", err)
+		op.leaderStatus.req.log.Errorf("aggregateResult returned: %v", err)
 		return false
 	}
-	err = sc.VerifySignatures(op.requestToProcess[0][op.PeerIndex()].ownResult, op.keyPool())
+	err = sc.VerifySignatures(op.leaderStatus.resultTx, op.keyPool())
 	if err != nil {
-		op.requestToProcess[0][op.PeerIndex()].req.log.Errorf("VerifySignatures returned: %v", err)
+		op.leaderStatus.req.log.Errorf("VerifySignatures returned: %v", err)
 		return false
 	}
 	return true
@@ -103,28 +113,68 @@ func (op *scOperator) setNewState(tx sc.Transaction) {
 			break
 		}
 	}
+	op.leaderStatus = nil
 
-	// swap arrays of incoming initReq's
-	// clean the array of the next state
-	op.requestToProcess[0], op.requestToProcess[1] = op.requestToProcess[1], op.requestToProcess[0]
-	for i := range op.requestToProcess[1] {
-		op.requestToProcess[1][i] = processingStatus{}
-	}
-	// swap curr and next state request notifications for each peer
-	// clean the notifications for the next state index
-	for i := range op.requestNotificationsReceived {
-		op.requestNotificationsReceived[i][0], op.requestNotificationsReceived[i][1] =
-			op.requestNotificationsReceived[i][1], op.requestNotificationsReceived[i][0]
-		op.requestNotificationsReceived[i][1] = op.requestNotificationsReceived[i][1][:0]
-	}
+	op.currentStateCompRequests, op.nextStateCompRequests =
+		op.nextStateCompRequests, op.currentStateCompRequests
+	op.nextStateCompRequests = op.nextStateCompRequests[:0]
+
+	op.requestNotificationsCurrentState, op.requestNotificationsNextState =
+		op.requestNotificationsNextState, op.requestNotificationsCurrentState
+	op.requestNotificationsNextState = op.requestNotificationsNextState[:0]
+
 	// in the notification for the current state add all req ids from own queue of requests
 	sortedReqs := op.sortedRequestsByAge()
 	ids := make([]*sc.RequestId, len(sortedReqs))
 	for i := range ids {
 		ids[i] = sortedReqs[i].reqId
 	}
-	op.accountRequestIdNotifications(op.PeerIndex(), false, ids...)
-
+	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), ids...)
 	// send notification about all requests to the current leader
 	op.sendRequestNotificationsAllToLeader()
+}
+
+func (op *scOperator) selectRequestToProcess() *request {
+	// vote
+	votes := make(map[sc.RequestId]int)
+	for _, rn := range op.requestNotificationsCurrentState {
+		if _, ok := votes[*rn.reqId]; !ok {
+			votes[*rn.reqId] = 0
+		}
+		votes[*rn.reqId] = votes[*rn.reqId] + 1
+	}
+	if len(votes) == 0 {
+		return nil
+	}
+	maxvotes := 0
+	for _, v := range votes {
+		if v > maxvotes {
+			maxvotes = v
+		}
+	}
+	if maxvotes < int(op.Quorum()) {
+		return nil
+	}
+	candidates := make([]*request, 0, len(votes))
+	for rid, v := range votes {
+		if v == int(op.Quorum()) {
+			req := op.requests[rid]
+			if req.reqRef != nil {
+				candidates = append(candidates, req)
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+	sortRequestsByAge(candidates)
+	return candidates[0]
+}
+
+func (op *scOperator) iAmCurrentLeader() bool {
+	return op.PeerIndex() == op.currentLeaderPeerIndex()
+}
+
+func (op *scOperator) currentLeaderPeerIndex() uint16 {
+	return op.leaderPeerIndexList[op.currLeaderSeqIndex]
 }

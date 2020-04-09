@@ -15,8 +15,7 @@ func (op *scOperator) eventNotifyReqMsg(msg *notifyReqMsg) {
 		return
 	}
 	// account notifications
-	op.accountRequestIdNotifications(msg.SenderIndex, nextState, msg.RequestIds...)
-
+	op.accountRequestIdNotifications(msg.SenderIndex, msg.StateIndex, msg.RequestIds...)
 	op.takeAction()
 }
 
@@ -33,11 +32,10 @@ func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 	req.log.Debugw("eventRequestMsg", "id", reqRef.Id().Short())
 
 	// include request in own list of the current state
-	op.accountRequestIdNotifications(op.PeerIndex(), false, req.reqId)
+	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), req.reqId)
 
 	// the current leader is notified about new request
 	op.sendRequestNotification(req)
-
 	op.takeAction()
 }
 
@@ -97,57 +95,46 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 // include the message into the state
 func (op *scOperator) eventStartProcessingReqMsg(msg *startProcessingReqMsg) {
 	stateIndex := op.stateTx.MustState().StateIndex()
-	var pos int
+	req, ok := op.requestFromId(msg.RequestId)
+	if !ok {
+		return // already processed
+	}
+	compReq := &computationRequest{
+		req:             req,
+		ts:              msg.Timestamp,
+		leaderPeerIndex: msg.SenderIndex,
+	}
 	switch {
 	case msg.StateIndex == stateIndex:
-		// current state
-		pos = 0
+		op.currentStateCompRequests = append(op.currentStateCompRequests, compReq)
 	case msg.StateIndex == stateIndex+1:
-		// next state
-		pos = 1
+		op.nextStateCompRequests = append(op.nextStateCompRequests, compReq)
 	default:
-		log.Warnf("ignore 'initReq' message for %s: state index is out of context", msg.RequestId.Short())
-		return
-	}
-	if op.requestToProcess[pos][msg.SenderIndex].reqId != nil {
-		log.Errorf("repeating 'processReq' message from peer %d", msg.SenderIndex)
-		return
-	}
-	if op.requestToProcess[pos][msg.SenderIndex].req != nil {
-		log.Panicf("can't be: op.requestToProcess[pos][msg.SenderIndex].req != nil")
-	}
-	op.requestToProcess[pos][msg.SenderIndex].reqId = msg.RequestId
-	op.requestToProcess[pos][msg.SenderIndex].ts = msg.Timestamp
-
-	if pos != 0 {
-		// if not current state, do nothing
-		return
-	}
-	if req, ok := op.requestFromId(msg.RequestId); ok && req.reqRef != nil {
-		op.requestToProcess[0][msg.SenderIndex].req = req
-		go op.processRequest(msg.SenderIndex)
+		// ignore
 	}
 }
 
 // triggered by the signed result, sent by the the node to the leader
 func (op *scOperator) eventSignedHashMsg(msg *signedHashMsg) {
-	// validate
-	req := op.requestToProcess[0][op.PeerIndex()].req
-	if op.requestToProcess[0][op.PeerIndex()].reqId == nil || req == nil {
-		log.Errorf("eventSignedHashMsg: wrong state of the leader ")
+	if op.leaderStatus == nil {
+		// shouldn't be
 		return
 	}
-	if op.requestToProcess[0][msg.SenderIndex].MasterDataHash != nil ||
-		op.requestToProcess[0][msg.SenderIndex].SigBlocks != nil {
-		log.Errorf("eventSignedHashMsg: wrong state of the peer %d", msg.SenderIndex)
+	if msg.StateIndex != op.stateTx.MustState().StateIndex() {
 		return
 	}
-	req.log.Debugw("eventSignedHashMsg",
-		"senderIndex", msg.SenderIndex,
-		"stateIndex", msg.StateIndex)
-	op.requestToProcess[0][msg.SenderIndex].MasterDataHash = msg.DataHash
-	op.requestToProcess[0][msg.SenderIndex].SigBlocks = msg.SigBlocks
-	// do not check master hash because at this point own calculations may not be finished yet
+	if !msg.RequestId.Equal(op.leaderStatus.req.reqId) {
+		return
+	}
+	if msg.OrigTimestamp != op.leaderStatus.ts {
+		return
+	}
+	if op.leaderStatus.signedHashes[msg.SenderIndex].MasterDataHash != nil {
+		// repeating
+		return
+	}
+	op.leaderStatus.signedHashes[msg.SenderIndex].MasterDataHash = msg.DataHash
+	op.leaderStatus.signedHashes[msg.SenderIndex].SigBlocks = msg.SigBlocks
 }
 
 // triggered from main msg queue whenever calculation of new result is finished
@@ -186,39 +173,15 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 		"input tx", ctx.state.Id().Short(),
 		"res tx", ctx.resultTx.Id().Short(),
 	)
-	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
-	if err != nil {
-		req.log.Errorf("SignTransaction returned: %v", err)
-		return
-	}
-	sigs, err := ctx.resultTx.Signatures()
-	if err != nil {
-		req.log.Errorf("Signatures returned: %v", err)
-		return
-	}
-	op.requestToProcess[ctx.leaderIndex][0].ownResult = ctx.resultTx
-	op.requestToProcess[ctx.leaderIndex][0].MasterDataHash = ctx.resultTx.MasterDataHash()
-	op.requestToProcess[ctx.leaderIndex][0].SigBlocks = sigs
-
-	if ctx.leaderIndex != op.PeerIndex() {
-		// send result hash and signatures to the leader
-		op.sendResultToTheLeader(ctx.leaderIndex)
+	if ctx.leaderIndex == op.PeerIndex() {
+		op.saveOwnResult(ctx)
+	} else {
+		op.sendResultToTheLeader(ctx)
 	}
 	op.takeAction()
 }
 
 func (op *scOperator) eventTimer(msg timerMsg) {
-	if msg%300 == 0 {
-		log.Debugw("eventTimer", "#", int(msg))
-		snap := op.getStateSnapshot()
-		log.Debugf("%+v", snap)
-	}
-	if msg%300 == 0 {
-		err := op.consistentState()
-		if err != nil {
-			log.Panicf("inconsistent stateTx: %v", err)
-		}
-	}
 	if msg%50 == 0 {
 		op.takeAction()
 	}

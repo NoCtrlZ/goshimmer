@@ -3,7 +3,6 @@ package operator2
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	msg2 "github.com/iotaledger/goshimmer/plugins/qnode/operatorv2/msg"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"time"
