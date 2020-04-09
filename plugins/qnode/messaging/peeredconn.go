@@ -7,7 +7,7 @@ import (
 )
 
 // extension of BufferedConnection
-// handles handshake and links with peer according to handshake information
+// first handles handshake and then links with peer according to handshake information
 
 type peeredConnection struct {
 	*buffconn.BufferedConnection

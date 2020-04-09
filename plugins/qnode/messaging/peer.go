@@ -18,7 +18,7 @@ type qnodePeer struct {
 	// heartbeats and latencies
 	lastHeartbeatReceived time.Time
 	lastHeartbeatSent     time.Time
-	latency               [numHeartBeatsToKeep]int64
+	latency               [numHeartbeatsToKeep]int64
 	hbIdx                 int
 }
 

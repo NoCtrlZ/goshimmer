@@ -47,13 +47,13 @@ func RegisterNewOperator(op SCOperator, recvDataCallback func(senderIndex uint16
 	ret := &CommitteeConn{
 		operator:         op,
 		recvDataCallback: recvDataCallback,
-		peers:            make([]*qnodePeer, len(op.NodeAddresses())),
+		peers:            make([]*qnodePeer, len(op.PeerAddresses())),
 	}
 	for i := range ret.peers {
 		if i == int(op.PeerIndex()) {
 			continue
 		}
-		ret.peers[i] = addPeerConnection(op.NodeAddresses()[i])
+		ret.peers[i] = addPeerConnection(op.PeerAddresses()[i])
 	}
 	committees[*op.SContractID()] = ret
 	return ret

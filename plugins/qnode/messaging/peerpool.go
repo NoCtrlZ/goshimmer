@@ -24,7 +24,7 @@ func Init() {
 
 		go connectOutboundLoop()
 		go connectInboundLoop()
-		go countConnectionsLoop()
+		go countConnectionsLoop() // helper for testing
 
 		<-shutdownSignal
 
@@ -52,6 +52,11 @@ func closeAll() {
 	}
 }
 
+// determines if the address of the peer inbound or outbound
+// it is guaranteed that the peer will always get the opposite result
+// It is determined by comparing address string with own address string
+// panics if address equals to the own address
+// This helps peers to know their role in the peer-to-peer connection
 func isInboundAddr(addr string) bool {
 	own := OwnPortAddr().String()
 	if own == addr {

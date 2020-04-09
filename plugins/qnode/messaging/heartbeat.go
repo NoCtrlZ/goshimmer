@@ -11,7 +11,7 @@ import (
 
 const (
 	// heartbeat msg
-	numHeartBeatsToKeep = 5               // number of heartbeats to save for average latency
+	numHeartbeatsToKeep = 5               // number of heartbeats to save for average latency
 	heartbeatEvery      = 5 * time.Second // heartBeat period
 	isDeadAfterMissing  = 2               // is dead after 4 heartbeat periods missing
 )
@@ -30,7 +30,7 @@ func (c *qnodePeer) receiveHeartbeat(ts int64) {
 	c.lastHeartbeatReceived = time.Now()
 	lagNano := c.lastHeartbeatReceived.UnixNano() - ts
 	c.latency[c.hbIdx] = lagNano
-	c.hbIdx = (c.hbIdx + 1) % numHeartBeatsToKeep
+	c.hbIdx = (c.hbIdx + 1) % numHeartbeatsToKeep
 	c.Unlock()
 
 	log.Debugf("heartbeat received from %s, lag %f milisec", c.peerPortAddr.String(), float64(lagNano/10000)/100)
@@ -78,5 +78,5 @@ func (c *qnodePeer) isAlive() (bool, int64) {
 	for _, l := range c.latency {
 		sum += l
 	}
-	return true, sum / numHeartBeatsToKeep
+	return true, sum / numHeartbeatsToKeep
 }
