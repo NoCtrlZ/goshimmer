@@ -20,7 +20,6 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 		processor:         fairroulette.New(),
 		requests:          make(map[sc.RequestId]*request),
 		processedRequests: make(map[sc.RequestId]time.Duration),
-		stateTx:           tx,
 		inChan:            make(chan interface{}, inChanBufLen),
 	}
 
@@ -38,7 +37,7 @@ func newFromState(tx sc.Transaction) (*scOperator, error) {
 	ret.comm = messaging.RegisterNewOperator(ret, func(senderIndex uint16, msgType byte, msgData []byte, ts time.Time) {
 		ret.receiveMsgData(senderIndex, msgType, msgData, ts)
 	})
-
+	ret.setNewState(tx)
 	ret.startRoutines()
 	return ret, nil
 }

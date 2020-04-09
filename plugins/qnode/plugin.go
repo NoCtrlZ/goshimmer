@@ -9,6 +9,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/messaging"
 	"github.com/iotaledger/goshimmer/plugins/qnode/modelimpl"
 	"github.com/iotaledger/goshimmer/plugins/qnode/operator"
+	"github.com/iotaledger/goshimmer/plugins/qnode/operator2"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/signedblock"
@@ -66,6 +67,7 @@ func logParams() {
 
 func initLoggers() {
 	operator.InitLogger()
+	operator2.InitLogger()
 	dkgapi.InitLogger()
 	admapi.InitLogger()
 	registry.InitLogger()

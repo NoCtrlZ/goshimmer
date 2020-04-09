@@ -185,4 +185,7 @@ func (op *scOperator) eventTimer(msg timerMsg) {
 	if msg%50 == 0 {
 		op.takeAction()
 	}
+	if msg%300 == 0 {
+		log.Infof("eventTimer #%d", msg)
+	}
 }
