@@ -99,11 +99,11 @@ func (id *RequestId) String() string {
 }
 
 func (id *RequestId) Short() string {
-	return fmt.Sprintf("%s..[%d]", base58.Encode(id.TransactionId().Bytes()[:6]), id.Index())
+	return fmt.Sprintf("%s../%d", base58.Encode(id.TransactionId().Bytes())[:6], id.Index())
 }
 
 func (id *RequestId) Shortest() string {
-	return fmt.Sprintf("%s..[%d]", base58.Encode(id.TransactionId().Bytes()[:4]), id.Index())
+	return fmt.Sprintf("%s../%d", base58.Encode(id.TransactionId().Bytes())[:4], id.Index())
 }
 
 func (id *RequestId) Equal(id1 *RequestId) bool {

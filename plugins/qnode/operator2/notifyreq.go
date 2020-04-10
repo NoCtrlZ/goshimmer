@@ -7,6 +7,9 @@ import (
 
 // notifies current leader about requests in the order of arrival
 func (op *scOperator) sendRequestNotificationsToLeader(reqs []*request) {
+	if op.iAmCurrentLeader() {
+		return
+	}
 	ids := make([]*sc.RequestId, len(reqs))
 	for i := range ids {
 		ids[i] = reqs[i].reqId

@@ -29,10 +29,10 @@ func (op *scOperator) aggregateResult(quorumIndices []int, numSignatures int) er
 	if err != nil {
 		return err
 	}
-	sigs := make([]generic.SignedBlock, len(quorumIndices))
+	sigs := make([]generic.SignedBlock, 0, len(quorumIndices))
 	for i := 0; i < numSignatures; i++ {
 		for _, j := range quorumIndices {
-			sigs[j] = op.leaderStatus.signedHashes[j].SigBlocks[i]
+			sigs = append(sigs, op.leaderStatus.signedHashes[j].SigBlocks[i])
 		}
 		err = generic.AggregateBLSBlocks(sigs, targetSigs[i], op.keyPool())
 		if err != nil {
@@ -43,6 +43,7 @@ func (op *scOperator) aggregateResult(quorumIndices []int, numSignatures int) er
 		if err != nil {
 			return err
 		}
+		sigs = sigs[:0]
 	}
 	return nil
 }

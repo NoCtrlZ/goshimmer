@@ -33,7 +33,7 @@ func (c *qnodePeer) receiveHeartbeat(ts int64) {
 	c.hbIdx = (c.hbIdx + 1) % numHeartbeatsToKeep
 	c.Unlock()
 
-	log.Debugf("heartbeat received from %s, lag %f milisec", c.peerPortAddr.String(), float64(lagNano/10000)/100)
+	//log.Debugf("heartbeat received from %s, lag %f milisec", c.peerPortAddr.String(), float64(lagNano/10000)/100)
 }
 
 func (c *qnodePeer) scheduleNexHeartbeat() {
@@ -56,7 +56,7 @@ func (c *qnodePeer) scheduleNexHeartbeat() {
 	c.Unlock()
 
 	_ = c.sendData(hbMsgData)
-	log.Debugf("sent heartbeat to %s", c.peerPortAddr.String())
+	//log.Debugf("sent heartbeat to %s", c.peerPortAddr.String())
 
 	// repeat after some time
 }

@@ -24,7 +24,7 @@ func Init() {
 
 		go connectOutboundLoop()
 		go connectInboundLoop()
-		go countConnectionsLoop() // helper for testing
+		//go countConnectionsLoop() // helper for testing
 
 		<-shutdownSignal
 

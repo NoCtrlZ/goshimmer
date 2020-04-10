@@ -25,7 +25,7 @@ func (op *scOperator) doSubordinate() {
 }
 
 func (op *scOperator) doLeader() {
-	if !op.iAmCurrentLeader() {
+	if op.iAmCurrentLeader() {
 		op.startProcessing()
 	}
 	if op.checkQuorum() {
@@ -41,8 +41,10 @@ func (op *scOperator) startProcessing() {
 	req := op.selectRequestToProcess()
 	if req == nil {
 		// can't select request to process
+		log.Debugf("can't select request to process")
 		return
 	}
+	req.log.Debugw("request selected to process", "stateIdx", op.stateTx.MustState().StateIndex())
 	msg := &startProcessingReqMsg{
 		StateIndex: op.stateTx.MustState().StateIndex(),
 		RequestId:  req.reqId,
@@ -50,6 +52,8 @@ func (op *scOperator) startProcessing() {
 	var buf bytes.Buffer
 	encodeProcessReqMsg(msg, &buf)
 	numSucc, ts := op.comm.SendMsgToPeers(msgStartProcessingRequest, buf.Bytes())
+
+	req.log.Debugf("%d 'msgStartProcessingRequest' messages sent to peers", numSucc)
 
 	if numSucc < op.Quorum() {
 		// doesn't make sense to continue because less than quorum sends succeeded
@@ -67,11 +71,14 @@ func (op *scOperator) startProcessing() {
 }
 
 func (op *scOperator) checkQuorum() bool {
+	log.Debug("checkQuorum")
 	if op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized {
+		log.Debug("checkQuorum: op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized")
 		return false
 	}
 	mainHash := op.leaderStatus.signedHashes[op.PeerIndex()].MasterDataHash
 	if mainHash == nil {
+		log.Debug("checkQuorum: mainHash == nil")
 		return false
 	}
 	quorumIndices := make([]int, 0, op.CommitteeSize())
@@ -85,6 +92,7 @@ func (op *scOperator) checkQuorum() bool {
 		}
 	}
 	if len(quorumIndices) < int(op.Quorum()) {
+		log.Debug("checkQuorum: len(quorumIndices) < int(op.Quorum())")
 		return false
 	}
 	// quorum detected
@@ -129,6 +137,8 @@ func (op *scOperator) setNewState(tx sc.Transaction) {
 	for i := range ids {
 		ids[i] = sortedReqs[i].reqId
 	}
+	log.Debugf("setNewState: leader = %d iAmThLeader = %v", op.currentLeaderPeerIndex(), op.iAmCurrentLeader())
+
 	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), ids...)
 	// send notification about all requests to the current leader
 	op.sendRequestNotificationsAllToLeader()

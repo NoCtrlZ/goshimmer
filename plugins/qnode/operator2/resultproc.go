@@ -31,15 +31,17 @@ func (op *scOperator) processRequest(req *request, ts time.Time, leaderPeerIndex
 		return
 	}
 	op.processor.Run(ctx)
-	displayResult(req, ctx)
+	ctx.resultTx.MustState().WithTime(ctx.ts)
+
+	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
 	op.postEventToQueue(ctx)
 }
 
-func displayResult(req *request, ctx *runtimeContext) {
-	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
-}
-
 func (op *scOperator) sendResultToTheLeader(ctx *runtimeContext) {
+	log.Debugw("sendResultToTheLeader",
+		"req", ctx.reqRef.Id().Short(),
+		"ts", ctx.ts,
+	)
 	req, _ := op.requestFromId(ctx.reqRef.Id())
 	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
 	if err != nil {
@@ -66,6 +68,10 @@ func (op *scOperator) sendResultToTheLeader(ctx *runtimeContext) {
 }
 
 func (op *scOperator) saveOwnResult(ctx *runtimeContext) {
+	log.Debugw("saveOwnResult",
+		"req", ctx.reqRef.Id().Short(),
+		"ts", ctx.ts,
+	)
 	req, _ := op.requestFromId(ctx.reqRef.Id())
 	err := sc.SignTransaction(ctx.resultTx, op.keyPool())
 	if err != nil {

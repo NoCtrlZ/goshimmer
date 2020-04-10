@@ -8,6 +8,11 @@ import (
 // triggered by new notifyReqMsg, when another node notifies about
 // its requests
 func (op *scOperator) eventNotifyReqMsg(msg *notifyReqMsg) {
+	log.Debugw("eventNotifyReqMsg",
+		"num", len(msg.RequestIds),
+		"sender", msg.SenderIndex,
+		"stateIdx", msg.StateIndex,
+	)
 	stateIndex := op.stateTx.MustState().StateIndex()
 	nextState := msg.StateIndex == stateIndex+1
 	if !nextState && msg.StateIndex != stateIndex {
@@ -94,6 +99,12 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 // if timestamp is acceptable and the msg context is from the current state or the next
 // include the message into the state
 func (op *scOperator) eventStartProcessingReqMsg(msg *startProcessingReqMsg) {
+	log.Debugw("eventStartProcessingReqMsg",
+		"req", msg.RequestId.Short(),
+		"ts", msg.Timestamp,
+		"sender", msg.SenderIndex,
+		"stateIdx", msg.StateIndex,
+	)
 	stateIndex := op.stateTx.MustState().StateIndex()
 	req, ok := op.requestFromId(msg.RequestId)
 	if !ok {
@@ -110,36 +121,53 @@ func (op *scOperator) eventStartProcessingReqMsg(msg *startProcessingReqMsg) {
 	case msg.StateIndex == stateIndex+1:
 		op.nextStateCompRequests = append(op.nextStateCompRequests, compReq)
 	default:
-		// ignore
+		return
 	}
+	op.takeAction()
 }
 
 // triggered by the signed result, sent by the the node to the leader
 func (op *scOperator) eventSignedHashMsg(msg *signedHashMsg) {
+	log.Debugf("eventSignedHashMsg")
 	if op.leaderStatus == nil {
+		log.Debugf("eventSignedHashMsg: op.leaderStatus == nil")
 		// shouldn't be
 		return
 	}
 	if msg.StateIndex != op.stateTx.MustState().StateIndex() {
+		log.Debugf("eventSignedHashMsg: msg.StateIndex != op.stateTx.MustState().StateIndex()")
 		return
 	}
 	if !msg.RequestId.Equal(op.leaderStatus.req.reqId) {
+		log.Debugf("eventSignedHashMsg: !msg.RequestId.Equal(op.leaderStatus.req.reqId)")
 		return
 	}
-	if msg.OrigTimestamp != op.leaderStatus.ts {
+	if !msg.OrigTimestamp.Equal(op.leaderStatus.ts) {
+		log.Debugw("eventSignedHashMsg: !msg.OrigTimestamp.Equal(op.leaderStatus.ts)",
+			"msgTs", msg.OrigTimestamp,
+			"ownTs", op.leaderStatus.ts)
 		return
 	}
 	if op.leaderStatus.signedHashes[msg.SenderIndex].MasterDataHash != nil {
 		// repeating
+		log.Debugf("eventSignedHashMsg: op.leaderStatus.signedHashes[msg.SenderIndex].MasterDataHash != nil")
 		return
+	}
+	if req, ok := op.requestFromId(msg.RequestId); ok {
+		req.log.Debugw("eventSignedHashMsg",
+			"origTS", msg.OrigTimestamp,
+			"stateIdx", msg.StateIndex,
+		)
 	}
 	op.leaderStatus.signedHashes[msg.SenderIndex].MasterDataHash = msg.DataHash
 	op.leaderStatus.signedHashes[msg.SenderIndex].SigBlocks = msg.SigBlocks
+	op.takeAction()
 }
 
 // triggered from main msg queue whenever calculation of new result is finished
 
 func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
+	log.Debugf("eventResultCalculated")
 	// check if result belongs to context
 	if ctx.state.MustState().StateIndex() != op.stateTx.MustState().StateIndex() {
 		// out of context. ignore
