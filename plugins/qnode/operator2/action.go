@@ -3,7 +3,6 @@ package operator2
 import (
 	"bytes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 )
 
 func (op *scOperator) takeAction() {
@@ -55,7 +54,7 @@ func (op *scOperator) startProcessing() {
 
 	req.log.Debugf("%d 'msgStartProcessingRequest' messages sent to peers", numSucc)
 
-	if numSucc < op.Quorum() {
+	if numSucc < op.Quorum()-1 {
 		// doesn't make sense to continue because less than quorum sends succeeded
 		req.log.Errorf("only %d 'msgStartProcessingRequest' sends succeeded", numSucc)
 		return
@@ -73,12 +72,12 @@ func (op *scOperator) startProcessing() {
 func (op *scOperator) checkQuorum() bool {
 	log.Debug("checkQuorum")
 	if op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized {
-		log.Debug("checkQuorum: op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized")
+		//log.Debug("checkQuorum: op.leaderStatus == nil || op.leaderStatus.resultTx == nil || op.leaderStatus.finalized")
 		return false
 	}
 	mainHash := op.leaderStatus.signedHashes[op.PeerIndex()].MasterDataHash
 	if mainHash == nil {
-		log.Debug("checkQuorum: mainHash == nil")
+		//log.Debug("checkQuorum: mainHash == nil")
 		return false
 	}
 	quorumIndices := make([]int, 0, op.CommitteeSize())
@@ -92,7 +91,7 @@ func (op *scOperator) checkQuorum() bool {
 		}
 	}
 	if len(quorumIndices) < int(op.Quorum()) {
-		log.Debug("checkQuorum: len(quorumIndices) < int(op.Quorum())")
+		//log.Debug("checkQuorum: len(quorumIndices) < int(op.Quorum())")
 		return false
 	}
 	// quorum detected
@@ -109,20 +108,12 @@ func (op *scOperator) checkQuorum() bool {
 	return true
 }
 
-// takes action when stateChanged flag is true
+// sets new state transaction and initializes respective variables
 func (op *scOperator) setNewState(tx sc.Transaction) {
 	op.stateTx = tx
-	// reset current leader seq index
-	op.currLeaderSeqIndex = 0
-	op.leaderPeerIndexList = tools.GetPermutation(op.CommitteeSize(), op.stateTx.Id().Bytes())
-	for i, v := range op.leaderPeerIndexList {
-		if v == op.PeerIndex() {
-			op.myLeaderSeqIndex = uint16(i)
-			break
-		}
-	}
-	op.leaderStatus = nil
-
+	op.resetLeader()
+	// computation requests and notifications about requests for the next state index
+	// are brought to the current state next state list is cleared
 	op.currentStateCompRequests, op.nextStateCompRequests =
 		op.nextStateCompRequests, op.currentStateCompRequests
 	op.nextStateCompRequests = op.nextStateCompRequests[:0]
@@ -130,18 +121,6 @@ func (op *scOperator) setNewState(tx sc.Transaction) {
 	op.requestNotificationsCurrentState, op.requestNotificationsNextState =
 		op.requestNotificationsNextState, op.requestNotificationsCurrentState
 	op.requestNotificationsNextState = op.requestNotificationsNextState[:0]
-
-	// in the notification for the current state add all req ids from own queue of requests
-	sortedReqs := op.sortedRequestsByAge()
-	ids := make([]*sc.RequestId, len(sortedReqs))
-	for i := range ids {
-		ids[i] = sortedReqs[i].reqId
-	}
-	log.Debugf("setNewState: leader = %d iAmThLeader = %v", op.currentLeaderPeerIndex(), op.iAmCurrentLeader())
-
-	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), ids...)
-	// send notification about all requests to the current leader
-	op.sendRequestNotificationsAllToLeader()
 }
 
 func (op *scOperator) selectRequestToProcess() *request {
@@ -179,12 +158,4 @@ func (op *scOperator) selectRequestToProcess() *request {
 	}
 	sortRequestsByAge(candidates)
 	return candidates[0]
-}
-
-func (op *scOperator) iAmCurrentLeader() bool {
-	return op.PeerIndex() == op.currentLeaderPeerIndex()
-}
-
-func (op *scOperator) currentLeaderPeerIndex() uint16 {
-	return op.leaderPeerIndexList[op.currLeaderSeqIndex]
 }

@@ -13,8 +13,6 @@ import (
 type timerMsg int
 
 const (
-	// send when state changes or when new request arrives
-	// to notify the leader about requests this node has
 	msgNotifyRequests         = messaging.FirstCommitteeMsgCode
 	msgStartProcessingRequest = msgNotifyRequests + 1
 	msgSignedHash             = msgStartProcessingRequest + 1
@@ -46,16 +44,18 @@ type startProcessingReqMsg struct {
 	RequestId *sc.RequestId
 }
 
+// after calculations the result peer responds to the start processing msg
+// with signedHashMsg, which contains result hash and signatures
 type signedHashMsg struct {
 	// is set upon receive the message
 	SenderIndex uint16
 	// state index in the context of which the message is sent
 	StateIndex uint32
-	// timestamp of the message. Field is set upon receive the message to sender's timestamp
+	// timestamp of this message. Field is set upon receive the message to sender's timestamp
 	Timestamp time.Time
 	// request id
 	RequestId *sc.RequestId
-	// original timestamp, the parameter for calculations
+	// original timestamp, the parameter for calculations, which is signed as part of the essence
 	OrigTimestamp time.Time
 	// hash of the signed data (essence)
 	DataHash *hashing.HashValue

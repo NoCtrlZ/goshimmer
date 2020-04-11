@@ -3,6 +3,7 @@ package operator2
 import (
 	"bytes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/model/sc"
+	"time"
 )
 
 // notifies current leader about requests in the order of arrival
@@ -21,11 +22,23 @@ func (op *scOperator) sendRequestNotificationsToLeader(reqs []*request) {
 	var buf bytes.Buffer
 	encodeNotifyReqMsg(msg, &buf)
 
-	err := op.comm.SendMsg(op.currentLeaderPeerIndex(), msgNotifyRequests, buf.Bytes())
-
-	if err != nil {
-		log.Errorf("sending req notifications: %v", err)
-		return
+	// send until first success, but no more than number of nodes in the committee
+	var i uint16
+	for i = 0; i < op.CommitteeSize(); i++ {
+		if op.iAmCurrentLeader() {
+			// stop if I am the current leader
+			return
+		}
+		if !op.comm.IsAlivePeer(op.currentLeaderPeerIndex()) {
+			op.moveToNextLeader()
+			continue
+		}
+		err := op.comm.SendMsg(op.currentLeaderPeerIndex(), msgNotifyRequests, buf.Bytes())
+		if err == nil {
+			op.setLeaderRotationDeadline(time.Now().Add(leaderRotationPeriod))
+			// first node to which data was successfully sent is assumed the leader
+			return
+		}
 	}
 }
 
@@ -41,17 +54,18 @@ func (op *scOperator) sortedRequestsByAge() []*request {
 	return ret
 }
 
-func (op *scOperator) sendRequestNotificationsAllToLeader() {
-	op.sendRequestNotificationsToLeader(op.sortedRequestsByAge())
+func (op *scOperator) sortedRequestIdsByAge() []*sc.RequestId {
+	sortedReqs := op.sortedRequestsByAge()
+	ids := make([]*sc.RequestId, len(sortedReqs))
+	for i := range ids {
+		ids[i] = sortedReqs[i].reqId
+	}
+	return ids
 }
 
-func (op *scOperator) sendRequestNotification(req *request) {
-	op.sendRequestNotificationsToLeader([]*request{req})
-}
-
-// includes request ids into the respective list of notifications
+// includes request ids into the respective list of notifications,
+// by the sender index
 func (op *scOperator) accountRequestIdNotifications(senderIndex uint16, stateIndex uint32, reqs ...*sc.RequestId) {
-
 	switch {
 	case stateIndex == op.stateTx.MustState().StateIndex():
 		for _, id := range reqs {

@@ -118,3 +118,11 @@ func (cconn *CommitteeConn) SendMsgToPeers(msgType byte, msgData []byte) (uint16
 	}
 	return ret, ts
 }
+
+func (cconn *CommitteeConn) IsAlivePeer(peerIndex uint16) bool {
+	if int(peerIndex) >= len(cconn.peers) {
+		return false
+	}
+	ret, _ := cconn.peers[peerIndex].isAlive()
+	return ret
+}

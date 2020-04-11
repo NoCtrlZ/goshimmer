@@ -31,7 +31,6 @@ func (op *scOperator) newRequest(reqId *sc.RequestId) *request {
 }
 
 // request record retrieved (or created) by request message
-
 func (op *scOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 	reqId := reqRef.Id()
 	ret, ok := op.requests[*reqId]
@@ -50,8 +49,8 @@ func (op *scOperator) requestFromMsg(reqRef *sc.RequestRef) *request {
 	return ret
 }
 
-// request record retrieved (or created) by request id
-
+// request record is retrieved by request id.
+// If it doesn't exist and is not in the list of processed requests, it is created
 func (op *scOperator) requestFromId(reqId *sc.RequestId) (*request, bool) {
 	if _, yes := op.isRequestProcessed(reqId); yes {
 		return nil, false

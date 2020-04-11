@@ -68,8 +68,6 @@ func (c *qnodePeer) isAlive() (bool, int64) {
 	if c.peerconn == nil || !c.handshakeOk {
 		return false, 0
 	}
-	c.RLock()
-	defer c.RUnlock()
 
 	if time.Since(c.lastHeartbeatReceived) > heartbeatEvery*isDeadAfterMissing {
 		return false, 0

@@ -1,17 +1,18 @@
 
 - communication layer
-    - to TCP
-    - exchange with arbitrary size transactions
+    - to TCP (done)
+    - exchange with arbitrary size transactions (done more or less)
     - PM buffcon
-    - abstract communication within committee
+    - abstract communication within committee (done)
 - consensus
-    - Hashgraph type of consensus for selecting the request and the leader
-    - pull_timestamp first, then push signed result hash
+    - Hashgraph type of consensus for selecting the request and the leader (no needed)
+    - pull_timestamp first, then push signed result hash (done)
 - data structures
     - optimize key/value data structure (vs json marshaling a map)
     - optimize state data structures by tracking incremental state updates
     - saving or caching state chain in own db partition
     - propose gossip optimizations
+    - get rid of config part pof the state
 - DKG
     - owners knowledge of private keys
     - admin front end

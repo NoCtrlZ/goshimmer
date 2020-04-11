@@ -40,7 +40,7 @@ func (op *scOperator) eventRequestMsg(reqRef *sc.RequestRef) {
 	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), req.reqId)
 
 	// the current leader is notified about new request
-	op.sendRequestNotification(req)
+	op.sendRequestNotificationsToLeader([]*request{req})
 	op.takeAction()
 }
 
@@ -76,22 +76,30 @@ func (op *scOperator) eventStateUpdate(tx sc.Transaction) {
 		"err", stateUpd.Error(),
 	)
 
-	if stateUpd.Error() == nil {
-		if !state.Config().Id().Equal(stateUpd.Config().Id()) {
-			// configuration changed
-			iAmParticipant, err := op.configure(stateUpd.Config().Id())
-			if err != nil || !iAmParticipant {
-				op.dismiss()
-				return
-			}
-		}
-		// update current state
-		log.Infof("STATE CHANGE %d --> %d", state.StateIndex(), stateUpd.StateIndex())
-
-		op.setNewState(tx)
-	} else {
+	if stateUpd.Error() != nil {
 		log.Warnf("state update with error ignored: '%v'", stateUpd.Error())
+		op.takeAction()
+		return
 	}
+	if !state.Config().Id().Equal(stateUpd.Config().Id()) {
+		// configuration changed
+		iAmParticipant, err := op.configure(stateUpd.Config().Id())
+		if err != nil || !iAmParticipant {
+			op.dismiss()
+			return
+		}
+	}
+	// update current state
+	log.Infof("STATE CHANGE %d --> %d", state.StateIndex(), stateUpd.StateIndex())
+
+	op.setNewState(tx)
+
+	// in the notification for the current state add all req ids from own queue of requests
+	op.accountRequestIdNotifications(op.PeerIndex(), op.stateTx.MustState().StateIndex(), op.sortedRequestIdsByAge()...)
+
+	log.Debugf("setNewState: leader = %d iAmThLeader = %v", op.currentLeaderPeerIndex(), op.iAmCurrentLeader())
+
+	op.sendRequestNotificationsToLeader(op.sortedRequestsByAge())
 	op.takeAction()
 }
 
@@ -211,6 +219,7 @@ func (op *scOperator) eventResultCalculated(ctx *runtimeContext) {
 
 func (op *scOperator) eventTimer(msg timerMsg) {
 	if msg%50 == 0 {
+		op.rotateLeaderIfNeeded()
 		op.takeAction()
 	}
 	if msg%300 == 0 {
