@@ -10,7 +10,7 @@ func Init() {
 		TxConstructor:           newScTransaction,
 		TxParser:                newFromValueTx,
 		StateBlockConstructor:   newStateBlock,
-		RequestBlockConstructor: newRequestBock,
+		RequestBlockConstructor: newRequestBlock,
 	})
 	value.SetConstructors(value.SetConstructorsParams{
 		UTXOConstructor:   newUTXOTransfer,
