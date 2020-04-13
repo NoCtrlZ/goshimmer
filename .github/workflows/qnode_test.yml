@@ -2,7 +2,7 @@ name: Test GoShimmer Plugin Qnode
 on:
   push:
   pull_request:
-    types: [dev]
+    branches: [ dev ]
 jobs:
 
   build:
