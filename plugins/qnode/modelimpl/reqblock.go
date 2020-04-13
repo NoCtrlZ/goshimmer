@@ -14,7 +14,7 @@ type mockRequestBlock struct {
 	vars              generic.ValueMap
 }
 
-func newRequestBock(aid *HashValue, isConfig bool) sc.Request {
+func newRequestBlock(aid *HashValue, isConfig bool) sc.Request {
 	return &mockRequestBlock{
 		assemblyId:        aid,
 		isConfigUpdateReq: isConfig,
