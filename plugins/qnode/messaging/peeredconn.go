@@ -6,15 +6,17 @@ import (
 	"net"
 )
 
-// extension of BufferedConnection
-// first handles handshake and then links with peer according to handshake information
-
+// extension of BufferedConnection from hive.go
+// BufferedConnection is a wrapper for net.Conn
+// peeredConnection first handles handshake and then links
+// with peer (peers) according to handshake information
 type peeredConnection struct {
 	*buffconn.BufferedConnection
 	peer        *qnodePeer
 	handshakeOk bool
 }
 
+// creates new peered connection and attach event handlers for received data and closing
 func newPeeredConnection(conn net.Conn, peer *qnodePeer) *peeredConnection {
 	bconn := &peeredConnection{
 		BufferedConnection: buffconn.NewBufferedConnection(conn),
@@ -34,6 +36,7 @@ func newPeeredConnection(conn net.Conn, peer *qnodePeer) *peeredConnection {
 	return bconn
 }
 
+// receive data handler for peered connection
 func (bconn *peeredConnection) receiveData(data []byte) {
 	packet, err := unwrapPacket(data)
 	if err != nil {
@@ -42,7 +45,7 @@ func (bconn *peeredConnection) receiveData(data []byte) {
 		return
 	}
 	if bconn.peer != nil {
-		// it is peered but maybe not handshaked (can be only outbound)
+		// it is peered but maybe not handshaked yet (can be only outbound)
 		if bconn.peer.handshakeOk {
 			// it is handshaked
 			// just receive data
@@ -85,7 +88,6 @@ func (bconn *peeredConnection) processHandShakeOutbound(packet *unwrappedPacket)
 // receives handshake from the inbound peer
 // links connection with the peer
 // sends response back to finish the handshake
-
 func (bconn *peeredConnection) processHandShakeInbound(packet *unwrappedPacket) {
 	if packet.msgType != MsgTypeHandshake {
 		log.Errorf("unexpected message during handshake")

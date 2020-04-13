@@ -1,0 +1,44 @@
+How to start goshimmer configuration for testing qnode.
+This repo uses goshimmer in a very stripped down mode. Most of plugins are disabled.
+
+the testing configuration consists of 4 goshimmer nodes, running on the same machine on
+different directories with different config.json files.
+See below how to set up config file for each instance
+Those 4 nodes can be run by the start4.bat The directory in startgs.bat must be adjusted accordingly
+
+When 4 nodes are running, it is possible:
+to run following programs from tools directory:
+- newassembly - It creates smart contract data record in each of goshimmer instances
+- newdks - it creates distributed key shares and BLS addresses for testing. They are distributed among 4 instances/nodes
+- newconfig - it creates specific configuration data of the committee with those secret shares
+
+When assembly, keys and configurations are in the database of the goshimmer instances, we can run
+PoC. In the current directory [..]\goshimmer\plugins\qnode\tools\mocknode run command:
+mocknode mocknode.json
+it starts value tangle emulator and web server for the FairRulette smart contract.
+To access fair roulette PoC type in browser http://localhost:2000
+
+
+
+-----
+How to set up config file for instance with number i:
+
+Copy the file config.json to each of directories and the change some value in each of them:
+Here i=0,1,2,3, the number of the instance (and peer index)
+
+Set up individual port for web api in the section
+"webapi"{
+    "bindAddress": "127.0.0.1:909i"
+}
+(for instance 0 port will be 9090 and so on)
+
+Set up qnode section:
+"qnode": {
+    "port": 400i,
+    "mockPubTxPort": 300i,
+    "mockTangleIpAddr": "127.0.0.1",
+    "mockTanglePort": 7000
+  }
+
+Ports 400i  will be used for messaging, ports 300i will be used for connection with the tangle emulator
+

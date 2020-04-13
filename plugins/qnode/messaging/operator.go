@@ -18,9 +18,10 @@ type SCOperator interface {
 	Quorum() uint16
 	// index of the peer in the committee
 	PeerIndex() uint16
-	// list of all node addresses of peers. Consistent with the PeerIndex()
-	PeerAddresses() []*registry.PortAddr
-	// called each time new state update comes for the smart contract
+	// list of all node addresses of peers.
+	// Consistent with the PeerIndex() i.e. using peer index in the array gives address of that peer
+	PeerLocations() []*registry.PortAddr
+	// called each time new state update transaction comes to the smart contract
 	// it is guaranteed that transaction referenced in the parameter contains state block
 	ReceiveStateUpdate(*sc.StateUpdateMsg)
 	// called each time new request comes for the smart contract

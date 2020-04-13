@@ -12,6 +12,8 @@ import (
 )
 
 var (
+	// all qnode peers maintained by the node
+	// map index is IP addr:port
 	peers      = make(map[string]*qnodePeer)
 	peersMutex = &sync.RWMutex{}
 )
@@ -22,6 +24,7 @@ func Init() {
 	if err := daemon.BackgroundWorker("Qnode connectOutboundLoop", func(shutdownSignal <-chan struct{}) {
 		log.Debugf("starting qnode peering...")
 
+		// start loops which looks after the qnodePeers and maintains them connected
 		go connectOutboundLoop()
 		go connectInboundLoop()
 		//go countConnectionsLoop() // helper for testing
@@ -36,10 +39,11 @@ func Init() {
 	}
 }
 
+// IP address and port of this node
 func OwnPortAddr() *registry.PortAddr {
 	return &registry.PortAddr{
 		Port: parameter.NodeConfig.GetInt(parameters.QNODE_PORT),
-		Addr: "127.0.0.1",
+		Addr: "127.0.0.1", // TODO for testing only
 	}
 }
 
@@ -53,7 +57,7 @@ func closeAll() {
 }
 
 // determines if the address of the peer inbound or outbound
-// it is guaranteed that the peer will always get the opposite result
+// it is guaranteed that the peer on the other end will always get the opposite result
 // It is determined by comparing address string with own address string
 // panics if address equals to the own address
 // This helps peers to know their role in the peer-to-peer connection
@@ -66,7 +70,10 @@ func isInboundAddr(addr string) bool {
 	return addr < own
 }
 
-func addPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
+// adds new connection to the peer pool
+// if it already exists, returns existing
+// connection added to the pool is picked by loops which will try to establish connection
+func addPeer(portAddr *registry.PortAddr) *qnodePeer {
 	peersMutex.Lock()
 	peersMutex.Unlock()
 
@@ -79,10 +86,11 @@ func addPeerConnection(portAddr *registry.PortAddr) *qnodePeer {
 		peerPortAddr: portAddr,
 		startOnce:    &sync.Once{},
 	}
-	log.Debugf("added new peer connection %s inbound = %v", addr, peers[addr].isInbound())
+	log.Debugf("added new peer %s inbound = %v", addr, peers[addr].isInbound())
 	return peers[addr]
 }
 
+// wait some time the rests peer to be connected by the loops
 func (c *qnodePeer) runAfter(d time.Duration) {
 	go func() {
 		time.Sleep(d)
@@ -93,6 +101,7 @@ func (c *qnodePeer) runAfter(d time.Duration) {
 	}()
 }
 
+// for testing
 func countConnectionsLoop() {
 	var totalNum, inboundNum, outboundNum, inConnectedNum, outConnectedNum, inHSNum, outHSNum int
 	for {
@@ -126,6 +135,7 @@ func countConnectionsLoop() {
 	}
 }
 
+// loop which maintains outbound peers connected (if possible)
 func connectOutboundLoop() {
 	for {
 		time.Sleep(100 * time.Millisecond)
@@ -139,6 +149,7 @@ func connectOutboundLoop() {
 	}
 }
 
+// loop which maintains inbound peers connected (when possible)
 func connectInboundLoop() {
 	listenOn := fmt.Sprintf(":%d", parameter.NodeConfig.GetInt(parameters.QNODE_PORT))
 	listener, err := net.Listen("tcp", listenOn)

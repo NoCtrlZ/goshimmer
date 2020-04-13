@@ -24,7 +24,7 @@ func (op *scOperator) PeerIndex() uint16 {
 	return op.cfgData.Index
 }
 
-func (op *scOperator) PeerAddresses() []*registry.PortAddr {
+func (op *scOperator) PeerLocations() []*registry.PortAddr {
 	return op.cfgData.NodeLocations
 }
 

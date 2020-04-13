@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+// represents point-to-point TCP connection between this qnode and another
+// it is used as transport for message exchange
+// Another end is always using the same connection
+// the qnodePeer is used to send heartbeat messages and keeps last several of them
+// in array. It is used to calculated average latency (network delay) between two local clocks
 type qnodePeer struct {
 	*sync.RWMutex
 	peerconn     *peeredConnection // nil means not connected
@@ -23,7 +28,9 @@ type qnodePeer struct {
 }
 
 const (
-	FirstCommitteeMsgCode = byte(0x10) // equal and larger msg types are committee messages
+	// equal and larger msg types are committee messages
+	// those with smaller are reserved by the package for heartbeat and handshake messages
+	FirstCommitteeMsgCode = byte(0x10)
 
 	MsgTypeHeartbeat = byte(0)
 	MsgTypeHandshake = byte(1)
@@ -55,6 +62,7 @@ func (c *qnodePeer) closeConn() {
 	}
 }
 
+// dials outbound address and established connection
 func (c *qnodePeer) runOutbound() {
 	if c.isInbound() {
 		return
@@ -93,6 +101,8 @@ func (c *qnodePeer) runOutbound() {
 	c.closeConn()
 }
 
+// sends handshake message. It contains IP address of this end.
+// The address is used by another end for peering
 func (c *qnodePeer) sendHandshake() error {
 	data, _ := wrapPacket(&unwrappedPacket{
 		msgType: MsgTypeHandshake,
@@ -103,12 +113,15 @@ func (c *qnodePeer) sendHandshake() error {
 	return err
 }
 
+// callback to process parsed message from the peer
 func (c *qnodePeer) receiveData(packet *unwrappedPacket) {
 	c.receiveHeartbeat(packet.ts)
-	if packet.msgType == 0 {
-		// heartbeat message
+	if packet.msgType == MsgTypeHeartbeat {
+		// no need for further processing
 		return
 	}
+	// it can't be handshake message, so it is committee message
+	// find a target committee
 	committee, ok := getCommittee(packet.scid)
 	if !ok {
 		log.Errorw("message for unexpected scontract",
@@ -123,6 +136,7 @@ func (c *qnodePeer) receiveData(packet *unwrappedPacket) {
 		log.Errorw("wrong sender index", "from", c.peerPortAddr.String(), "senderIndex", packet.senderIndex)
 		return
 	}
+	// forward the data to the callback function, provided by the operator whe registered
 	committee.recvDataCallback(packet.senderIndex, packet.msgType, packet.data, time.Unix(0, packet.ts))
 }
 
