@@ -1,0 +1,47 @@
+{
+ "hosts": [
+  {
+   "port": 9090,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 9091,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 9092,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 9093,
+   "addr": "127.0.0.1"
+  }
+ ],
+ "description": "test assembly 4 with blake2b",
+ "n": 4,
+ "t": 3,
+ "addresses": [
+  "Ag2aaJWgnJvNzLGkbccptcra73CaccatCV43LEEF5yUL",
+  "HBWSPXwAyszNp6ZYPWpzWwNTMvfco1evS13AG7DxSdoh"
+ ],
+ "peers": [
+  {
+   "port": 4000,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4001,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4002,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 4003,
+   "addr": "127.0.0.1"
+  }
+ ],
+ "config_id": "G2hySHstonyNL6w9Gv29Ss5Ji2nWz8BVM7ULfRe5UiG",
+ "scid": "4miXd6LXWtY8hmgStVCdG9QaHb1dntpQLG8FVZAJrAhe"
+}
