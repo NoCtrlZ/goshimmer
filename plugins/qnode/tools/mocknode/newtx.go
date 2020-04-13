@@ -14,7 +14,7 @@ func newOrigin(ownerAddr *hashing.HashValue) (sc.Transaction, error) {
 	// create owners's transfer balance of 1i by transferring it from genesis
 	keyPool := clientapi.NewDummyKeyPool()
 	ret, err := clientapi.NewScOriginTransaction(clientapi.NewOriginParams{
-		AssemblyId:      params.AssemblyId,
+		AssemblyId:      params.Scid,
 		ConfigId:        params.ConfigId,
 		AssemblyAccount: assemblyAccount,
 		OwnerAccount:    ownerAddr,
@@ -47,7 +47,7 @@ func makeBetRequestTx(fromAccount *hashing.HashValue, betSum uint64, color int, 
 	vars.SetInt("color", color)
 
 	ret, err := clientapi.NewRequestTransaction(clientapi.NewRequestParams{
-		AssemblyId:       params.AssemblyId,
+		AssemblyId:       params.Scid,
 		AssemblyAccount:  assemblyAccount,
 		RequesterAccount: fromAccount,
 		Reward:           reward,

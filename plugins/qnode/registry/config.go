@@ -31,7 +31,7 @@ func SaveConfig(cfg *ConfigData) error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   dbCfgKey(cfg.AssemblyId, cfg.ConfigId),
+		Key:   dbCfgKey(cfg.Scid, cfg.ConfigId),
 		Value: buf.Bytes(),
 	})
 }
@@ -58,11 +58,11 @@ func LoadConfig(aid, cid *HashValue) (*ConfigData, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !aid.Equal(ret.AssemblyId) {
+	if !aid.Equal(ret.Scid) {
 		return nil, errors.New("inconsistency in configuration data")
 	}
 	ret.accounts = make(map[HashValue]bool)
-	for _, addr := range ret.Accounts {
+	for _, addr := range ret.Addresses {
 		ret.accounts[*addr] = true
 	}
 	return ret, nil
@@ -91,14 +91,14 @@ func (cfg *ConfigData) Read(r io.Reader) error {
 
 func ConfigId(cfg *ConfigData) *HashValue {
 	var buf bytes.Buffer
-	buf.Write(cfg.AssemblyId.Bytes())
+	buf.Write(cfg.Scid.Bytes())
 	_ = tools.WriteUint16(&buf, cfg.N)
 	_ = tools.WriteUint16(&buf, cfg.T)
-	for _, na := range cfg.NodeAddresses {
+	for _, na := range cfg.NodeLocations {
 		buf.WriteString(na.Addr)
 		_ = tools.WriteUint32(&buf, uint32(na.Port))
 	}
-	for _, addr := range cfg.Accounts {
+	for _, addr := range cfg.Addresses {
 		buf.Write(addr.Bytes())
 	}
 
@@ -106,7 +106,7 @@ func ConfigId(cfg *ConfigData) *HashValue {
 }
 
 func ValidateConfig(cfg *ConfigData) error {
-	if len(cfg.Accounts) == 0 {
+	if len(cfg.Addresses) == 0 {
 		return fmt.Errorf("0 accounts found")
 	}
 	if cfg.N < 4 {
@@ -115,11 +115,11 @@ func ValidateConfig(cfg *ConfigData) error {
 	if cfg.T < cfg.N/2+1 {
 		return fmt.Errorf("assembly quorum must be at least N/2+1 (2*N/3+1 recommended)")
 	}
-	if len(cfg.NodeAddresses) != int(cfg.N) {
+	if len(cfg.NodeLocations) != int(cfg.N) {
 		return fmt.Errorf("number of nodes must be equal to the size of assembly N")
 	}
 
-	ok, err := ExistConfig(cfg.AssemblyId, cfg.ConfigId)
+	ok, err := ExistConfig(cfg.Scid, cfg.ConfigId)
 	if err != nil {
 		return err
 	}
@@ -128,8 +128,8 @@ func ValidateConfig(cfg *ConfigData) error {
 	}
 	// check consistency with account keys
 
-	for _, addr := range cfg.Accounts {
-		ks, ok, err := GetDKShare(cfg.AssemblyId, addr)
+	for _, addr := range cfg.Addresses {
+		ks, ok, err := GetDKShare(addr)
 		if err != nil {
 			return err
 		}
@@ -141,7 +141,7 @@ func ValidateConfig(cfg *ConfigData) error {
 		}
 	}
 
-	if !differentAddresses(cfg.NodeAddresses) {
+	if !differentAddresses(cfg.NodeLocations) {
 		return fmt.Errorf("addresses of operator nodes must all be different")
 	}
 	return nil

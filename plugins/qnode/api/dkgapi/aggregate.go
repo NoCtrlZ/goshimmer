@@ -47,10 +47,9 @@ func HandlerAggregateDks(c echo.Context) error {
 }
 
 type AggregateDKSRequest struct {
-	AssemblyId *hashing.HashValue `json:"assembly_id"`
-	Id         *hashing.HashValue `json:"id"`
-	Index      uint16             `json:"index"` // 0 to N-1
-	PriShares  []string           `json:"pri_shares"`
+	Id        *hashing.HashValue `json:"id"`
+	Index     uint16             `json:"index"` // 0 to N-1
+	PriShares []string           `json:"pri_shares"`
 }
 
 type AggregateDKSResponse struct {
@@ -59,7 +58,7 @@ type AggregateDKSResponse struct {
 }
 
 func AggregateDKSReq(req *AggregateDKSRequest) *AggregateDKSResponse {
-	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.Id)
 	if err != nil {
 		return &AggregateDKSResponse{Err: err.Error()}
 	}

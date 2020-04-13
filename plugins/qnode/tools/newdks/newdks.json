@@ -17,8 +17,7 @@
    "addr": "127.0.0.1"
   }
  ],
- "description": "test assembly 3",
  "n": 4,
  "t": 3,
- "num_keys": 2
+ "num_keys": 3
 }

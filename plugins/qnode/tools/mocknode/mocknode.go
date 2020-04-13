@@ -20,23 +20,18 @@ var (
 	params *configParams
 )
 
-type wrapped struct {
-	senderIndex uint16
-	tx          sc.Transaction
-}
-
 type configParams struct {
-	WebAddress          string               `json:"web_address"`
-	WebPort             int                  `json:"web_port"`
-	MockPubAddr         string               `json:"mock_pub_address"`
-	MockPubPort         int                  `json:"mock_pub_port"`
-	AssemblyDescription string               `json:"description"`
-	N                   uint16               `json:"n"`
-	T                   uint16               `json:"t"`
-	Accounts            []*hashing.HashValue `json:"accounts"`
-	Peers               []*registry.PortAddr `json:"peers"`
-	ConfigId            *hashing.HashValue   `json:"config_id"`
-	AssemblyId          *hashing.HashValue   `json:"assembly_id"`
+	WebAddress    string               `json:"web_address"`
+	WebPort       int                  `json:"web_port"`
+	MockPubAddr   string               `json:"mock_pub_address"`
+	MockPubPort   int                  `json:"mock_pub_port"`
+	SCDescription string               `json:"description"`
+	N             uint16               `json:"n"`
+	T             uint16               `json:"t"`
+	Addresses     []*hashing.HashValue `json:"addresses"`
+	Peers         []*registry.PortAddr `json:"peers"`
+	ConfigId      *hashing.HashValue   `json:"config_id"`
+	Scid          *hashing.HashValue   `json:"scid"`
 }
 
 func main() {
@@ -57,9 +52,9 @@ func main() {
 	if len(params.Peers) != int(params.N) || params.N < params.T || params.N < 4 {
 		panic("wrong assembly size parameters or number of peers")
 	}
-	params.AssemblyId = hashing.HashStrings(params.AssemblyDescription)
-	fmt.Printf("assembly dscr = %s\n", params.AssemblyDescription)
-	fmt.Printf("assembly id = %s\n", params.AssemblyId.String())
+	params.Scid = hashing.HashStrings(params.SCDescription)
+	fmt.Printf("assembly dscr = %s\n", params.SCDescription)
+	fmt.Printf("assembly id = %s\n", params.Scid.String())
 
 	initGlobals()
 

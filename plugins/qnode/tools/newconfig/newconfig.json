@@ -17,12 +17,12 @@
    "addr": "127.0.0.1"
   }
  ],
- "description": "test assembly 3",
+ "description": "test assembly 4 with blake2b",
  "n": 4,
  "t": 3,
- "accounts": [
-  "179310b36d1c078fd54b0010b2a494b5fe9d6e750fe7e403d8a70e2bef2125e1",
-  "ef9826a632841beb7e09ecdd7493cd3e2857f63866f88e0fd9f898be69a668bc"
+ "addresses": [
+  "Ag2aaJWgnJvNzLGkbccptcra73CaccatCV43LEEF5yUL",
+  "HBWSPXwAyszNp6ZYPWpzWwNTMvfco1evS13AG7DxSdoh"
  ],
  "peers": [
   {

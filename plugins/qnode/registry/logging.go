@@ -11,11 +11,11 @@ func InitLogger() {
 }
 
 func LogLoadedConfigs() {
-	assemblyDataMutex.Lock()
-	defer assemblyDataMutex.Unlock()
+	scDataMutex.Lock()
+	defer scDataMutex.Unlock()
 
-	log.Debugf("loaded %d assembly data record(s)", len(assemblyDataCache))
-	for aid, ad := range assemblyDataCache {
+	log.Debugf("loaded %d assembly data record(s)", len(scDataCache))
+	for aid, ad := range scDataCache {
 		log.Debugw("assembly record", "aid", aid.Short(), "dscr", ad.Description)
 	}
 }

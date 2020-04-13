@@ -25,14 +25,14 @@ func initGlobals() {
 	modelimpl.Init()
 	signedblock.Init()
 
-	assemblyAccount = params.Accounts[0]
+	assemblyAccount = params.Addresses[0]
 
 	ldb = txdb.NewLocalDb(nil)
 	value.SetValuetxDB(ldb)
 
 	keyPool = clientapi.NewDummyKeyPool()
 	// owner account with 1i
-	ownerAddress = hashing.HashData(params.AssemblyId.Bytes())
+	ownerAddress = hashing.HashData(params.Scid.Bytes())
 	fmt.Printf("owner's account will be %s\n", ownerAddress.Short())
 	ownerTx, _ = generateAccountWithDeposit(ownerAddress, 1)
 }

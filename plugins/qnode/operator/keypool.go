@@ -72,7 +72,7 @@ func (op *scOperator) getKeyData(addr *HashValue) (interface{}, error) {
 	if !op.cfgData.AccountIsDefined(addr) {
 		return nil, fmt.Errorf("account id %s is undefined for this configuration", addr.Short())
 	}
-	ret, ok, err := registry.GetDKShare(op.scid, addr)
+	ret, ok, err := registry.GetDKShare(addr)
 	if err != nil {
 		return nil, err
 	}

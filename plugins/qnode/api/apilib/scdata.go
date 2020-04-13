@@ -10,12 +10,12 @@ import (
 	"net/http"
 )
 
-func PutAssemblyData(addr string, port int, adata *registry.AssemblyData) error {
+func PutSCData(addr string, port int, adata *registry.SCData) error {
 	data, err := json.Marshal(adata)
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf("http://%s:%d/adm/assemblydata", addr, port)
+	url := fmt.Sprintf("http://%s:%d/adm/scdata", addr, port)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err

@@ -11,12 +11,11 @@ import (
 )
 
 type ioParams struct {
-	Hosts               []*registry.PortAddr `json:"hosts"`
-	AssemblyDescription string               `json:"description"`
-	N                   uint16               `json:"n"`
-	T                   uint16               `json:"t"`
-	NumKeys             uint16               `json:"num_keys"`
-	Accounts            []*hashing.HashValue `json:"accounts"`
+	Hosts     []*registry.PortAddr `json:"hosts"`
+	N         uint16               `json:"n"`
+	T         uint16               `json:"t"`
+	NumKeys   uint16               `json:"num_keys"`
+	Addresses []*hashing.HashValue `json:"addresses"`
 }
 
 func main() {
@@ -37,16 +36,13 @@ func main() {
 	if len(params.Hosts) != int(params.N) || params.N < params.T || params.N < 4 {
 		panic("wrong assembly size parameters or number rof hosts")
 	}
-	aid := hashing.HashStrings(params.AssemblyDescription)
-	fmt.Printf("assembly dscr = %s\n", params.AssemblyDescription)
-	fmt.Printf("assembly id = %s\n", aid.String())
 
-	params.Accounts = make([]*hashing.HashValue, 0, params.NumKeys)
+	params.Addresses = make([]*hashing.HashValue, 0, params.NumKeys)
 	for i := 0; i < int(params.NumKeys); i++ {
-		account, err := apilib.GenerateNewDistributedKeySet(params.Hosts, aid, params.N, params.T)
-		params.Accounts = append(params.Accounts, account)
+		addr, err := apilib.GenerateNewDistributedKeySet(params.Hosts, params.N, params.T)
+		params.Addresses = append(params.Addresses, addr)
 		if err == nil {
-			fmt.Printf("generated new keys for account id %s\n", account.String())
+			fmt.Printf("generated new keys. Address = %s\n", addr.String())
 		} else {
 			fmt.Printf("error: %v\n", err)
 		}

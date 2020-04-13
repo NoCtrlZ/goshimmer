@@ -3,12 +3,12 @@
  "web_port": 2000,
  "mock_pub_address": "127.0.0.1",
  "mock_pub_port": 7000,
- "description": "test assembly 3",
+ "description": "test assembly 4 with blake2b",
  "n": 4,
  "t": 3,
- "accounts": [
-  "179310b36d1c078fd54b0010b2a494b5fe9d6e750fe7e403d8a70e2bef2125e1",
-  "ef9826a632841beb7e09ecdd7493cd3e2857f63866f88e0fd9f898be69a668bc"
+ "addresses": [
+  "Ag2aaJWgnJvNzLGkbccptcra73CaccatCV43LEEF5yUL",
+  "HBWSPXwAyszNp6ZYPWpzWwNTMvfco1evS13AG7DxSdoh"
  ],
  "peers": [
   {
@@ -28,6 +28,6 @@
    "addr": "127.0.0.1"
   }
  ],
- "config_id": "14ed9d02c54a9c6219231968b511f70c0729c5b3f16ac1753242a07a47e9542b",
- "assembly_id": "89acffebe0eae6b929877090a27c048de6d0b3f0a7bfd07122bee238f656c597"
+ "config_id": "G2hySHstonyNL6w9Gv29Ss5Ji2nWz8BVM7ULfRe5UiG",
+ "scid": "4miXd6LXWtY8hmgStVCdG9QaHb1dntpQLG8FVZAJrAhe"
 }

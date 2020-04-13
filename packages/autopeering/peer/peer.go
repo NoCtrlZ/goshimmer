@@ -43,7 +43,7 @@ func (p *Peer) Network() string {
 	return p.services.Get(service.PeeringKey).Network()
 }
 
-// Account returns the autopeering address of a peer.
+// Address returns the autopeering address of a peer.
 func (p *Peer) Address() string {
 	return p.services.Get(service.PeeringKey).String()
 }

@@ -42,7 +42,7 @@ type GetPubsResponse struct {
 }
 
 func GetPubsReq(req *GetPubsRequest) *GetPubsResponse {
-	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.Id)
 	if err != nil {
 		return &GetPubsResponse{Err: err.Error()}
 	}

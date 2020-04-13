@@ -48,9 +48,9 @@ func (op *scOperator) configure(cfgId *HashValue) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if op.cfgData.Index >= op.cfgData.N || int(op.cfgData.N) != len(op.cfgData.NodeAddresses) {
+	if op.cfgData.Index >= op.cfgData.N || int(op.cfgData.N) != len(op.cfgData.NodeLocations) {
 		return false, fmt.Errorf("inconsistent config data scid: %s cfg id: %s",
-			op.cfgData.AssemblyId, op.cfgData.ConfigId)
+			op.cfgData.Scid, op.cfgData.ConfigId)
 	}
-	return messaging.OwnPortAddr().String() == op.cfgData.NodeAddresses[op.cfgData.Index].String(), nil
+	return messaging.OwnPortAddr().String() == op.cfgData.NodeLocations[op.cfgData.Index].String(), nil
 }

@@ -25,7 +25,7 @@ func (op *scOperator) PeerIndex() uint16 {
 }
 
 func (op *scOperator) PeerAddresses() []*registry.PortAddr {
-	return op.cfgData.NodeAddresses
+	return op.cfgData.NodeLocations
 }
 
 func NewFromState(tx sc.Transaction) (*scOperator, error) {

@@ -7,9 +7,10 @@ import (
 
 // general data about assembly
 // each node in the assembly configurations must have identical assembly data
+// TODO not final. Will change!!!!
 
-type AssemblyData struct {
-	AssemblyId  *HashValue `json:"assembly_id"`
+type SCData struct {
+	Scid        *HashValue `json:"scid"`
 	OwnerPubKey *HashValue `json:"owner_pub_key"`
 	Description string     `json:"description"`
 	Program     string     `json:"program"`
@@ -32,12 +33,12 @@ type ConfigData struct {
 
 	// config id 1 (hash)  -- collection of keys + node IP locations
 	// config id 0 (hash)  -- collection of keys
-	AssemblyId *HashValue   `json:"assembly_id"`
-	N          uint16       `json:"n"`
-	T          uint16       `json:"t"`
-	Accounts   []*HashValue `json:"accounts"`
+	Scid      *HashValue   `json:"scid"`
+	N         uint16       `json:"n"`
+	T         uint16       `json:"t"`
+	Addresses []*HashValue `json:"addresses"` // addresses controlled by the smart contracts
 	// -- end config id 0
-	NodeAddresses []*PortAddr `json:"port_addr"`
+	NodeLocations []*PortAddr `json:"node_locations"`
 	// -- end of config id 1
 	accounts map[HashValue]bool
 }

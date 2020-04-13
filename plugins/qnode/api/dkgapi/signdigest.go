@@ -32,7 +32,7 @@ type SignDigestResponse struct {
 }
 
 func SignDigestReq(req *SignDigestRequest) *SignDigestResponse {
-	ks, ok, err := registry.GetDKShare(req.AssemblyId, req.Id)
+	ks, ok, err := registry.GetDKShare(req.Id)
 	if err != nil {
 		return &SignDigestResponse{Err: err.Error()}
 	}

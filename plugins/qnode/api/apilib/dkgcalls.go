@@ -68,7 +68,7 @@ func callCommit(addr string, port int, params dkgapi.CommitDKSRequest) (*hashing
 		return nil, err
 	}
 	if result.Err == "" {
-		return result.Account, nil
+		return result.Address, nil
 	}
 	return nil, errors.New(result.Err)
 }

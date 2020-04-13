@@ -12,19 +12,19 @@ import (
 )
 
 type ioParams struct {
-	Hosts               []*registry.PortAddr `json:"hosts"`
-	AssemblyDescription string               `json:"description"`
-	N                   uint16               `json:"n"`
-	T                   uint16               `json:"t"`
-	Accounts            []*hashing.HashValue `json:"accounts"`
-	Peers               []*registry.PortAddr `json:"peers"`
-	ConfigId            *hashing.HashValue   `json:"config_id"`
-	AssemblyId          *hashing.HashValue   `json:"assembly_id"`
+	Hosts         []*registry.PortAddr `json:"hosts"`
+	SCDescription string               `json:"description"`
+	N             uint16               `json:"n"`
+	T             uint16               `json:"t"`
+	Addresses     []*hashing.HashValue `json:"addresses"`
+	Peers         []*registry.PortAddr `json:"peers"`
+	ConfigId      *hashing.HashValue   `json:"config_id"`
+	Scid          *hashing.HashValue   `json:"scid"`
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Printf("usage newdconfig <input file path>\n")
+		fmt.Printf("usage newconfig <input file path>\n")
 		os.Exit(1)
 	}
 	fname := os.Args[1]
@@ -40,17 +40,17 @@ func main() {
 	if len(params.Hosts) != int(params.N) || params.N < params.T || params.N < 4 {
 		panic("wrong assembly size parameters or number rof hosts")
 	}
-	params.AssemblyId = hashing.HashStrings(params.AssemblyDescription)
-	fmt.Printf("assembly dscr = %s\n", params.AssemblyDescription)
-	fmt.Printf("assembly id = %s\n", params.AssemblyId.String())
+	params.Scid = hashing.HashStrings(params.SCDescription)
+	fmt.Printf("sc dscr = %s\n", params.SCDescription)
+	fmt.Printf("scid = %s\n", params.Scid.String())
 
 	cd := registry.ConfigData{
 		Created:       time.Now().UnixNano(),
-		AssemblyId:    params.AssemblyId,
+		Scid:          params.Scid,
 		N:             params.N,
 		T:             params.T,
-		NodeAddresses: params.Peers,
-		Accounts:      params.Accounts,
+		NodeLocations: params.Peers,
+		Addresses:     params.Addresses,
 	}
 	var configId *hashing.HashValue
 	var wrongIds bool

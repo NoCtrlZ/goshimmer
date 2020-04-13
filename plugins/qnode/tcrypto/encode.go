@@ -1,168 +1,118 @@
 package tcrypto
 
 import (
-	"bytes"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"github.com/iotaledger/goshimmer/packages/database"
-	"github.com/iotaledger/goshimmer/plugins/qnode/db"
-	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/pkg/errors"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tools"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
+	"io"
 )
 
-func dbKey(aid, addr *HashValue) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("dkshare")
-	buf.Write(aid.Bytes())
-	buf.Write(addr.Bytes())
-	return buf.Bytes()
-}
-
-func dbGroupPrefix(aid *HashValue) []byte {
-	var buf bytes.Buffer
-	buf.WriteString("dkshare")
-	buf.Write(aid.Bytes())
-	return buf.Bytes()
-
-}
-
-func (ks *DKShare) SaveToRegistry() error {
-	if !ks.Committed {
-		return fmt.Errorf("uncommited DK share: can't be saved to the registry")
-	}
-	dbase, err := db.Get()
+func (ks *DKShare) Write(w io.Writer) error {
+	err := tools.WriteUint16(w, ks.N)
 	if err != nil {
 		return err
 	}
-	dbkey := dbKey(ks.AssemblyId, ks.Account)
-	exists, err := dbase.Contains(dbkey)
+	err = tools.WriteUint16(w, ks.T)
 	if err != nil {
 		return err
 	}
-	if exists {
-		return fmt.Errorf("attempt to overwrite existing DK key share")
+	err = tools.WriteUint16(w, ks.Index)
+	if err != nil {
+		return err
 	}
-
-	ks.PubKeysEncoded = make([]string, len(ks.PubKeys))
-	for i, pk := range ks.PubKeys {
-		data, err := pk.MarshalBinary()
+	_, err = w.Write(ks.Address.Bytes())
+	if err != nil {
+		return err
+	}
+	err = tools.WriteUint64(w, uint64(ks.Created))
+	if err != nil {
+		return err
+	}
+	err = tools.WriteUint16(w, uint16(len(ks.PubKeys)))
+	if err != nil {
+		return err
+	}
+	for _, pk := range ks.PubKeys {
+		pkdata, err := pk.MarshalBinary()
 		if err != nil {
 			return err
 		}
-		ks.PubKeysEncoded[i] = hex.EncodeToString(data)
+		err = tools.WriteBytes16(w, pkdata)
+		if err != nil {
+			return err
+		}
 	}
-	pkb, err := ks.PriKey.MarshalBinary()
+	pkdata, err := ks.PriKey.MarshalBinary()
 	if err != nil {
 		return err
 	}
-	ks.PriKeyEncoded = hex.EncodeToString(pkb)
-
-	jsonData, err := json.Marshal(ks)
+	err = tools.WriteBytes16(w, pkdata)
 	if err != nil {
 		return err
 	}
-	return dbase.Set(database.Entry{
-		Key:   dbkey,
-		Value: jsonData,
-	})
+	return nil
 }
 
-func LoadDKShare(assemblyId *HashValue, address *HashValue, maskPrivate bool) (*DKShare, error) {
-	dbase, err := db.Get()
-	if err != nil {
-		return nil, err
-	}
-	dbkey := dbKey(assemblyId, address)
-	entry, err := dbase.Get(dbkey)
-	if err != nil {
-		return nil, err
-	}
-	ret, err := unmarshalDKShare(entry.Value, maskPrivate)
-	if err != nil {
-		return nil, err
-	}
-	if !ret.AssemblyId.Equal(assemblyId) || !ret.Account.Equal(address) {
-		return nil, errors.New("inconsistency in key share registry data")
-	}
-	return ret, nil
-}
+func (ks *DKShare) Read(r io.Reader) error {
+	*ks = DKShare{}
+	ks.Suite = bn256.NewSuite()
 
-func ExistDKShareInRegistry(assemblyId, addr *HashValue) (bool, error) {
-	dbase, err := db.Get()
+	var n, t, index uint16
+	err := tools.ReadUint16(r, &n)
 	if err != nil {
-		return false, err
+		return err
 	}
-	dbkey := dbKey(assemblyId, addr)
-	return dbase.Contains(dbkey)
-}
-
-func unmarshalDKShare(jsonData []byte, maskPrivate bool) (*DKShare, error) {
-	ret := &DKShare{}
-	err := json.Unmarshal(jsonData, ret)
+	err = tools.ReadUint16(r, &t)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	ret.Suite = bn256.NewSuite()
-	ret.Aggregated = true
-	ret.Committed = true
-
-	// decode some fields
-	// private key
-	pkb, err := hex.DecodeString(ret.PriKeyEncoded)
+	err = tools.ReadUint16(r, &index)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	ret.PriKey = ret.Suite.G2().Scalar()
-	if err = ret.PriKey.UnmarshalBinary(pkb); err != nil {
-		return nil, err
+	var account hashing.HashValue
+	_, err = r.Read(account.Bytes())
+	if err != nil {
+		return err
 	}
-	// public keys
-	ret.PubKeys = make([]kyber.Point, len(ret.PubKeysEncoded))
-	for i, pke := range ret.PubKeysEncoded {
-		data, err := hex.DecodeString(pke)
+	var created uint64
+	err = tools.ReadUint64(r, &created)
+	if err != nil {
+		return err
+	}
+	var num uint16
+	err = tools.ReadUint16(r, &num)
+	if err != nil {
+		return err
+	}
+	pubKeys := make([]kyber.Point, num)
+	for i := range pubKeys {
+		data, err := tools.ReadBytes16(r)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		ret.PubKeys[i] = ret.Suite.G2().Point()
-		err = ret.PubKeys[i].UnmarshalBinary(data)
+		pubKeys[i] = ks.Suite.G2().Point()
+		err = pubKeys[i].UnmarshalBinary(data)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	ret.PubPoly, err = recoverPubPoly(ret.Suite, ret.PubKeys, ret.T, ret.N)
+	data, err := tools.ReadBytes16(r)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	ret.PubKeyOwn = ret.Suite.G2().Point().Mul(ret.PriKey, nil)
-	if !ret.PubKeyOwn.Equal(ret.PubKeys[ret.Index]) {
-		return nil, errors.New("crosscheck I: inconsistency while calculating public key")
-	}
-	ret.PubKeyMaster = ret.PubPoly.Commit()
-	if maskPrivate {
-		ret.PriKey = nil
-		ret.PriKeyEncoded = ""
-	}
-	binPK, err := ret.PubKeyMaster.MarshalBinary()
+	priKey := ks.Suite.G2().Scalar()
+	err = priKey.UnmarshalBinary(data)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if !HashData(binPK).Equal(ret.Account) {
-		return nil, errors.New("crosscheck II: !HashData(binPK).Equal(ret.Account)")
-	}
-	return ret, nil
-}
-
-func recoverPubPoly(suite *bn256.Suite, pubKeys []kyber.Point, t, n uint16) (*share.PubPoly, error) {
-	pubShares := make([]*share.PubShare, len(pubKeys))
-	for i, v := range pubKeys {
-		pubShares[i] = &share.PubShare{
-			I: i,
-			V: v,
-		}
-	}
-	return share.RecoverPubPoly(suite.G2(), pubShares, int(t), int(n))
+	ks.N = n
+	ks.T = t
+	ks.Index = index
+	ks.Address = &account
+	ks.Created = int64(created)
+	ks.PubKeys = pubKeys
+	ks.PriKey = priKey
+	return nil
 }

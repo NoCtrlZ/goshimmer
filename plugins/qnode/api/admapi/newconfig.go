@@ -39,7 +39,7 @@ func NewConfigReq(req *registry.ConfigData) *NewConfigResponse {
 			Err: err.Error(),
 		}
 	}
-	log.Infow("Created new configuration", "assembly id", req.AssemblyId, "config id", req.ConfigId)
+	log.Infow("Created new configuration", "scid", req.Scid, "config id", req.ConfigId)
 	return &NewConfigResponse{
 		ConfigId: req.ConfigId,
 	}

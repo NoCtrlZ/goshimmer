@@ -10,33 +10,36 @@ import (
 )
 
 var (
-	assemblyDataCache map[HashValue]*AssemblyData
-	assemblyDataMutex = &sync.Mutex{}
+	scDataCache map[HashValue]*SCData
+	scDataMutex = &sync.Mutex{}
 )
 
 func RefreshAssemblyData() error {
-	assemblyDataMutex.Lock()
-	defer assemblyDataMutex.Unlock()
+	scDataMutex.Lock()
+	defer scDataMutex.Unlock()
 
-	assemblyDataCache = make(map[HashValue]*AssemblyData)
+	scDataCache = make(map[HashValue]*SCData)
 	dbase, err := db.Get()
 	if err != nil {
 		return err
 	}
 	err = dbase.ForEachPrefix(dbOpdataGroupKey(), func(entry database.Entry) bool {
-		opdata := &AssemblyData{}
+		opdata := &SCData{}
 		if err = json.Unmarshal(entry.Value, opdata); err == nil {
-			assemblyDataCache[*opdata.AssemblyId] = opdata
+			// skip legacy records with Scid == nil
+			if opdata.Scid != nil {
+				scDataCache[*opdata.Scid] = opdata
+			}
 		}
 		return false
 	})
 	return err
 }
 
-func GetAssemblyData(aid *HashValue) (*AssemblyData, bool) {
-	assemblyDataMutex.Lock()
-	defer assemblyDataMutex.Unlock()
-	ret, ok := assemblyDataCache[*aid]
+func GetAssemblyData(aid *HashValue) (*SCData, bool) {
+	scDataMutex.Lock()
+	defer scDataMutex.Unlock()
+	ret, ok := scDataCache[*aid]
 	if !ok {
 		return nil, false
 	}
@@ -54,7 +57,7 @@ func dbOpdateKey(aid *HashValue) []byte {
 	return buf.Bytes()
 }
 
-func (ad *AssemblyData) Save() error {
+func (ad *SCData) Save() error {
 	dbase, err := db.Get()
 	if err != nil {
 		return err
@@ -64,7 +67,7 @@ func (ad *AssemblyData) Save() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   dbOpdateKey(ad.AssemblyId),
+		Key:   dbOpdateKey(ad.Scid),
 		Value: jsonData,
 	})
 }

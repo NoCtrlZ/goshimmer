@@ -15,26 +15,23 @@ import (
 // Distributed key set for (T,N) threshold signatures, T out f N
 
 type DKShare struct {
-	Suite      *bn256.Suite `json:"-"`
-	N          uint16       `json:"n"`
-	T          uint16       `json:"t"`
-	Index      uint16       `json:"index"`
-	AssemblyId *HashValue   `json:"assembly_id"`
-	Account    *HashValue   `json:"account"` // used as permanent id = hash(pubkey)
+	Suite   *bn256.Suite
+	N       uint16
+	T       uint16
+	Index   uint16
+	Address *HashValue // used as permanent id = hash(pubkey)
 
-	Created    int64 `json:"created"`
-	Aggregated bool  `json:"-"`
-	Committed  bool  `json:"-"`
+	Created    int64
+	Aggregated bool
+	Committed  bool
 	//
-	PriShares []*share.PriShare `json:"-"` // nil after commit
+	PriShares []*share.PriShare // nil after commit
 	//
-	PubKeys        []kyber.Point  `json:"-"`        // all public shares by peers
-	PubKeysEncoded []string       `json:"pub_keys"` // for easier marshaling
-	PubPoly        *share.PubPoly `json:"-"`
-	PriKey         kyber.Scalar   `json:"-"`                 // own private key (sum of private shares)
-	PriKeyEncoded  string         `json:"pri_key,omitempty"` //
-	PubKeyOwn      kyber.Point    `json:"-"`                 // public key from own private key
-	PubKeyMaster   kyber.Point    `json:"-"`
+	PubKeys      []kyber.Point // all public shares by peers
+	PubPoly      *share.PubPoly
+	PriKey       kyber.Scalar // own private key (sum of private shares)
+	PubKeyOwn    kyber.Point  // public key from own private key
+	PubKeyMaster kyber.Point
 }
 
 func ValidateDKSParams(t, n, index uint16) error {
@@ -47,7 +44,7 @@ func ValidateDKSParams(t, n, index uint16) error {
 	return nil
 }
 
-func NewRndDKShare(aid *HashValue, t, n, index uint16) *DKShare {
+func NewRndDKShare(t, n, index uint16) *DKShare {
 	suite := bn256.NewSuite()
 	// create seed secret
 	secret := suite.G1().Scalar().Pick(suite.RandomStream())
@@ -57,13 +54,12 @@ func NewRndDKShare(aid *HashValue, t, n, index uint16) *DKShare {
 	// with index n corresponds to p(n+1)
 	shares := priPoly.Shares(int(n))
 	ret := &DKShare{
-		Suite:      suite,
-		AssemblyId: aid,
-		Created:    time.Now().UnixNano(),
-		N:          n,
-		T:          t,
-		Index:      index,
-		PriShares:  shares,
+		Suite:     suite,
+		Created:   time.Now().UnixNano(),
+		N:         n,
+		T:         t,
+		Index:     index,
+		PriShares: shares,
 	}
 	return ret
 }
@@ -103,7 +99,7 @@ func (ks *DKShare) CommitDKS(pubKeys []kyber.Point) error {
 		return err
 	}
 	// calculate address, the permanent key ID
-	ks.Account = HashData(pubKeyBin)
+	ks.Address = HashData(pubKeyBin)
 
 	ks.PriShares = nil // not needed anymore
 	ks.Committed = true

@@ -8,8 +8,8 @@ import (
 )
 
 //----------------------------------------------------------
-func HandlerAssemblyData(c echo.Context) error {
-	var req registry.AssemblyData
+func HandlerSCData(c echo.Context) error {
+	var req registry.SCData
 
 	if err := c.Bind(&req); err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{
@@ -21,8 +21,8 @@ func HandlerAssemblyData(c echo.Context) error {
 		log.Errorf("failed to save assembly data: %v", err)
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
 	}
-	log.Infof("assembly data saved: id = %s descr = '%s'",
-		req.AssemblyId.Short(), req.Description)
+	log.Infof("SC data saved: id = %s descr = '%s'",
+		req.Scid.Short(), req.Description)
 
 	if err := registry.RefreshAssemblyData(); err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})

@@ -11,8 +11,8 @@ import (
 )
 
 type ioParams struct {
-	Hosts        []*registry.PortAddr  `json:"hosts"`
-	AssemblyData registry.AssemblyData `json:"assembly_data"`
+	Hosts  []*registry.PortAddr `json:"hosts"`
+	SCData registry.SCData      `json:"sc_data"`
 }
 
 func main() {
@@ -30,16 +30,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	params.AssemblyData.AssemblyId = hashing.HashStrings(params.AssemblyData.Description)
-	params.AssemblyData.OwnerPubKey = hashing.HashData(params.AssemblyData.AssemblyId.Bytes())
-	params.AssemblyData.Program = "dummy"
+	params.SCData.Scid = hashing.HashStrings(params.SCData.Description)
+	params.SCData.OwnerPubKey = hashing.HashData(params.SCData.Scid.Bytes())
+	params.SCData.Program = "dummy"
 	fmt.Printf("%+v\n", params)
 	for _, h := range params.Hosts {
-		err = apilib.PutAssemblyData(h.Addr, h.Port, &params.AssemblyData)
+		err = apilib.PutSCData(h.Addr, h.Port, &params.SCData)
 		if err != nil {
-			fmt.Printf("PutAssemblyData: %v\n", err)
+			fmt.Printf("PutSCData: %v\n", err)
 		} else {
-			fmt.Printf("PutAssemblyData success: %s:%d\n", h.Addr, h.Port)
+			fmt.Printf("PutSCData success: %s:%d\n", h.Addr, h.Port)
 		}
 	}
 	data, err = json.MarshalIndent(&params, "", " ")

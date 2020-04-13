@@ -228,7 +228,7 @@ func getStateHandler(w http.ResponseWriter, r *http.Request) {
 func getStateResponse(myAccount *hashing.HashValue) *stateResponse {
 	bets, totalStaked, betsByColor := getBets()
 	ret := &stateResponse{
-		ScId: params.AssemblyId.String(),
+		ScId: params.Scid.String(),
 		MyAccount: accountInfo{
 			Amount:  value.GetBalance(myAccount),
 			Account: myAccount.String(),

@@ -9,12 +9,11 @@ import (
 	"time"
 )
 
-func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, aid *HashValue, n, t uint16) (*HashValue, error) {
+func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*HashValue, error) {
 	params := dkgapi.NewDKSRequest{
-		AssemblyId: aid,
-		N:          n,
-		T:          t,
-		Id:         HashStrings(fmt.Sprintf("%s%v", aid.String(), time.Now())), // temporary id
+		N:  n,
+		T:  t,
+		Id: HashStrings(fmt.Sprintf("%s%v", time.Now())), // temporary id
 	}
 	if len(nodes) != int(params.N) {
 		return nil, errors.New("len(nodes) != int(params.N)")
@@ -43,10 +42,9 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, aid *HashValue, n,
 			priSharesCol[row] = priSharesMatrix[row][col]
 		}
 		resp, err := callAggregate(pa.Addr, pa.Port, dkgapi.AggregateDKSRequest{
-			AssemblyId: params.AssemblyId,
-			Id:         params.Id,
-			Index:      uint16(col),
-			PriShares:  priSharesCol,
+			Id:        params.Id,
+			Index:     uint16(col),
+			PriShares: priSharesCol,
 		})
 		if err != nil {
 			return nil, err
@@ -58,9 +56,8 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, aid *HashValue, n,
 	var accountRet *HashValue
 	for _, pa := range nodes {
 		account, err := callCommit(pa.Addr, pa.Port, dkgapi.CommitDKSRequest{
-			AssemblyId: params.AssemblyId,
-			Id:         params.Id,
-			PubShares:  pubShares,
+			Id:        params.Id,
+			PubShares: pubShares,
 		})
 		if err != nil {
 			return nil, err
