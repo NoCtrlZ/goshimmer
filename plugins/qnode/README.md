@@ -1,5 +1,5 @@
 # Qnode
-![badge](https://action-badges.now.sh/lunfardo314/goshimmer?action=test)  
+![Test GoShimmer Plugin Qnode](https://github.com/lunfardo314/goshimmer/workflows/Test%20GoShimmer%20Plugin%20Qnode/badge.svg?branch=dev)  
 This repo uses goshimmer in a very stripped down mode. Most of plugins are disabled.
 
 ## Test
