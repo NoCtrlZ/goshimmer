@@ -72,6 +72,6 @@
     "port": 4001,
     "portPubTx": 3001,
     "mockTangleIpAddr": "127.0.0.1",
-    "mockTanglePort": 1000
+    "mockTanglePort": 1001
   }
 }

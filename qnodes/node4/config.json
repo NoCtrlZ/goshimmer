@@ -69,9 +69,9 @@
     "bindAddress": "127.0.0.1:8080"
   },
   "qnode": {
-    "port": 4000,
-    "portPubTx": 3000,
+    "port": 4003,
+    "portPubTx": 3003,
     "mockTangleIpAddr": "127.0.0.1",
-    "mockTanglePort": 1000
+    "mockTanglePort": 1003
   }
 }
