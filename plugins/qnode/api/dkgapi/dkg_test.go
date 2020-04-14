@@ -37,7 +37,7 @@ func TestDKGGeneral(t *testing.T) {
 			AssemblyId: aid,
 			N:          N,
 			T:          T,
-			Index:      i,
+			Index:      uint16(i),
 		})
 		if resps[i].Err != "" {
 			errb = true

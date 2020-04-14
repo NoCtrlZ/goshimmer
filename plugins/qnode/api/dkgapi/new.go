@@ -54,15 +54,17 @@ func HandlerNewDks(c echo.Context) error {
 }
 
 type NewDKSRequest struct {
-	Id    *HashValue `json:"id"`
-	N     uint16     `json:"n"`
-	T     uint16     `json:"t"`
-	Index uint16     `json:"index"` // 0 to N-1
+	Id    	   *HashValue `json:"id"`
+	AssemblyId *HashValue `json:"assembly_id"`
+	N     	   uint16     `json:"n"`
+	T     	   uint16     `json:"t"`
+	Index 	   uint16     `json:"index"` // 0 to N-1
 }
 
 type NewDKSResponse struct {
 	PriShares []string `json:"pri_shares"`
 	Err       string   `json:"err"`
+	Index 	  uint16     `json:"index"` // 0 to N-1
 }
 
 func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
