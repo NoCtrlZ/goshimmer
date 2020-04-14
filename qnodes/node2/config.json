@@ -66,11 +66,11 @@
       "privateKey": "",
       "username": "goshimmer"
     },
-    "bindAddress": "127.0.0.1:8080"
+    "bindAddress": "127.0.0.1:8081"
   },
   "qnode": {
     "port": 4001,
-    "portPubTx": 3001,
+    "mockPubTxPort": 3001,
     "mockTangleIpAddr": "127.0.0.1",
     "mockTanglePort": 1001
   }

@@ -1,0 +1,18 @@
+version: "3"
+services:
+  qnode1:
+    build:
+      context: .
+      dockerfile: DockerfileQnode
+      args:
+        - NODE_DIR=qnodes/node1
+        - NODE_PORT=8080
+    container_name: qnode1
+    restart: unless-stopped
+    volumes:
+      - ./mainnetdb:/app/mainnetdb:rw
+    ports:
+      - "14666:14666/tcp"
+      - "14626:14626/udp"
+      - "14626:14626/tcp"
+      - "8080:8080/tcp"
