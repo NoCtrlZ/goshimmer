@@ -7,7 +7,7 @@ RUN mkdir /goshimmer
 WORKDIR /goshimmer
 
 # Download dependencies
-COPY go.mod . 
+COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
@@ -17,7 +17,7 @@ COPY . .
 # Build
 RUN CGO_ENABLED=1 GOOS=linux go build -o /go/bin/goshimmer
 
-FROM alpine:latest  
+FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
@@ -35,4 +35,4 @@ COPY --from=build /go/bin/goshimmer .
 # Copy the docker config
 COPY docker.config.json config.json
 
-ENTRYPOINT ["./goshimmer"] 
+ENTRYPOINT ["./goshimmer"]
