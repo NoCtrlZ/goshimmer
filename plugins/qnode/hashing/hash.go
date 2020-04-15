@@ -133,9 +133,7 @@ func RandomHash(rnd *rand.Rand) *HashValue {
 }
 
 func HashInList(h *HashValue, list []*HashValue) bool {
-	// fmt.Println(list)
 	for _, h1 := range list {
-		// fmt.Println(h1)
 		if h.Equal(h1) {
 			return true
 		}

@@ -20,11 +20,10 @@ func (s *SampleSource) Seed(seed int64) {
 
 func TestHashValueFromString(t *testing.T) {
 	var h1 = HashStrings("test string").String()
-	h, e := HashValueFromString(h1)
+	_, e := HashValueFromString(h1)
 	if e != nil {
 		t.Fatalf("error occurs")
 	}
-	fmt.Printf("%x len = %d bytes\n", h, len(h))
 }
 
 func TestHashData(t *testing.T) {
@@ -76,6 +75,22 @@ func TestHashInList(t *testing.T) {
 	}
 	res2 := HashInList(h4, hashArray)
 	if res2 == true {
+		t.Fatalf("failed to check")
+	}
+}
+
+func TestEqual(t *testing.T) {
+	var h1 = HashStrings("alice")
+	var h2 = HashStrings("alice")
+	if !h1.Equal(h2) {
+		t.Fatalf("failed to check")
+	}
+}
+
+func TestClone(t *testing.T) {
+	var h1 = HashStrings("alice")
+	var h2 = h1.Clone()
+	if *h1 != *h2 {
 		t.Fatalf("failed to check")
 	}
 }
