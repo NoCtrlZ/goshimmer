@@ -13,7 +13,7 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*Has
 	params := dkgapi.NewDKSRequest{
 		N:  n,
 		T:  t,
-		Id: HashStrings(fmt.Sprintf("%s%v", time.Now())), // temporary id
+		Id: HashStrings(fmt.Sprintf("%v", time.Now())), // temporary id
 	}
 	if len(nodes) != int(params.N) {
 		return nil, errors.New("len(nodes) != int(params.N)")
