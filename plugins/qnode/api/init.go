@@ -17,6 +17,7 @@ func InitEndpoints() {
 	webapi.Server.POST("/adm/getpubs", dkgapi.HandlerGetPubs)
 	webapi.Server.POST("/adm/newconfig", admapi.HandlerNewConfig)
 	webapi.Server.POST("/adm/scdata", admapi.HandlerSCData)
+	webapi.Server.Get("/adm/scdata/:id", admapi.GetSCData)
 
 	logger.NewLogger("QnodeAPI").Infof("successfully added api endpoints")
 }
