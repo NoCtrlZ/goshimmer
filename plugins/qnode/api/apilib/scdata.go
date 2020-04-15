@@ -27,18 +27,27 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 	if err != nil {
 		return err
 	}
-	err = nil
 	if result.Error != "" {
 		err = errors.New(result.Error)
 	}
 	return err
 }
 
-func GetSCdata(addr string, port int, schash *hashing.HashValue) {
+func GetSCdata(addr string, port int, schash *hashing.HashValue) (string, error) {
 	url := fmt.Sprintf("http://%s:%d/adm/scdata/%s", addr, port, schash.String())
-	resp, err := http.Get(url, "application/json")
+	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return "", err
 	}
-	fmt.Println(data, err, url)
+
+	var result utils.SimpleResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+	if result.Error != "" {
+		err = errors.New(result.Error)
+	}
+
+	return "result", err
 }
