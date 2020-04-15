@@ -30,25 +30,33 @@ func TestHashValueFromString(t *testing.T) {
 func TestHashData(t *testing.T) {
 	var bytes = []byte{0, 1, 2, 3}
 	h := HashData(bytes)
-	fmt.Printf("%x len = %d bytes\n", h, len(h))
+	if reflect.TypeOf(nilHash) != reflect.TypeOf(*h) {
+		t.Fatalf("failed to hash bytes array")
+	}
 }
 
 func TestHashDataBlake2b(t *testing.T) {
 	var bytes = []byte{0, 1, 2, 3}
 	h := HashDataBlake2b(bytes)
-	fmt.Printf("%x len = %d bytes\n", h, len(h))
+	if reflect.TypeOf(nilHash) != reflect.TypeOf(*h) {
+		t.Fatalf("failed to hash bytes array with blake 2b")
+	}
 }
 
 func TestHashDataSha3(t *testing.T) {
 	var bytes = []byte{0, 1, 2, 3}
 	h := HashDataSha3(bytes)
-	fmt.Printf("%x len = %d bytes\n", h, len(h))
+	if reflect.TypeOf(nilHash) != reflect.TypeOf(*h) {
+		t.Fatalf("failed to hash bytes array with sha3")
+	}
 }
 
 func TestHashStrings(t *testing.T) {
 	var str = []string{"kuku", "mumu", "zuzu", "rrrr"}
 	h := HashStrings(str...)
-	fmt.Printf("%x len = %d bytes\n", h[:], len(h[:]))
+	if reflect.TypeOf(nilHash) != reflect.TypeOf(*h) {
+		t.Fatalf("failed to hash string array")
+	}
 }
 
 func TestRandomHash(t *testing.T) {
@@ -57,7 +65,9 @@ func TestRandomHash(t *testing.T) {
 	}
 	var rnd = rand.New(src)
 	h := RandomHash(rnd)
-	fmt.Printf("%x len = %d bytes\n", h[:], len(h[:]))
+	if reflect.TypeOf(nilHash) != reflect.TypeOf(*h) {
+		t.Fatalf("failed to generate random hash")
+	}
 }
 
 func TestHashInList(t *testing.T) {
