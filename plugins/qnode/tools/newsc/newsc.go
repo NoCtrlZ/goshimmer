@@ -52,4 +52,13 @@ func main() {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
+	// get sd data
+	for _, h := range params.Hosts {
+		apilib.GetSCdata(h.Addr, h.Port, params.SCData.Scid)
+		if err != nil {
+			fmt.Printf("GetSCData: %v\n", err)
+		} else {
+			fmt.Printf("GetSCData success: %s:%d\n", h.Addr, h.Port)
+		}
+	}
 }

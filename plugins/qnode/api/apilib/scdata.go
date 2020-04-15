@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"net/http"
 )
 
@@ -31,4 +32,10 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 		err = errors.New(result.Error)
 	}
 	return err
+}
+
+func GetSCdata(addr string, port int, schash *hashing.HashValue) {
+	data, err := json.Marshal(schash)
+	url := fmt.Sprintf("http://%s:%d/adm/scdata", addr, port)
+	fmt.Println(data, err, url)
 }
