@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"math/rand"
+	"reflect"
 )
 
 type SampleSource struct {
@@ -79,10 +80,29 @@ func TestHashInList(t *testing.T) {
 	}
 }
 
+func TestBytes(t *testing.T) {
+	var bytesArray []byte
+	var h1 = HashStrings("alice")
+	var bytes = h1.Bytes()
+	if reflect.TypeOf(bytesArray) != reflect.TypeOf(bytes) {
+		t.Fatalf("failed to convert hash to bytes array")
+	}
+}
+
+func TestString(t *testing.T) {
+	var stringType string
+	var h1 = HashStrings("alice")
+	var stringified = h1.String()
+	if reflect.TypeOf(stringType) != reflect.TypeOf(stringified) {
+		t.Fatalf("failed to convert hash to bytes array")
+	}
+}
+
 func TestEqual(t *testing.T) {
 	var h1 = HashStrings("alice")
 	var h2 = HashStrings("alice")
-	if !h1.Equal(h2) {
+	isEqual := h1.Equal(h2)
+	if !isEqual {
 		t.Fatalf("failed to check")
 	}
 }
