@@ -2,9 +2,9 @@ package hashing
 
 import (
 	"fmt"
-	"testing"
 	"math/rand"
 	"reflect"
+	"testing"
 )
 
 type SampleSource struct {
@@ -20,9 +20,12 @@ func (s *SampleSource) Seed(seed int64) {
 }
 
 func TestHashValueFromString(t *testing.T) {
-	var h1 = HashStrings("test string").String()
-	_, e := HashValueFromString(h1)
+	var h1 = HashStrings("test string")
+	h2, e := HashValueFromString(h1.String())
 	if e != nil {
+		t.Fatalf("error occurs")
+	}
+	if !h2.Equal(h1) {
 		t.Fatalf("error occurs")
 	}
 }
@@ -79,7 +82,7 @@ func TestHashInList(t *testing.T) {
 	h2, _ := HashValueFromString(seed2)
 	h3, _ := HashValueFromString(seed3)
 	h4, _ := HashValueFromString(seed4)
-	hashArray := []*HashValue {h1, h2, h3}
+	hashArray := []*HashValue{h1, h2, h3}
 	res1 := HashInList(h1, hashArray)
 	if !res1 {
 		t.Fatalf("failed to check")
