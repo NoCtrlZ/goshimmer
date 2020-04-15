@@ -74,7 +74,6 @@ func (h *HashValue) UnmarshalJSON(buf []byte) error {
 }
 
 func HashValueFromString(s string) (*HashValue, error) {
-	// should be same length as HashSize
 	b, err := base58.Decode(s)
 	//b, err := hex.DecodeString(s)
 	if err != nil {
