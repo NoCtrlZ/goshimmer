@@ -1,13 +1,15 @@
 package apilib
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
+	"bytes"
+	"errors"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"net/http"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 )
 
 func PutSCData(addr string, port int, adata *registry.SCData) error {
@@ -26,9 +28,25 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 	if err != nil {
 		return err
 	}
-	err = nil
 	if result.Error != "" {
 		err = errors.New(result.Error)
 	}
 	return err
+}
+
+func GetSCdata(addr string, port int, schash *hashing.HashValue) (string, error) {
+	url := fmt.Sprintf("http://%s:%d/adm/scdata/%s", addr, port, schash.String())
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		panic("response is invalid")
+	}
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	bodyString := string(bodyBytes)
+	return bodyString, err
 }
