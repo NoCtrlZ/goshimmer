@@ -31,7 +31,7 @@ require (
 	github.com/spf13/viper v1.6.1
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
-	github.com/urfave/cli v1.22.4 // indirect
+	github.com/urfave/cli/v2 v2.2.0 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect
 	go.dedis.ch/kyber/v3 v3.0.11
 	go.nanomsg.org/mangos/v3 v3.0.0

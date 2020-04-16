@@ -1,16 +1,24 @@
 package main
 
 import (
-    "os"
-    "github.com/urfave/cli"
+	"os"
+	"fmt"
+	"log"
+    "github.com/urfave/cli/v2"
 )
 
 func main() {
-	app := cli.NewApp()
+	app := &cli.App{
+		Name: "Smart Contract CLI",
+		Usage: "This cli sends transaction for iota smart contract",
+		Action: func(c *cli.Context) error {
+			fmt.Printf("Arg is %q", c.Args().Get(0))
+			return nil
+		},
+	}
 
-	app.Name = "Smart Contract CLI"
-	app.Usage = "This cli sends transaction for iota smart contract"
-	app.Version = "0.0.1"
-
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
