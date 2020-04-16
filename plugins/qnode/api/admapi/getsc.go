@@ -1,10 +1,11 @@
 package admapi
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/labstack/echo"
-	"fmt"
+	"net/http"
 )
 
 func GetSCData(c echo.Context) error {
-	fmt.Println(c)
+	return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{})
 }
