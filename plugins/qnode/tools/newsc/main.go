@@ -101,13 +101,12 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
-	data, err = json.MarshalIndent(&params, "", " ")
 	for _, h := range params.Hosts {
 		res, err := apilib.GetSCdata(h.Addr, h.Port, hashing.HashStrings(params.SCData.Description))
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(res)
+		data, err = json.MarshalIndent(res, "", " ")
 		err = ioutil.WriteFile(fname+".resp.json", data, 0644)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
