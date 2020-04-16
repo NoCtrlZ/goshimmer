@@ -5,6 +5,6 @@ import (
 	"fmt"
 )
 
-func GetSCData(c echo.Context) {
+func GetSCData(c echo.Context) error {
 	fmt.Println(c)
 }
