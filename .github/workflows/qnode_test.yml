@@ -1,10 +1,11 @@
 name: Test GoShimmer Plugin Qnode
+
 on:
   push:
   pull_request:
     branches: [ dev ]
-jobs:
 
+jobs:
   build:
     name: Test GoShimmer Plugin Qnode
     runs-on: ubuntu-latest
@@ -20,3 +21,7 @@ jobs:
 
     - name: Run Tests
       run: go test ./plugins/qnode/...
+
+    - name: Build GoShimmer Test
+      if: github.action == 'closed' && github.pull_request.merged == 'true'
+      run: go build
