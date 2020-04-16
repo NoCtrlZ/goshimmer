@@ -34,6 +34,20 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name: "get",
+				Aliases: []string{"g"},
+				Usage: "Get deployed contract",
+				Action: func(c *cli.Context) error {
+					if c.Args().Get(0) == "" {
+						fmt.Printf("one arg is required\n")
+						os.Exit(1)
+					}
+					fmt.Printf("Arg is %s\n", c.Args().Get(0))
+					Getsc(c.Args().Get(0))
+					return nil
+				},
+			},
 		},
 	}
 
@@ -75,13 +89,20 @@ func Newsc(fname string) {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
-	// get sd data
+}
+
+func Getsc(fname string) {
+	data, err := ioutil.ReadFile(fname)
+	if err != nil {
+		panic(err)
+	}
+	params := ioParams{}
+	err = json.Unmarshal(data, &params)
+	if err != nil {
+		panic(err)
+	}
 	for _, h := range params.Hosts {
-		apilib.GetSCdata(h.Addr, h.Port, params.SCData.Scid)
-		if err != nil {
-			fmt.Printf("GetSCData: %v\n", err)
-		} else {
-			fmt.Printf("GetSCData success: %s:%d\n", h.Addr, h.Port)
-		}
+		apilib.GetSCdata(h.Addr, h.Port, hashing.HashStrings(params.SCData.Description))
+		fmt.Printf("GetSCData success: %s:%d\n", h.Addr, h.Port)
 	}
 }
