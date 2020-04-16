@@ -29,7 +29,7 @@ func main() {
 						fmt.Printf("one arg is required\n")
 						os.Exit(1)
 					}
-					fmt.Printf("Arg is %s\n", c.Args().Get(0))
+					fmt.Printf("Contract path is %s\n", c.Args().Get(0))
 					Newsc(c.Args().Get(0))
 					return nil
 				},
@@ -43,7 +43,7 @@ func main() {
 						fmt.Printf("one arg is required\n")
 						os.Exit(1)
 					}
-					fmt.Printf("Arg is %s\n", c.Args().Get(0))
+					fmt.Printf("Contract path is %s\n", c.Args().Get(0))
 					Getsc(c.Args().Get(0))
 					return nil
 				},
@@ -101,8 +101,19 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
+	data, err = json.MarshalIndent(&params, "", " ")
 	for _, h := range params.Hosts {
-		apilib.GetSCdata(h.Addr, h.Port, hashing.HashStrings(params.SCData.Description))
+		res, err := apilib.GetSCdata(h.Addr, h.Port, hashing.HashStrings(params.SCData.Description))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(res)
+		err = ioutil.WriteFile(fname+".resp.json", data, 0644)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return
+		}
 		fmt.Printf("GetSCData success: %s:%d\n", h.Addr, h.Port)
+		return
 	}
 }

@@ -35,7 +35,9 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 
 func GetSCdata(addr string, port int, schash *hashing.HashValue) (string, error) {
 	url := fmt.Sprintf("http://%s:%d/adm/scdata/%s", addr, port, schash.String())
+	fmt.Println(url)
 	resp, err := http.Get(url)
+	fmt.Println(resp)
 	if err != nil {
 		return "", err
 	}
