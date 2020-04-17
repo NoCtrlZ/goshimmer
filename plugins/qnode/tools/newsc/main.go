@@ -31,7 +31,7 @@ func main() {
 				Usage:   "deploy contract to iota",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
-						fmt.Printf("one arg is required\n")
+						fmt.Printf("contract path is required\n")
 						os.Exit(1)
 					}
 					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
@@ -45,7 +45,7 @@ func main() {
 				Usage:   "Get deployed contract data",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
-						fmt.Printf("one arg is required\n")
+						fmt.Printf("contract path is required\n")
 						os.Exit(1)
 					}
 					fmt.Printf("Requesting SC data from nodes\n")
@@ -59,12 +59,12 @@ func main() {
 				Aliases: []string{"l"},
 				Usage:   "Get deployed contract list",
 				Action: func(c *cli.Context) error {
-					if c.Args().Get(0) != "" {
-						fmt.Printf("can't indicate argument\n")
+					if c.Args().Get(0) == "" {
+						fmt.Printf("node url is required\n")
 						os.Exit(1)
 					}
 					fmt.Printf("Requesting SC list from nodes\n")
-					GetScList()
+					GetScList(c.Args().Get(0))
 					return nil
 				},
 			},
@@ -137,7 +137,7 @@ func GetSc(fname string) {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
-	err = ioutil.WriteFile(fname+".resp.json", data, 0644)
+	err = ioutil.WriteFile(fname+".get_resp.json", data, 0644)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
@@ -183,6 +183,6 @@ func GetSc(fname string) {
 	}
 }
 
-func GetScList() {
-	fmt.Println("hello get list")
+func GetScList(url string) {
+	fmt.Println(url)
 }
