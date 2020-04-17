@@ -71,3 +71,12 @@ func (ad *SCData) Save() error {
 		Value: jsonData,
 	})
 }
+
+func (sc *SCId) GetSC() (database.Entry, error) {
+	var entry database.Entry
+	dbase, err := db.Get()
+	if err != nil {
+		return entry, err
+	}
+	return dbase.Get(dbOpdateKey(sc.Scid))
+}

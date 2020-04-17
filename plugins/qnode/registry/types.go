@@ -16,6 +16,11 @@ type SCData struct {
 	Program     string     `json:"program"`
 }
 
+type SCId struct {
+	Scid 		       *HashValue `json:"scid"`
+	Description string `json:"description"`
+}
+
 // configuration of the assembly.
 // can be several configurations of the assembly
 // each node in the assembly configurations must have identical copy of each configuration (except index)

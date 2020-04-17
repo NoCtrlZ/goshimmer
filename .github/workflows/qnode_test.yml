@@ -20,7 +20,10 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Run Tests
-      run: go test ./plugins/qnode/...
+      run: |
+        go build
+        ./goshimmer &\
+        go test ./plugins/qnode/...
 
     - name: Build GoShimmer Test
       if: github.action == 'closed' && github.pull_request.merged == 'true'
