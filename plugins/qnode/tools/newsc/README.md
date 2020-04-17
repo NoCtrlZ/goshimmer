@@ -7,3 +7,7 @@ $ go run main.go new ./contract.json
 ```
 $ go run main.go get ./contract.json
 ```
+## Get Contracts List
+```
+$ go run main.go list
+```

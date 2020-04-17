@@ -54,6 +54,20 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "Get deployed contract list",
+				Action: func(c *cli.Context) error {
+					if c.Args().Get(0) != "" {
+						fmt.Printf("can't indicate argument\n")
+						os.Exit(1)
+					}
+					fmt.Printf("Requesting SC list from nodes\n")
+					GetScList()
+					return nil
+				},
+			},
 		},
 	}
 
@@ -167,4 +181,8 @@ func GetSc(fname string) {
 	} else {
 		fmt.Printf("ALL data records are equal between each other: consistency check PASS\n")
 	}
+}
+
+func GetScList() {
+	fmt.Println("hello get list")
 }
