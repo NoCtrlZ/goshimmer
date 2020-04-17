@@ -62,9 +62,10 @@ func GetSCdata(addr string, port int, schash *hashing.HashValue) (*registry.SCDa
 func GetSClist(url string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("response status %d", resp.StatusCode)
+		return fmt.Errorf("response status %d", resp.StatusCode)
 	}
+	return nil
 }
