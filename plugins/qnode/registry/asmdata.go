@@ -73,9 +73,10 @@ func (ad *SCData) Save() error {
 }
 
 func (sc *SCId) GetSC() (database.Entry, error) {
+	var entry database.Entry
 	dbase, err := db.Get()
 	if err != nil {
-		panic(err)
+		return entry, err
 	}
 	return dbase.Get(dbOpdateKey(sc.Scid))
 }

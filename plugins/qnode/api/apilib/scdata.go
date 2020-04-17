@@ -37,22 +37,20 @@ func GetSCdata(addr string, port int, schash *registry.SCId) (database.Entry, er
 	var entry database.Entry
 	data, err := json.Marshal(schash)
 	if err != nil {
-		panic(err)
+		return entry, err
 	}
 	url := fmt.Sprintf("http://%s:%d/adm/getsc", addr, port)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		fmt.Println("response error")
-		panic(err)
+		return entry, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		fmt.Println("status code error")
-		panic("response is invalid")
+		return entry, errors.New("response is not status ok")
 	}
 	err = json.NewDecoder(resp.Body).Decode(&entry)
 	if err != nil {
-		fmt.Println("json parse error")
-		panic(err)
+		return entry, err
 	}
 	return entry, err
 }

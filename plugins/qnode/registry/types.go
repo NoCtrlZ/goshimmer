@@ -17,7 +17,7 @@ type SCData struct {
 }
 
 type SCId struct {
-	Scid 		*HashValue `json:"scid"`
+	Scid 		       *HashValue `json:"scid"`
 	Description string `json:"description"`
 }
 

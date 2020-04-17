@@ -4,7 +4,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/labstack/echo"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"fmt"
 	"net/http"
 )
 
@@ -22,9 +21,7 @@ func GetSCData(c echo.Context) error {
 	}
 	res, err := req.GetSC()
 	if err != nil {
-		fmt.Println("fail to get value from db")
-		panic(err)
+		return err
 	}
-	fmt.Println(res)
 	return c.JSON(http.StatusOK, res)
 }

@@ -13,13 +13,13 @@ import (
 )
 
 type ioParams struct {
-	Hosts  []*registry.PortAddr `json:"hosts"`
-	SCData registry.SCData      `json:"sc_data"`
+	Hosts []*registry.PortAddr `json:"hosts"`
+	SCData registry.SCData     `json:"sc_data"`
 }
 
 type ioGetParams struct {
-	Hosts  []*registry.PortAddr `json:"hosts"`
-	SCId registry.SCId          `json:"sc_data"`
+	Hosts []*registry.PortAddr `json:"hosts"`
+	SCId registry.SCId         `json:"sc_data"`
 }
 
 func main() {
