@@ -7,7 +7,6 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/hive.go/database"
 	"sync"
-	"fmt"
 )
 
 var (
