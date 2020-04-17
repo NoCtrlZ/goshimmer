@@ -7,6 +7,7 @@ import (
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/hive.go/database"
 	"sync"
+	"fmt"
 )
 
 var (
@@ -66,6 +67,7 @@ func (ad *SCData) Save() error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("post id -> %s", ad.Scid)
 	return dbase.Set(database.Entry{
 		Key:   dbOpdateKey(ad.Scid),
 		Value: jsonData,
@@ -77,5 +79,6 @@ func (sc *SCId) GetSC() (database.Entry, error) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("get id -> %s", sc.Scid)
 	return dbase.Get(dbOpdateKey(sc.Scid))
 }

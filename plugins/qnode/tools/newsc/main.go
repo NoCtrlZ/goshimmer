@@ -19,7 +19,7 @@ type ioParams struct {
 
 type ioGetParams struct {
 	Hosts  []*registry.PortAddr `json:"hosts"`
-	SCId registry.SCId      `json:"sc_id"`
+	SCId registry.SCId          `json:"sc_data"`
 }
 
 func main() {
@@ -72,10 +72,10 @@ func Newsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("%+v\n", params)
 	params.SCData.Scid = hashing.HashStrings(params.SCData.Description)
 	params.SCData.OwnerPubKey = hashing.HashData(params.SCData.Scid.Bytes())
 	params.SCData.Program = "dummy"
-	fmt.Printf("%+v\n", params)
 	for _, h := range params.Hosts {
 		err = apilib.PutSCData(h.Addr, h.Port, &params.SCData)
 		if err != nil {
@@ -106,6 +106,7 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("%+v\n", params)
 	params.SCId.Scid = hashing.HashStrings(params.SCId.Description)
 	for _, h := range params.Hosts {
 		res, err := apilib.GetSCdata(h.Addr, h.Port, &params.SCId)
