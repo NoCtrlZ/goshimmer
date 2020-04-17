@@ -17,6 +17,11 @@ type ioParams struct {
 	SCData registry.SCData      `json:"sc_data"`
 }
 
+type ioGetParams struct {
+	Hosts  []*registry.PortAddr `json:"hosts"`
+	SCId registry.SCId      `json:"sc_id"`
+}
+
 func main() {
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -96,13 +101,14 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
-	params := ioParams{}
+	params := ioGetParams{}
 	err = json.Unmarshal(data, &params)
 	if err != nil {
 		panic(err)
 	}
+	params.SCId.Scid = hashing.HashStrings(params.SCId.Description)
 	for _, h := range params.Hosts {
-		res, err := apilib.GetSCdata(h.Addr, h.Port, hashing.HashStrings(params.SCData.Description))
+		res, err := apilib.GetSCdata(h.Addr, h.Port, &params.SCId)
 		if err != nil {
 			panic(err)
 		}

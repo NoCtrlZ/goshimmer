@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 )
 
 func PutSCData(addr string, port int, adata *registry.SCData) error {
@@ -34,17 +33,25 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 	return err
 }
 
-func GetSCdata(addr string, port int, schash *hashing.HashValue) (string, error) {
-	url := fmt.Sprintf("http://%s:%d/adm/scdata/%s", addr, port, schash.String())
-	resp, err := http.Get(url)
+func GetSCdata(addr string, port int, schash *registry.SCId) (string, error) {
+	data, err := json.Marshal(schash)
 	if err != nil {
 		panic(err)
 	}
+	url := fmt.Sprintf("http://%s:%d/adm/getsc", addr, port)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
+	fmt.Println("request done")
+	if err != nil {
+		fmt.Println("response error")
+		panic(err)
+	}
 	if resp.StatusCode != http.StatusOK {
+		fmt.Println("status code error")
 		panic("response is invalid")
 	}
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println("json parse error")
 		panic(err)
 	}
 	bodyString := string(bodyBytes)
