@@ -72,7 +72,6 @@ func Newsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", params)
 	params.SCData.Scid = hashing.HashStrings(params.SCData.Description)
 	params.SCData.OwnerPubKey = hashing.HashData(params.SCData.Scid.Bytes())
 	params.SCData.Program = "dummy"
@@ -106,7 +105,6 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%+v\n", params)
 	params.SCId.Scid = hashing.HashStrings(params.SCId.Description)
 	for _, h := range params.Hosts {
 		res, err := apilib.GetSCdata(h.Addr, h.Port, &params.SCId)
