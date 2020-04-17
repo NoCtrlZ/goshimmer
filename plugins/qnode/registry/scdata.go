@@ -14,7 +14,7 @@ var (
 	scDataMutex = &sync.Mutex{}
 )
 
-func RefreshAssemblyData() error {
+func RefreshScData() error {
 	scDataMutex.Lock()
 	defer scDataMutex.Unlock()
 
@@ -36,7 +36,7 @@ func RefreshAssemblyData() error {
 	return err
 }
 
-func GetAssemblyData(aid *HashValue) (*SCData, bool) {
+func GetScData(aid *HashValue) (*SCData, bool) {
 	scDataMutex.Lock()
 	defer scDataMutex.Unlock()
 	ret, ok := scDataCache[*aid]

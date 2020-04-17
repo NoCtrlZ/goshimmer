@@ -1,55 +1,56 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"log"
-	"io/ioutil"
 	"encoding/json"
-	"github.com/urfave/cli/v2"
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/urfave/cli/v2"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 type ioParams struct {
-	Hosts []*registry.PortAddr `json:"hosts"`
-	SCData registry.SCData     `json:"sc_data"`
+	Hosts  []*registry.PortAddr `json:"hosts"`
+	SCData registry.SCData      `json:"sc_data"`
 }
 
 type ioGetParams struct {
 	Hosts []*registry.PortAddr `json:"hosts"`
-	SCId registry.SCId         `json:"sc_data"`
+	ScId  *hashing.HashValue   `json:"scid"`
 }
 
 func main() {
 	app := &cli.App{
 		Commands: []*cli.Command{
 			{
-				Name: "new",
+				Name:    "new",
 				Aliases: []string{"n"},
-				Usage: "deploy contract to iota",
+				Usage:   "deploy contract to iota",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
 						fmt.Printf("one arg is required\n")
 						os.Exit(1)
 					}
-					fmt.Printf("Contract path is %s\n", c.Args().Get(0))
+					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
 					Newsc(c.Args().Get(0))
 					return nil
 				},
 			},
 			{
-				Name: "get",
+				Name:    "get",
 				Aliases: []string{"g"},
-				Usage: "Get deployed contract",
+				Usage:   "Get deployed contract data",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
 						fmt.Printf("one arg is required\n")
 						os.Exit(1)
 					}
-					fmt.Printf("Contract path is %s\n", c.Args().Get(0))
-					Getsc(c.Args().Get(0))
+					fmt.Printf("Requesting SC data from nodes\n")
+					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
+					GetSc(c.Args().Get(0))
 					return nil
 				},
 			},
@@ -95,7 +96,7 @@ func Newsc(fname string) {
 	}
 }
 
-func Getsc(fname string) {
+func GetSc(fname string) {
 	data, err := ioutil.ReadFile(fname)
 	if err != nil {
 		panic(err)
@@ -105,19 +106,65 @@ func Getsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
-	params.SCId.Scid = hashing.HashStrings(params.SCId.Description)
+	fmt.Printf("SC ID = %s\n", params.ScId.String())
+
+	res := make(map[string]*registry.SCData)
 	for _, h := range params.Hosts {
-		res, err := apilib.GetSCdata(h.Addr, h.Port, &params.SCId)
+		scData, err := apilib.GetSCdata(h.Addr, h.Port, params.ScId)
 		if err != nil {
-			panic(err)
+			fmt.Printf("%v\n", err)
+			continue
 		}
-		data, err = json.MarshalIndent(res, "", " ")
-		err = ioutil.WriteFile(fname+".resp.json", data, 0644)
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			return
-		}
-		fmt.Printf("GetSCData success: %s:%d\n", h.Addr, h.Port)
+		res[h.String()] = scData
+		fmt.Printf("GetSCData from %s: success\n", h.String())
+	}
+	data, err = json.MarshalIndent(res, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
 		return
+	}
+	err = ioutil.WriteFile(fname+".resp.json", data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	if len(res) == 0 {
+		fmt.Printf("no data was retrieved")
+		return
+	}
+	if len(res) == 1 {
+		fmt.Printf("1 SC data record was retrived")
+		return
+	}
+	fmt.Printf("%d SC data records was retrived\nChecking for consistency...\n", len(res))
+	// checking if all data records are identical
+	var scDataCheck *registry.SCData
+	var inconsistent bool
+	for _, scData := range res {
+		if scDataCheck == nil {
+			scDataCheck = scData
+			continue
+		}
+		if !scDataCheck.Scid.Equal(scData.Scid) {
+			inconsistent = true
+			break
+		}
+		if scDataCheck.Description != scData.Description {
+			inconsistent = true
+			break
+		}
+		if !scDataCheck.OwnerPubKey.Equal(scData.OwnerPubKey) {
+			inconsistent = true
+			break
+		}
+		if scDataCheck.Program != scData.Program {
+			inconsistent = true
+			break
+		}
+	}
+	if inconsistent {
+		fmt.Printf("Some data records are different: consistency check FAIL\n")
+	} else {
+		fmt.Printf("ALL data records are equal between each other: consistency check PASS\n")
 	}
 }

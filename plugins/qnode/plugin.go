@@ -39,7 +39,7 @@ func config(_ *node.Plugin) {
 	initLoggers()
 	initModules()
 
-	err := registry.RefreshAssemblyData()
+	err := registry.RefreshScData()
 	if err != nil {
 		log.Panicf("StartServer::LoadAllAssemblyData %v", err)
 		return

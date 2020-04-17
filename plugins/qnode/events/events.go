@@ -41,7 +41,7 @@ func transactionEventHandler(vtx value.Transaction) {
 	}
 	if st, ok := tx.State(); ok {
 		// it is state update
-		_, ok := registry.GetAssemblyData(st.SContractId())
+		_, ok := registry.GetScData(st.SContractId())
 		if ok {
 			// state update has to be processed by this node
 			processState(tx)
@@ -49,7 +49,7 @@ func transactionEventHandler(vtx value.Transaction) {
 	}
 	for i, req := range tx.Requests() {
 		aid := req.SContractId()
-		_, ok := registry.GetAssemblyData(aid)
+		_, ok := registry.GetScData(aid)
 		if ok {
 			// request has to be processed by the node
 			reqRef, _ := sc.NewRequestRefFromTx(tx, uint16(i))

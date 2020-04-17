@@ -1,14 +1,15 @@
 package apilib
 
 import (
-	"fmt"
 	"bytes"
-	"errors"
-	"net/http"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/hive.go/database"
+	"net/http"
 )
 
 func PutSCData(addr string, port int, adata *registry.SCData) error {
@@ -33,24 +34,27 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 	return err
 }
 
-func GetSCdata(addr string, port int, schash *registry.SCId) (database.Entry, error) {
-	var entry database.Entry
-	data, err := json.Marshal(schash)
+func GetSCdata(addr string, port int, schash *hashing.HashValue) (*registry.SCData, error) {
+	req := admapi.GetScDataRequest{Id: schash}
+	data, err := json.Marshal(&req)
 	if err != nil {
-		return entry, err
+		return nil, err
 	}
 	url := fmt.Sprintf("http://%s:%d/adm/getsc", addr, port)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		return entry, err
+		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("status code error")
-		return entry, errors.New("response is not status ok")
+		return nil, fmt.Errorf("response status %d", resp.StatusCode)
 	}
-	err = json.NewDecoder(resp.Body).Decode(&entry)
+	var dresp admapi.GetScDataResponse
+	err = json.NewDecoder(resp.Body).Decode(&dresp)
 	if err != nil {
-		return entry, err
+		return nil, err
 	}
-	return entry, err
+	if dresp.Error != "" {
+		return nil, errors.New(dresp.Error)
+	}
+	return &dresp.SCData, err
 }

@@ -24,7 +24,7 @@ func HandlerSCData(c echo.Context) error {
 	log.Infof("SC data saved: id = %s descr = '%s'",
 		req.Scid.Short(), req.Description)
 
-	if err := registry.RefreshAssemblyData(); err != nil {
+	if err := registry.RefreshScData(); err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
 	}
 	return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{})
