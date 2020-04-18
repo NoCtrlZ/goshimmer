@@ -184,5 +184,10 @@ func GetSc(fname string) {
 }
 
 func GetScList(url string) {
-	fmt.Println(url)
+	scList, err := apilib.GetSClist(url)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	fmt.Println(scList)
 }

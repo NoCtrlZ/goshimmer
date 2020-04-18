@@ -31,3 +31,5 @@ $ ./mocknode mocknode.json
 it starts value tangle emulator and web server for the FairRulette smart contract.  
 To access fair roulette PoC type in browser [http://localhost:2000](http://localhost:2000)
 
+## Pull Request
+If your PR is not finished, the PR title should be included `wip` string.
