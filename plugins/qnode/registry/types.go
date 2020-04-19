@@ -9,6 +9,8 @@ import (
 // each node in the assembly configurations must have identical assembly data
 // TODO not final. Will change!!!!
 
+type SCList []*SCData
+
 type SCData struct {
 	Scid        *HashValue `json:"scid"`
 	OwnerPubKey *HashValue `json:"owner_pub_key"`
