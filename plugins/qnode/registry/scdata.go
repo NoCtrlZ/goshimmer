@@ -3,7 +3,6 @@ package registry
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/hive.go/database"
@@ -47,22 +46,18 @@ func GetScData(aid *HashValue) (*SCData, bool) {
 	return ret, true
 }
 
-func GetSCList() ([]*SCData, error) {
+func GetSCList() ([]*SCData, bool) {
 	var sclist SCList
 	scDataMutex.Lock()
 	defer scDataMutex.Unlock()
-	scid := hashing.HashData([]byte{1, 2, 3, 4, 5})
-	ownerpub := hashing.HashData([]byte{6, 7, 8, 9, 10})
-	dscr := "test contract"
-	prg := "test contract"
-	dummyContract := &SCData {
-		Scid: scid,
-		OwnerPubKey: ownerpub,
-		Description: dscr,
-		Program: prg,
+	for key := range scDataCache {
+		value, ok := scDataCache[key]
+		if !ok {
+			return nil, false
+		}
+		sclist = append(sclist, value)
 	}
-	sclist = append(sclist, dummyContract)
-	return sclist, nil
+	return sclist, true
 }
 
 func dbOpdataGroupKey() []byte {

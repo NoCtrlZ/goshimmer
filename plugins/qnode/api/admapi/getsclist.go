@@ -13,9 +13,9 @@ type GetScListResponse struct {
 }
 
 func HandlerGetSCList(c echo.Context) error {
-	sclist, err := registry.GetSCList()
-	if err != nil {
-		return err
+	sclist, ok := registry.GetSCList()
+	if !ok {
+		return utils.ToJSON(c, http.StatusOK, &GetScListResponse{Error: "not found"})
 	}
 	return utils.ToJSON(c, http.StatusOK, &GetScListResponse{SCList: sclist})
 }
