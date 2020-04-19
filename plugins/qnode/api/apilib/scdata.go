@@ -70,13 +70,14 @@ func GetSClist(url string) ([]*registry.SCData, error) {
 		return nil, fmt.Errorf("response status %d", resp.StatusCode)
 	}
 	var lresp admapi.GetScListResponse
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-    newStr := buf.String()
-	fmt.Printf("%s\n", newStr)
+	// buf := new(bytes.Buffer)
+	// buf.ReadFrom(resp.Body)
+    // newStr := buf.String()
+	// fmt.Printf("%s\n", newStr)
 	err = json.NewDecoder(resp.Body).Decode(&lresp)
 	if err != nil {
 		fmt.Println("error scdata L75")
+		fmt.Println(err)
 		return nil, err
 	}
 	if lresp.Error != "" {

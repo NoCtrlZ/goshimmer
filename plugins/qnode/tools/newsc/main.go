@@ -189,5 +189,6 @@ func GetScList(url string) {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
+	fmt.Printf("GetSCList from %s: success\n", url)
 	fmt.Println(scList)
 }
