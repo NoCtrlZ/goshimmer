@@ -5,12 +5,16 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/utils"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
+type SCList []*registry.SCData
+
 type GetScListResponse struct {
-	Contracts []*registry.SCData `json:"contracts"`
-	Error string 				`json:"err"`
+	SCList       `json:"contracts"`
+	Error string `json:"err"`
 }
 
 func HandlerGetSCList(c echo.Context) error {
@@ -25,6 +29,8 @@ func HandlerGetSCList(c echo.Context) error {
 		Description: dscr,
 		Program: prg,
 	}
-	req.Contracts = append(req.Contracts, dummyContract)
-	return utils.ToJSON(c, http.StatusOK, req)
+	req.SCList = append(req.SCList, dummyContract)
+	res, _ := json.Marshal(req)
+	fmt.Println(string(res))
+	return utils.ToJSON(c, http.StatusOK, req.SCList)
 }

@@ -60,20 +60,28 @@ func GetSCdata(addr string, port int, schash *hashing.HashValue) (*registry.SCDa
 }
 
 func GetSClist(url string) ([]*registry.SCData, error) {
-	resp, err := http.Get(url)
+	resp, err := http.Get(fmt.Sprintf("%s/adm/sclist", url))
 	if err != nil {
+		fmt.Println("error scdata L65")
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
+		fmt.Println("error scdata L69")
 		return nil, fmt.Errorf("response status %d", resp.StatusCode)
 	}
 	var lresp admapi.GetScListResponse
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+    newStr := buf.String()
+	fmt.Printf("%s\n", newStr)
 	err = json.NewDecoder(resp.Body).Decode(&lresp)
 	if err != nil {
+		fmt.Println("error scdata L75")
 		return nil, err
 	}
 	if lresp.Error != "" {
+		fmt.Println("error scdata L79")
 		return nil, errors.New(lresp.Error)
 	}
-	return lresp.Contracts, nil
+	return lresp.SCList, nil
 }
