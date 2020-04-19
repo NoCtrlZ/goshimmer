@@ -190,5 +190,18 @@ func GetScList(url string) {
 		return
 	}
 	fmt.Printf("GetSCList from %s: success\n", url)
-	fmt.Println(scList)
+	data, err := json.MarshalIndent(scList, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	if len(data) == 0 {
+		fmt.Printf("no data was retrieved")
+		return
+	}
+	err = ioutil.WriteFile("get_sclist_resp.json", data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
 }
