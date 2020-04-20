@@ -60,7 +60,7 @@ func GetSCdata(addr string, port int, schash *hashing.HashValue) (*registry.SCDa
 }
 
 func GetSClist(url string) ([]*registry.SCData, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/adm/sclist", url))
+	resp, err := http.Get(fmt.Sprintf("http://%s/adm/sclist", url))
 	if err != nil {
 		return nil, err
 	}
