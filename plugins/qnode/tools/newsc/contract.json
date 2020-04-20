@@ -1,9 +1,9 @@
 {
     "hosts": [
-      {"port": 9090, "addr": "127.0.0.1"},
-      {"port": 9091, "addr": "127.0.0.1"},
-      {"port": 9092, "addr": "127.0.0.1"},
-      {"port": 9093, "addr": "127.0.0.1"}
+      {"port": 8080, "addr": "127.0.0.1"},
+      {"port": 8081, "addr": "127.0.0.1"},
+      {"port": 8082, "addr": "127.0.0.1"},
+      {"port": 8083, "addr": "127.0.0.1"}
     ],
   "scid": "4miXd6LXWtY8hmgStVCdG9QaHb1dntpQLG8FVZAJrAhe"
 }

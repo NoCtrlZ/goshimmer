@@ -58,3 +58,22 @@ func GetSCdata(addr string, port int, schash *hashing.HashValue) (*registry.SCDa
 	}
 	return &dresp.SCData, err
 }
+
+func GetSClist(url string) ([]*registry.SCData, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/adm/sclist", url))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("response status %d", resp.StatusCode)
+	}
+	var lresp admapi.GetScListResponse
+	err = json.NewDecoder(resp.Body).Decode(&lresp)
+	if err != nil {
+		return nil, err
+	}
+	if lresp.Error != "" {
+		return nil, errors.New(lresp.Error)
+	}
+	return lresp.SCList, nil
+}

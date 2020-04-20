@@ -46,6 +46,20 @@ func GetScData(aid *HashValue) (*SCData, bool) {
 	return ret, true
 }
 
+func GetSCList() ([]*SCData, bool) {
+	var sclist SCList
+	scDataMutex.Lock()
+	defer scDataMutex.Unlock()
+	for key := range scDataCache {
+		value, ok := scDataCache[key]
+		if !ok {
+			return nil, false
+		}
+		sclist = append(sclist, value)
+	}
+	return sclist, true
+}
+
 func dbOpdataGroupKey() []byte {
 	return []byte("opdata")
 }
@@ -70,13 +84,4 @@ func (ad *SCData) Save() error {
 		Key:   dbOpdateKey(ad.Scid),
 		Value: jsonData,
 	})
-}
-
-func (sc *SCId) GetSC() (database.Entry, error) {
-	var entry database.Entry
-	dbase, err := db.Get()
-	if err != nil {
-		return entry, err
-	}
-	return dbase.Get(dbOpdateKey(sc.Scid))
 }

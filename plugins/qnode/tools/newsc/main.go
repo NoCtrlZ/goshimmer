@@ -31,7 +31,7 @@ func main() {
 				Usage:   "deploy contract to iota",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
-						fmt.Printf("one arg is required\n")
+						fmt.Printf("contract path is required\n")
 						os.Exit(1)
 					}
 					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
@@ -45,12 +45,26 @@ func main() {
 				Usage:   "Get deployed contract data",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
-						fmt.Printf("one arg is required\n")
+						fmt.Printf("contract path is required\n")
 						os.Exit(1)
 					}
 					fmt.Printf("Requesting SC data from nodes\n")
 					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
 					GetSc(c.Args().Get(0))
+					return nil
+				},
+			},
+			{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "Get deployed contract list",
+				Action: func(c *cli.Context) error {
+					if c.Args().Get(0) == "" {
+						fmt.Printf("node url is required\n")
+						os.Exit(1)
+					}
+					fmt.Printf("Requesting SC list from nodes\n")
+					GetScList(c.Args().Get(0))
 					return nil
 				},
 			},
@@ -123,7 +137,7 @@ func GetSc(fname string) {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
-	err = ioutil.WriteFile(fname+".resp.json", data, 0644)
+	err = ioutil.WriteFile(fname+".get_resp.json", data, 0644)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
@@ -166,5 +180,28 @@ func GetSc(fname string) {
 		fmt.Printf("Some data records are different: consistency check FAIL\n")
 	} else {
 		fmt.Printf("ALL data records are equal between each other: consistency check PASS\n")
+	}
+}
+
+func GetScList(url string) {
+	scList, err := apilib.GetSClist(url)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	fmt.Printf("GetSCList from %s: success\n", url)
+	data, err := json.MarshalIndent(scList, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	if len(data) == 0 {
+		fmt.Printf("no data was retrieved")
+		return
+	}
+	err = ioutil.WriteFile("get_sclist_resp.json", data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
 	}
 }
