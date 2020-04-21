@@ -76,7 +76,7 @@ func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
 		}
 		pubKeys[i] = p
 	}
-	err = ks.CommitDKS(pubKeys)
+	err = registry.CommitDKShare(ks, pubKeys)
 	if err != nil {
 		return &CommitDKSResponse{Err: err.Error()}
 	}

@@ -83,13 +83,13 @@ func (ks *DKShare) AggregateDKS(priShares []kyber.Scalar) error {
 	return nil
 }
 
-func (ks *DKShare) CommitDKS(pubKeys []kyber.Point) error {
+func (ks *DKShare) FinalizeDKS(pubKeys []kyber.Point) error {
 	if ks.Committed {
 		return errors.New("already Committed")
 	}
 	ks.PubKeys = pubKeys
 	var err error
-	ks.PubPoly, err = recoverPubPoly(ks.Suite, ks.PubKeys, ks.T, ks.N)
+	ks.PubPoly, err = RecoverPubPoly(ks.Suite, ks.PubKeys, ks.T, ks.N)
 	if err != nil {
 		return err
 	}
@@ -103,8 +103,7 @@ func (ks *DKShare) CommitDKS(pubKeys []kyber.Point) error {
 
 	ks.PriShares = nil // not needed anymore
 	ks.Committed = true
-
-	return ks.SaveToRegistry()
+	return nil
 }
 
 func (ks *DKShare) SignShare(data []byte) (tbdn.SigShare, error) {
@@ -158,4 +157,15 @@ func VerifyWithPublicKey(data, signature, pubKeyBin []byte) error {
 		return err
 	}
 	return bdn.Verify(suiteLoc, pubKey, data, signature)
+}
+
+func RecoverPubPoly(suite *bn256.Suite, pubKeys []kyber.Point, t, n uint16) (*share.PubPoly, error) {
+	pubShares := make([]*share.PubShare, len(pubKeys))
+	for i, v := range pubKeys {
+		pubShares[i] = &share.PubShare{
+			I: i,
+			V: v,
+		}
+	}
+	return share.RecoverPubPoly(suite.G2(), pubShares, int(t), int(n))
 }

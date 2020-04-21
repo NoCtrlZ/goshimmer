@@ -32,14 +32,14 @@ func GetDKShare(id *hashing.HashValue) (*tcrypto.DKShare, bool, error) {
 		return ret, true, nil
 	}
 	var err error
-	ok, err = tcrypto.ExistDKShareInRegistry(id)
+	ok, err = ExistDKShareInRegistry(id)
 	if err != nil {
 		return nil, false, err
 	}
 	if !ok {
 		return nil, false, nil
 	}
-	ks, err := tcrypto.LoadDKShare(id, false)
+	ks, err := LoadDKShare(id, false)
 	if err != nil {
 		return nil, false, err
 	}

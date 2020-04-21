@@ -1,4 +1,4 @@
-package tcrypto
+package registry
 
 import (
 	"bytes"
@@ -6,10 +6,9 @@ import (
 	"github.com/iotaledger/goshimmer/packages/database"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
 )
 
 func dbKey(addr *HashValue) []byte {
@@ -19,7 +18,14 @@ func dbKey(addr *HashValue) []byte {
 	return buf.Bytes()
 }
 
-func (ks *DKShare) SaveToRegistry() error {
+func CommitDKShare(ks *tcrypto.DKShare, pubKeys []kyber.Point) error {
+	if err := ks.FinalizeDKS(pubKeys); err != nil {
+		return err
+	}
+	return SaveDKShareToRegistry(ks)
+}
+
+func SaveDKShareToRegistry(ks *tcrypto.DKShare) error {
 	if !ks.Committed {
 		return fmt.Errorf("uncommited DK share: can't be saved to the registry")
 	}
@@ -48,7 +54,7 @@ func (ks *DKShare) SaveToRegistry() error {
 	})
 }
 
-func LoadDKShare(address *HashValue, maskPrivate bool) (*DKShare, error) {
+func LoadDKShare(address *HashValue, maskPrivate bool) (*tcrypto.DKShare, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
@@ -74,8 +80,8 @@ func ExistDKShareInRegistry(addr *HashValue) (bool, error) {
 	return dbase.Contains(dbkey)
 }
 
-func unmarshalDKShare(data []byte, maskPrivate bool) (*DKShare, error) {
-	ret := &DKShare{}
+func unmarshalDKShare(data []byte, maskPrivate bool) (*tcrypto.DKShare, error) {
+	ret := &tcrypto.DKShare{}
 
 	err := ret.Read(bytes.NewReader(data))
 	if err != nil {
@@ -83,7 +89,7 @@ func unmarshalDKShare(data []byte, maskPrivate bool) (*DKShare, error) {
 	}
 	ret.Aggregated = true
 	ret.Committed = true
-	ret.PubPoly, err = recoverPubPoly(ret.Suite, ret.PubKeys, ret.T, ret.N)
+	ret.PubPoly, err = tcrypto.RecoverPubPoly(ret.Suite, ret.PubKeys, ret.T, ret.N)
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +110,4 @@ func unmarshalDKShare(data []byte, maskPrivate bool) (*DKShare, error) {
 		return nil, errors.New("crosscheck II: !HashData(binPK).Equal(ret.Address)")
 	}
 	return ret, nil
-}
-
-func recoverPubPoly(suite *bn256.Suite, pubKeys []kyber.Point, t, n uint16) (*share.PubPoly, error) {
-	pubShares := make([]*share.PubShare, len(pubKeys))
-	for i, v := range pubKeys {
-		pubShares[i] = &share.PubShare{
-			I: i,
-			V: v,
-		}
-	}
-	return share.RecoverPubPoly(suite.G2(), pubShares, int(t), int(n))
 }
