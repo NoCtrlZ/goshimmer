@@ -1,12 +1,14 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/urfave/cli/v2"
+	"encoding/json"
 	"io/ioutil"
+	"fmt"
+	"log"
 	"os"
 )
 
@@ -19,11 +21,32 @@ type ioParams struct {
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Printf("usage newdks <input file path>\n")
-		os.Exit(1)
+	app := &cli.App{
+		Commands: []*cli.Command{
+			{
+				Name:    "new",
+				Aliases: []string{"n"},
+				Usage:   "generate dks for each committee node",
+				Action: func(c *cli.Context) error {
+					if c.Args().Get(0) == "" {
+						fmt.Printf("config path is required\n")
+						os.Exit(1)
+					}
+					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
+					NewDKS(c.Args().Get(0))
+					return nil
+				},
+			},
+		},
 	}
-	fname := os.Args[1]
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func NewDKS(fname string) {
 	data, err := ioutil.ReadFile(fname)
 	if err != nil {
 		panic(err)
