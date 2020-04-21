@@ -109,12 +109,20 @@ func GetDKS(fname string) {
 	}
 
 	params.Addresses = make([]*hashing.HashValue, 0, params.NumKeys)
-	for i := 0; i < int(params.NumKeys); i++ {
-		dks, err = apilib.GetDistributedKey(params.Hosts, params.N, params.T)
-		if err == nil {
-			fmt.Printf("get dks Address = %s\n", addr.String())
-		} else {
-			fmt.Printf("error: %v\n", err)
-		}
+	dks, err := apilib.GetDistributedKey(params.Hosts, params.N, params.T)
+	if err == nil {
+		fmt.Printf("get dks\n")
+	} else {
+		fmt.Printf("error: %v\n", err)
+	}
+	data, err = json.MarshalIndent(&dks, "", " ")
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
+	}
+	err = ioutil.WriteFile(fname+".all_dks.resp.json", data, 0644)
+	if err != nil {
+		fmt.Printf("error: %v\n", err)
+		return
 	}
 }
