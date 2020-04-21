@@ -105,16 +105,14 @@ func GetDKS(fname string) {
 	params := ioParams{}
 	err = json.Unmarshal(data, &params)
 	if err != nil {
-		fmt.Println("get dks")
 		panic(err)
 	}
 
 	params.Addresses = make([]*hashing.HashValue, 0, params.NumKeys)
 	dks, err := apilib.GetDistributedKey(params.Hosts, params.N, params.T)
 	if err == nil {
-		fmt.Printf("get dks\n")
+		fmt.Printf("successful for getting dks\n")
 	} else {
-		fmt.Printf("get dks\n")
 		fmt.Printf("error: %v\n", err)
 	}
 	data, err = json.MarshalIndent(&dks, "", " ")

@@ -3,6 +3,7 @@ package registry
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
+	"fmt"
 	"sync"
 )
 
@@ -14,6 +15,7 @@ var (
 func CacheDKShare(dkshare *tcrypto.DKShare, id *hashing.HashValue) {
 	dkscacheMutex.Lock()
 	dkscache[*id] = dkshare
+	fmt.Printf("length -> %v\n", len(dkscache))
 	dkscacheMutex.Unlock()
 }
 
@@ -52,7 +54,9 @@ func GetAllDKShare() ([]*tcrypto.DKShare, bool) {
 	defer dkscacheMutex.Unlock()
 
 	var dkslist tcrypto.DKShareList
+	fmt.Printf("length -> %v\n", len(dkscache))
 	for key := range dkscache {
+		fmt.Println(key)
 		value, ok := dkscache[key]
 		if !ok {
 			return nil, false
