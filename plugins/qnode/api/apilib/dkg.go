@@ -69,3 +69,7 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*Has
 	}
 	return accountRet, nil
 }
+
+func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*registry.DKShare, error) {
+	
+}

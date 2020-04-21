@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"net/http"
 )
@@ -71,4 +72,8 @@ func callCommit(addr string, port int, params dkgapi.CommitDKSRequest) (*hashing
 		return result.Address, nil
 	}
 	return nil, errors.New(result.Err)
+}
+
+func callGetKey(addr string, port int) (tcrypto.DKShare, error) {
+	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
 }

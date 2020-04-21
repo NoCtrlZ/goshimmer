@@ -13,6 +13,7 @@ func InitEndpoints() {
 	webapi.Server.POST("/adm/newdks", dkgapi.HandlerNewDks)
 	webapi.Server.POST("/adm/aggregatedks", dkgapi.HandlerAggregateDks)
 	webapi.Server.POST("/adm/commitdks", dkgapi.HandlerCommitDks)
+	webapi.Server.GET("/adm/getdks", dkgapi.HandlerGetDks)
 	webapi.Server.POST("/adm/signdigest", dkgapi.HandlerSignDigest)
 	webapi.Server.POST("/adm/getpubs", dkgapi.HandlerGetPubs)
 	webapi.Server.POST("/adm/newconfig", admapi.HandlerNewConfig)

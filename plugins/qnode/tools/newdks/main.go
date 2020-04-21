@@ -26,7 +26,7 @@ func main() {
 			{
 				Name:    "new",
 				Aliases: []string{"n"},
-				Usage:   "generate dks for each committee node",
+				Usage:   "Generate dks for each committee node",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
 						fmt.Printf("config path is required\n")
@@ -34,6 +34,21 @@ func main() {
 					}
 					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
 					NewDKS(c.Args().Get(0))
+					return nil
+				},
+			},
+			{
+				Name:    "get",
+				Aliases: []string{"g"},
+				Usage:   "Get dks from each committee nodes",
+				Action: func(c *cli.Context) error {
+					if c.Args().Get(0) == "" {
+						fmt.Printf("contract path is required\n")
+						os.Exit(1)
+					}
+					fmt.Printf("Requesting SC data from nodes\n")
+					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
+					GetDKS(c.Args().Get(0))
 					return nil
 				},
 			},
@@ -79,5 +94,22 @@ func NewDKS(fname string) {
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
+	}
+}
+
+func GetDKS(fname string) {
+	data, err := ioutil.ReadFile(fname)
+	if err != nil {
+		panic(err)
+	}
+	params := ioParams{}
+	err = json.Unmarshal(data, &params)
+	if err != nil {
+		panic(err)
+	}
+
+	params.Addresses = make([]*hashing.HashValue, 0, params.NumKeys)
+	for i := 0; i < int(params.NumKeys); i++ {
+		
 	}
 }
