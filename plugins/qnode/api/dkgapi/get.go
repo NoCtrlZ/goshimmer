@@ -7,10 +7,22 @@ import (
 	"net/http"
 )
 
-type GetDKSResponse struct {
-	DKSs map[string]*tcrypto.DKShare
+type GetAllDKSResponse struct {
+	DKSs map[string][]*tcrypto.DKShare
 }
 
-func HandlerGetDks(c echo.Context) error {
-	 return utils.ToJSON(c, http.StatusOK, GetDKSResponse)
+type GetDKSResponse struct {
+	DKSs []*tcrypto.DKShare `json:"pri_shares"`
+	Err  string             `json:"err"`
+}
+
+func HandlerGetDks(c echo.Context) GetDKSResponse {
+	dkslist, ok := registry.GetAllDKShare()
+	if !ok {
+		return &GetDKSResponse{Err: "key set already exist"}
+	}
+	resp := GetDKSResponse{
+		DKSs: dkslist,
+	}
+	return &resp
 }

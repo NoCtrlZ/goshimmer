@@ -71,8 +71,8 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*Has
 	return accountRet, nil
 }
 
-func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*registry.DKShare, error) {
-	var DKSs tcrypto.GetDKSResponse
+func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*dkgapi.GetDKSResponse, error) {
+	var DKSs dkgapi.GetDKSResponse
 	for i, pa := range nodes {
 		resp, err := callGetKey(pa.Addr, pa.Port)
 		if err != nil {
