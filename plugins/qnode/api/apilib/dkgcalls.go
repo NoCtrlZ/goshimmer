@@ -75,5 +75,15 @@ func callCommit(addr string, port int, params dkgapi.CommitDKSRequest) (*hashing
 }
 
 func callGetKey(addr string, port int) (tcrypto.DKShare, error) {
+	var dks DKShare
 	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	err = json.NewDecoder(resp.Body).Decode(dks)
+	if err != nil {
+		return nil, err
+	}
+	return dks, nil
 }

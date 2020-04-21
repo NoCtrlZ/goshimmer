@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"time"
 )
@@ -71,5 +72,13 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*Has
 }
 
 func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*registry.DKShare, error) {
-	
+	var DKSs tcrypto.GetDKSResponse
+	for i, pa := range nodes {
+		resp, err := callGetKey(pa.Addr, pa.Port)
+		if err != nil {
+			return nil, err
+		}
+		DKSs[pa.String()] = resp
+	}
+	return DKSs, nil
 }
