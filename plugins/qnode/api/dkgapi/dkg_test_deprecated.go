@@ -30,7 +30,7 @@ func ___TestDKGGeneral(t *testing.T) {
 	resps := make([]*NewDKSResponse, N)
 	errb := false
 	for i := range dicts {
-		resps[i] = NewDKSetReq(&NewDKSRequest{
+		resps[i] = NewDKSSetReq(&NewDKSRequest{
 			Id:    setId,
 			N:     N,
 			T:     T,
