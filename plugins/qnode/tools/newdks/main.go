@@ -105,6 +105,7 @@ func GetDKS(fname string) {
 	params := ioParams{}
 	err = json.Unmarshal(data, &params)
 	if err != nil {
+		fmt.Println("get dks")
 		panic(err)
 	}
 
@@ -113,11 +114,12 @@ func GetDKS(fname string) {
 	if err == nil {
 		fmt.Printf("get dks\n")
 	} else {
+		fmt.Printf("get dks\n")
 		fmt.Printf("error: %v\n", err)
 	}
 	data, err = json.MarshalIndent(&dks, "", " ")
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
+		fmt.Printf("error: get dks%v\n", err)
 		return
 	}
 	err = ioutil.WriteFile(fname+".all_dks.resp.json", data, 0644)

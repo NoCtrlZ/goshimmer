@@ -79,10 +79,12 @@ func callGetKey(addr string, port int) (*tcrypto.DKShare, error) {
 	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
 	resp, err := http.Get(url)
 	if err != nil {
+		fmt.Println("call get key")
 		return nil, err
 	}
-	err = json.NewDecoder(resp.Body).Decode(dks)
+	err = json.NewDecoder(resp.Body).Decode(&dks)
 	if err != nil {
+		fmt.Println("call get key json")
 		return nil, err
 	}
 	return &dks, nil
