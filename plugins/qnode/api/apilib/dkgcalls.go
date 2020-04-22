@@ -9,6 +9,7 @@ import (
 	// "github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"net/http"
+	// "io/ioutil"
 )
 
 func callNewKey(addr string, port int, params dkgapi.NewDKSRequest) (*dkgapi.NewDKSResponse, error) {
@@ -77,18 +78,15 @@ func callCommit(addr string, port int, params dkgapi.CommitDKSRequest) (*hashing
 func callGetKey(addr string, port int) (*dkgapi.GetDKSResponse, error) {
 	var dks dkgapi.GetDKSResponse
 	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
+	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("call get key")
 		return nil, err
 	}
-	res2B, _ := json.Marshal(resp)
-	fmt.Println("here is call get key")
-	fmt.Println(string(res2B))
 	err = json.NewDecoder(resp.Body).Decode(&dks)
-	if err != nil {
-		fmt.Println("call get key json")
-		return nil, err
-	}
+	// if err != nil {
+	// 	fmt.Println("call get key json")
+	// 	return nil, err
+	// }
 	return &dks, nil
 }

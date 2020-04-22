@@ -15,12 +15,7 @@ var (
 func CacheDKShare(dkshare *tcrypto.DKShare, id *hashing.HashValue) {
 	dkscacheMutex.Lock()
 	dkscache[*id] = dkshare
-	fmt.Printf("dks cache length -> %v\n", len(dkscache))
-	for key := range dkscache {
-		fmt.Println("this is key")
-		fmt.Println(key)
-	}
-	defer dkscacheMutex.Unlock()
+	dkscacheMutex.Unlock()
 }
 
 func UncacheDKShare(id *hashing.HashValue) {
@@ -58,7 +53,6 @@ func GetAllDKShare() ([]*tcrypto.DKShare, bool) {
 	defer dkscacheMutex.Unlock()
 
 	var dkslist tcrypto.DKShareList
-	fmt.Printf("all dks length -> %v\n", len(dkscache))
 	for key := range dkscache {
 		fmt.Println(key)
 		value, ok := dkscache[key]
@@ -68,8 +62,4 @@ func GetAllDKShare() ([]*tcrypto.DKShare, bool) {
 		dkslist = append(dkslist, value)
 	}
 	return dkslist, true
-}
-
-func CacheLength() {
-	fmt.Printf("length -> %v\n", len(dkscache))
 }

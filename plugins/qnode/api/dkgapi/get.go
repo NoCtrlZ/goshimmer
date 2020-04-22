@@ -6,8 +6,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/labstack/echo"
 	"net/http"
-	"fmt"
-	"encoding/json"
 )
 
 type GetAllDKSResponse struct {
@@ -26,15 +24,11 @@ func HandlerGetDks(c echo.Context) error {
 
 func GetDKSSetReq() *GetDKSResponse {
 	dkslist, ok := registry.GetAllDKShare()
-	fmt.Printf("get dks set length -> %v\n", len(dkslist))
 	if !ok {
 		return &GetDKSResponse{Err: "fail to get dks"}
 	}
 	resp := GetDKSResponse{
 		DKSs: dkslist,
 	}
-	res2B, _ := json.Marshal(&resp.DKSs)
-	fmt.Println("here is call get key")
-	fmt.Println(string(res2B))
 	return &resp
 }
