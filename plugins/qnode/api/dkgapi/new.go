@@ -50,7 +50,7 @@ func HandlerNewDks(c echo.Context) error {
 			Err: err.Error(),
 		})
 	}
-	return utils.ToJSON(c, http.StatusOK, NewDKSetReq(&req))
+	return utils.ToJSON(c, http.StatusOK, NewDKSSetReq(&req))
 }
 
 type NewDKSRequest struct {
@@ -65,7 +65,7 @@ type NewDKSResponse struct {
 	Err       string   `json:"err"`
 }
 
-func NewDKSetReq(req *NewDKSRequest) *NewDKSResponse {
+func NewDKSSetReq(req *NewDKSRequest) *NewDKSResponse {
 	if err := tcrypto.ValidateDKSParams(req.T, req.N, req.Index); err != nil {
 		return &NewDKSResponse{Err: err.Error()}
 	}

@@ -14,6 +14,8 @@ import (
 
 // Distributed key set for (T,N) threshold signatures, T out f N
 
+type DKShareList []*DKShare
+
 type DKShare struct {
 	Suite   *bn256.Suite
 	N       uint16

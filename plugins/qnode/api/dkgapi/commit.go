@@ -80,7 +80,7 @@ func CommitDKSReq(req *CommitDKSRequest) *CommitDKSResponse {
 	if err != nil {
 		return &CommitDKSResponse{Err: err.Error()}
 	}
-	registry.UncacheDKShare(req.Id)
+	// registry.UncacheDKShare(req.Id)
 	log.Infow("Created new key share",
 		"address", ks.Address.String(),
 		"N", ks.N,

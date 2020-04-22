@@ -46,3 +46,18 @@ func GetDKShare(id *hashing.HashValue) (*tcrypto.DKShare, bool, error) {
 	dkscache[*id] = ks
 	return ks, true, nil
 }
+
+func GetAllDKShare() ([]*tcrypto.DKShare, bool) {
+	dkscacheMutex.Lock()
+	defer dkscacheMutex.Unlock()
+
+	var dkslist tcrypto.DKShareList
+	for key := range dkscache {
+		value, ok := dkscache[key]
+		if !ok {
+			return nil, false
+		}
+		dkslist = append(dkslist, value)
+	}
+	return dkslist, true
+}
