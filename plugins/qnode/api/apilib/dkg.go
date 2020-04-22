@@ -8,6 +8,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"time"
+	"encoding/json"
 )
 
 func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*HashValue, error) {
@@ -78,7 +79,10 @@ func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*dkgapi.GetAllD
 		if err != nil {
 			return nil, err
 		}
-		DKSs[pa.String()] = append(DKSs[pa.String()], resp)
+		res2B, _ := json.Marshal(resp)
+		fmt.Println("here is get dks")
+		fmt.Println(string(res2B))
+		DKSs[pa.String()] = resp.DKSs
 	}
 	return &dkgapi.GetAllDKSResponse{DKSs: DKSs}, nil
 }

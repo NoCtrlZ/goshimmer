@@ -107,7 +107,7 @@ func GetDKS(fname string) {
 	if err != nil {
 		panic(err)
 	}
-
+	registry.CacheLength()
 	params.Addresses = make([]*hashing.HashValue, 0, params.NumKeys)
 	dks, err := apilib.GetDistributedKey(params.Hosts, params.N, params.T)
 	if err == nil {

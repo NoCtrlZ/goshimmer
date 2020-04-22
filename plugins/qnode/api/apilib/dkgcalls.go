@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
+	// "github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"net/http"
 )
@@ -74,14 +74,17 @@ func callCommit(addr string, port int, params dkgapi.CommitDKSRequest) (*hashing
 	return nil, errors.New(result.Err)
 }
 
-func callGetKey(addr string, port int) (*tcrypto.DKShare, error) {
-	var dks tcrypto.DKShare
+func callGetKey(addr string, port int) (*dkgapi.GetDKSResponse, error) {
+	var dks dkgapi.GetDKSResponse
 	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println("call get key")
 		return nil, err
 	}
+	res2B, _ := json.Marshal(resp)
+	fmt.Println("here is call get key")
+	fmt.Println(string(res2B))
 	err = json.NewDecoder(resp.Body).Decode(&dks)
 	if err != nil {
 		fmt.Println("call get key json")

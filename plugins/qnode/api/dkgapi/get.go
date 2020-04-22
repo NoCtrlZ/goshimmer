@@ -20,19 +20,21 @@ type GetDKSResponse struct {
 }
 
 func HandlerGetDks(c echo.Context) error {
-	return utils.ToJSON(c, http.StatusOK, GetDKSSetReq())
+	req := GetDKSSetReq()
+	return utils.ToJSON(c, http.StatusOK, req)
 }
 
 func GetDKSSetReq() *GetDKSResponse {
 	dkslist, ok := registry.GetAllDKShare()
+	fmt.Printf("get dks set length -> %v\n", len(dkslist))
 	if !ok {
 		return &GetDKSResponse{Err: "fail to get dks"}
 	}
 	resp := GetDKSResponse{
 		DKSs: dkslist,
 	}
-	res2B, _ := json.Marshal(resp)
-	fmt.Println("here is get dks")
+	res2B, _ := json.Marshal(&resp.DKSs)
+	fmt.Println("here is call get key")
 	fmt.Println(string(res2B))
 	return &resp
 }

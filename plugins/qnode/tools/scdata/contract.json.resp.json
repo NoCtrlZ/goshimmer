@@ -1,0 +1,26 @@
+{
+ "hosts": [
+  {
+   "port": 8080,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 8081,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 8082,
+   "addr": "127.0.0.1"
+  },
+  {
+   "port": 8083,
+   "addr": "127.0.0.1"
+  }
+ ],
+ "sc_data": {
+  "scid": "xyw95Bsby3s4mt6f4FmFDnFVpQBAeJxBFNGzu2cX4dM",
+  "owner_pub_key": "9MCNU9BtJvVtFz4vyHhFjocDRcLREhSfWNbK9GjHTbgN",
+  "description": "",
+  "program": "dummy"
+ }
+}
