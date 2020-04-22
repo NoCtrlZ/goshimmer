@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	// "github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"net/http"
-	// "io/ioutil"
 )
 
 func callNewKey(addr string, port int, params dkgapi.NewDKSRequest) (*dkgapi.NewDKSResponse, error) {

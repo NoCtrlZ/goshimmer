@@ -6,7 +6,6 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	. "github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/hive.go/database"
-	"fmt"
 	"sync"
 )
 
@@ -30,7 +29,6 @@ func RefreshScData() error {
 			// skip legacy records with Scid == nil
 			if opdata.Scid != nil {
 				scDataCache[*opdata.Scid] = opdata
-				fmt.Printf("length -> %v\n", len(scDataCache))
 			}
 		}
 		return false
