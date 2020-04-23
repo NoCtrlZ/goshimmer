@@ -24,9 +24,10 @@ jobs:
         go build
         ./goshimmer &\
         go test ./plugins/qnode/...
-        go run plugins/qnode/tools/newsc/main.go new ./plugins/qnode/tools/newsc/contract.json
-        go run plugins/qnode/tools/newsc/main.go get ./plugins/qnode/tools/newsc/contract.json
-        go run plugins/qnode/tools/newsc/main.go list http://127.0.0.1:8080
+        go run plugins/qnode/tools/scdata/main.go new ./plugins/qnode/tools/scdata/contract1.json
+        go run plugins/qnode/tools/scdata/main.go new ./plugins/qnode/tools/scdata/contract2.json
+        go run plugins/qnode/tools/scdata/main.go get ./plugins/qnode/tools/scdata/contract.json
+        go run plugins/qnode/tools/scdata/main.go list 127.0.0.1:8080
 
     - name: Build GoShimmer Test
       if: github.action == 'closed' && github.pull_request.merged == 'true'

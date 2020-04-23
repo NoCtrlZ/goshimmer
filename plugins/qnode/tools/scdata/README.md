@@ -9,5 +9,5 @@ $ go run main.go get ./contract.json
 ```
 ## Get Contracts List
 ```
-$ go run main.go list http://127.0.0.1:8080
+$ go run main.go list 127.0.0.1:8080
 ```
