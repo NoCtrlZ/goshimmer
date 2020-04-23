@@ -20,12 +20,17 @@ type Transaction struct {
 
 // parses dataPayload
 func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, error) {
-	return &Transaction{
-		Transaction:   vtx,
-		stateBlock:    nil,
-		requestBlocks: nil,
-	}, nil
-	// TODO finalize once data payload part will be finished in develop branch
+	dataPayload := vtx.GetDataPayload()
+	if !CheckScPayloadPrefix(dataPayload) {
+		// pre-parsing and rejecting if clearly not and SC transaction
+		return nil, errors.New("not a SC transaction")
+	}
+	rdr := bytes.NewReader(dataPayload)
+	ret := &Transaction{Transaction: vtx}
+	if err := ret.ReadDataPayload(rdr); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func (tx *Transaction) State() (*StateBlock, bool) {
