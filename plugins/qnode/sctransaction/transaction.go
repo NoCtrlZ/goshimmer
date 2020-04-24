@@ -5,6 +5,8 @@ package sctransaction
 import (
 	"bytes"
 	"errors"
+	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"io"
@@ -76,6 +78,19 @@ func (tx *Transaction) DataScPayloadBytes() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (tx *Transaction) OutputBalancesByAddress(addr address.Address) ([]*balance.Balance, bool) {
+	untyped, ok := tx.Outputs().Get(addr)
+	if !ok {
+		return nil, false
+	}
+
+	ret, ok := untyped.([]*balance.Balance)
+	if !ok {
+		panic("OutputBalancesByAddress: balances expected")
+	}
+	return ret, true
 }
 
 // function writes bytes of the SC transaction-specific part

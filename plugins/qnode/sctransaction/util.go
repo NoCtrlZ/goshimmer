@@ -8,7 +8,7 @@ import (
 
 // make scid witg given address and random color
 // ONLY FOR TESTING
-func RandomScId(addr *address.Address) *ScId {
+func RandomScId(addr address.Address) *ScId {
 	return NewScId(addr, RandomColor())
 }
 
@@ -21,4 +21,14 @@ func RandomColor() *balance.Color {
 	}
 	copy(ret[:], rndBytes)
 	return &ret
+}
+
+func SumBalancesOfColor(balances []*balance.Balance, color balance.Color) int64 {
+	var ret int64
+	for _, bal := range balances {
+		if bal.Color() == color {
+			ret += bal.Value()
+		}
+	}
+	return ret
 }

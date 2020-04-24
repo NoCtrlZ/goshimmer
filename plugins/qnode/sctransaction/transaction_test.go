@@ -14,7 +14,7 @@ import (
 func TestBasicScId(t *testing.T) {
 	addr := address.RandomOfType(address.VERSION_BLS)
 	color := RandomColor()
-	scid := NewScId(&addr, color)
+	scid := NewScId(addr, color)
 
 	scidstr := scid.String()
 	scid1, err := ScIdFromString(scidstr)
@@ -35,10 +35,9 @@ func TestRandScid(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, addr.Version(), address.VERSION_BLS)
 
-	scid := RandomScId(&addr)
+	scid := RandomScId(addr)
 	a := scid.Address().Bytes()
 	assert.Equal(t, bytes.Equal(a, addr[:]), true)
-	//t.Logf("scid = %s", scid.String())
 
 	scid1, err := ScIdFromString(scid.String())
 	assert.Equal(t, err, nil)

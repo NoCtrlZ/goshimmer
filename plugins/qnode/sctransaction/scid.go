@@ -15,9 +15,9 @@ const ScIdLength = address.Length + balance.ColorLength
 
 type ScId [ScIdLength]byte
 
-func NewScId(addr *address.Address, color *balance.Color) *ScId {
+func NewScId(addr address.Address, color *balance.Color) *ScId {
 	var ret ScId
-	copy(ret[:address.Length], addr.Bytes())
+	copy(ret[:address.Length], addr[:])
 	copy(ret[address.Length:], color.Bytes())
 	return &ret
 }
@@ -26,16 +26,14 @@ func (id *ScId) Bytes() []byte {
 	return id[:]
 }
 
-func (id *ScId) Address() *address.Address {
-	var ret address.Address
+func (id *ScId) Address() (ret address.Address) {
 	copy(ret[:], id[:address.Length])
-	return &ret
+	return
 }
 
-func (id *ScId) Color() *balance.Color {
-	var ret balance.Color
+func (id *ScId) Color() (ret balance.Color) {
 	copy(ret[:], id[address.Length:])
-	return &ret
+	return
 }
 
 func (id *ScId) String() string {
