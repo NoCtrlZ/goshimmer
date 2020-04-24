@@ -24,6 +24,10 @@ func ValueTransactionCaller(handler interface{}, params ...interface{}) {
 // It serializes all incoming 'ValueTransactionReceived' events
 func Start() {
 	chIn := make(chan *valuetransaction.Transaction)
+	processValueTxClosure := events.NewClosure(func(vtx *valuetransaction.Transaction) {
+		chIn <- vtx
+	})
+
 	err := daemon.BackgroundWorker("qnode dispatcher", func(shutdownSignal <-chan struct{}) {
 		// serialize incoming value transactions
 		go func() {
@@ -36,7 +40,7 @@ func Start() {
 
 		// starting acync cleanup on shutdown
 		go func() {
-			Events.ValueTransactionReceived.DetachAll()
+			Events.ValueTransactionReceived.Detach(processValueTxClosure)
 			close(chIn)
 			log.Infof("qnode dispatcher stopped")
 		}()
@@ -45,8 +49,6 @@ func Start() {
 		log.Errorf("failed to initialize qnode dispatcher")
 		return
 	}
-	Events.ValueTransactionReceived.Attach(events.NewClosure(func(vtx *valuetransaction.Transaction) {
-		chIn <- vtx
-	}))
+	Events.ValueTransactionReceived.Attach(processValueTxClosure)
 	log.Infof("qnode dispatcher started")
 }
