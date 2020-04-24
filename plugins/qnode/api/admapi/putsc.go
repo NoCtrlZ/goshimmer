@@ -25,7 +25,6 @@ func HandlerPutSCData(c echo.Context) error {
 			Error: err.Error(),
 		})
 	}
-	// TODO check if address of scid have DKShare in registry
 	ok, err := registry.ExistDKShareInRegistry(req.ScId.Address())
 	if err != nil {
 		return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{Error: err.Error()})
@@ -42,5 +41,16 @@ func HandlerPutSCData(c echo.Context) error {
 	}
 	log.Infof("SC data saved: scid = %s descr = '%s'", req.ScId.Short(), req.Description)
 
+	log.Debugf("+++++ saved %v", req)
+
+	if scdBack, err := registry.GetSCData(req.ScId); err != nil {
+		log.Debugw("reading back",
+			"scid", req.ScId.Short(),
+			"error", err)
+	} else {
+		log.Debugw("reading back",
+			"scid", req.ScId.String(),
+			"record", *scdBack)
+	}
 	return utils.ToJSON(c, http.StatusOK, &utils.SimpleResponse{})
 }

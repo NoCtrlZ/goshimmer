@@ -9,7 +9,7 @@ import (
 )
 
 type GetSCDataRequest struct {
-	ScId *sctransaction.ScId `json:"sc_id"`
+	ScId sctransaction.ScId `json:"sc_id"`
 }
 
 type GetSCDataResponse struct {

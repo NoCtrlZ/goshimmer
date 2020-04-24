@@ -10,7 +10,7 @@ import (
 	"go.dedis.ch/kyber/v3"
 )
 
-func dbKey(addr *address.Address) []byte {
+func dbKey(addr address.Address) []byte {
 	var buf bytes.Buffer
 	buf.WriteString("key_")
 	buf.Write(addr.Bytes())
@@ -53,7 +53,7 @@ func SaveDKShareToRegistry(ks *tcrypto.DKShare) error {
 	})
 }
 
-func LoadDKShare(address *address.Address, maskPrivate bool) (*tcrypto.DKShare, error) {
+func LoadDKShare(address address.Address, maskPrivate bool) (*tcrypto.DKShare, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func LoadDKShare(address *address.Address, maskPrivate bool) (*tcrypto.DKShare, 
 	return ret, nil
 }
 
-func ExistDKShareInRegistry(addr *address.Address) (bool, error) {
+func ExistDKShareInRegistry(addr address.Address) (bool, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return false, err

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 type ioParams struct {
@@ -19,7 +20,7 @@ type ioParams struct {
 
 type ioGetParams struct {
 	Hosts []*registry.PortAddr `json:"hosts"`
-	ScId  *sctransaction.ScId  `json:"scid"`
+	ScId  sctransaction.ScId   `json:"scid"`
 }
 
 func main() {
@@ -87,6 +88,7 @@ func Newsc(fname string) {
 	if err != nil {
 		panic(err)
 	}
+	params.SCData.NodeLocations = params.Hosts
 	for _, h := range params.Hosts {
 		err = apilib.PutSCData(h.Addr, h.Port, &params.SCData)
 		if err != nil {
@@ -156,7 +158,7 @@ func GetSc(fname string) {
 			scDataCheck = scData
 			continue
 		}
-		if !scDataCheck.ScId.Equal(scData.ScId) {
+		if scDataCheck.ScId != scData.ScId {
 			inconsistent = true
 			break
 		}
@@ -168,7 +170,7 @@ func GetSc(fname string) {
 			inconsistent = true
 			break
 		}
-		if !scDataCheck.ProgramHash.Equal(scData.ProgramHash) {
+		if scDataCheck.ProgramHash != scData.ProgramHash {
 			inconsistent = true
 			break
 		}
@@ -186,17 +188,17 @@ func GetScList(url string) {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
-	fmt.Printf("GetSCList from %s: success\n", url)
+	fmt.Printf("GetSCList from %s: returned %d SC data records\n", url, len(scList))
 	data, err := json.MarshalIndent(scList, "", " ")
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return
 	}
 	if len(data) == 0 {
-		fmt.Printf("no data was retrieved")
 		return
 	}
-	err = ioutil.WriteFile("get_sclist_resp.json", data, 0644)
+	urladjust := strings.Replace(url, ":", "_", -1)
+	err = ioutil.WriteFile(urladjust+"_sclist_resp.json", data, 0644)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
 		return

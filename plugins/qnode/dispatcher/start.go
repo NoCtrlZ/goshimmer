@@ -29,7 +29,15 @@ func Start() {
 	})
 
 	err := daemon.BackgroundWorker("qnode dispatcher", func(shutdownSignal <-chan struct{}) {
-		// serialize incoming value transactions
+		// load all sc data records from registry
+		num, err := loadAllSContracts(nil)
+		if err != nil || num == 0 {
+			log.Error("can't load any SC data from registry. Qnode dispatcher wasn't started")
+			return
+		}
+		log.Debugf("loaded %d SC data record(s) from registry", num)
+
+		// goroutine to serialize incoming value transactions
 		go func() {
 			for vtx := range chIn {
 				processIncomingValueTransaction(vtx)

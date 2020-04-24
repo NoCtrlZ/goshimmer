@@ -25,7 +25,6 @@ func configPlugin(_ *node.Plugin) {
 	admapi.InitLogger()
 	dkgapi.InitLogger()
 	dispatcher.InitLogger()
-	dispatcher.Start()
 
 	log.Infof("Started Qnode plugin")
 
@@ -34,5 +33,6 @@ func configPlugin(_ *node.Plugin) {
 		"current working dir", cwd,
 		"bindAddress", config.Node.GetString(webapi.BIND_ADDRESS),
 	)
+	dispatcher.Start()
 	api.InitEndpoints()
 }

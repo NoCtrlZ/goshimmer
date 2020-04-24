@@ -39,7 +39,7 @@ func SignDigestReq(req *SignDigestRequest) *SignDigestResponse {
 	if addr.Version() != address.VERSION_BLS {
 		return &SignDigestResponse{Err: "expected BLS address"}
 	}
-	ks, ok, err := registry.GetDKShare(&addr)
+	ks, ok, err := registry.GetDKShare(addr)
 	if err != nil {
 		return &SignDigestResponse{Err: err.Error()}
 	}

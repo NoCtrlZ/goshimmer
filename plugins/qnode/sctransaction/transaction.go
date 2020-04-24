@@ -40,12 +40,7 @@ func NewTransaction(vtx *valuetransaction.Transaction, stateBlock *StateBlock, r
 // parses dataPayload. Error is returned only if pre-parsing succeeded and parsing failed
 // usually this can happen only due to targeted attack or
 func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, bool, error) {
-	dataPayload := vtx.GetDataPayload()
-	if !CheckScPayloadPrefix(dataPayload) {
-		// pre-parsing and rejecting if clearly not and SC transaction
-		return nil, false, nil
-	}
-	rdr := bytes.NewReader(dataPayload)
+	rdr := bytes.NewReader(vtx.GetDataPayload())
 	ret := &Transaction{Transaction: vtx}
 	if err := ret.ReadDataPayload(rdr); err != nil {
 		return nil, true, err
@@ -138,7 +133,7 @@ func (tx *Transaction) ReadDataPayload(r io.Reader) error {
 	if b, err := util.ReadByte(r); err != nil {
 		return err
 	} else {
-		hasState, numRequests = decodeMetaByte(b)
+		hasState, numRequests = DecodeMetaByte(b)
 	}
 	// ignore checksum. It is only needed to check if the dataPayload can be parsed without parsing
 	var checksum uint32

@@ -3,13 +3,21 @@ package dispatcher
 
 import (
 	"fmt"
+	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/util"
+	"hash/crc32"
 )
 
 // to be called for event attachment closure
 func processIncomingValueTransaction(vtx *valuetransaction.Transaction) {
+	// quick check to filter out those which are definitely not interesting
+	if transactionToBeIgnored(vtx) {
+		return
+	}
+	// transaction must be parsed
 	tx, isScTransaction, err := sctransaction.ParseValueTransaction(vtx)
 	if !isScTransaction {
 		return //ignore
@@ -21,6 +29,43 @@ func processIncomingValueTransaction(vtx *valuetransaction.Transaction) {
 	log.Debugw("SC transaction received", "id", tx.Id().String())
 	processState(tx)
 	processRequests(tx)
+}
+
+// recognizes if the payload can be a parsed as SC payload and it is of interest
+// without parsing the whole data payload
+// returns true if it is to be ignored in following situations
+//  - too short
+//  - wrong checksum
+//  - it doesn't have request blocks and scid is not processed by this node
+func transactionToBeIgnored(vtx *valuetransaction.Transaction) bool {
+	// 1 for meta byte
+	// 4 for checksum
+	// 65 for scid of ths first block (it may be state or request)
+	// minimum sc data payload size is 70 bytes
+	data := vtx.GetDataPayload()
+	if len(data) < 1+4+sctransaction.ScIdLength {
+		// too short for sc payload
+		return true
+	}
+	checksumGiven := util.Uint32From4Bytes(data[1 : 1+4])
+	checksumCalculated := crc32.ChecksumIEEE(data[1+4 : 1+4+sctransaction.ScIdLength])
+	if checksumGiven != checksumCalculated {
+		// wrong checksum
+		return true
+	}
+	// check transaction which only have state if it is processed by this node
+	hasState, numRequests := sctransaction.DecodeMetaByte(data[0])
+	if hasState && numRequests == 0 {
+		// check in the table
+		var col balance.Color
+		copy(col[:], data[1+4+address.Length:])
+		if !isColorProcessedByNode(col) {
+			// it may be a valid sc transaction, but definitely not interesting for this node
+			return true
+		}
+	}
+	// transaction must be parsed
+	return false
 }
 
 func processState(tx *sctransaction.Transaction) {
