@@ -18,6 +18,7 @@ type Transaction struct {
 	requestBlocks []*RequestBlock
 }
 
+// creates new sc transaction. It is immutable, i.e. tx hash is stable
 func NewTransaction(vtx *valuetransaction.Transaction, stateBlock *StateBlock, requestBlocks []*RequestBlock) (*Transaction, error) {
 	ret := &Transaction{
 		Transaction:   vtx,

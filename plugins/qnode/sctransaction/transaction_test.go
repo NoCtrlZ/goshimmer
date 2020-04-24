@@ -5,8 +5,10 @@ import (
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/magiconair/properties/assert"
 	"testing"
+	"time"
 )
 
 func TestBasicScId(t *testing.T) {
@@ -43,7 +45,7 @@ func TestRandScid(t *testing.T) {
 	assert.Equal(t, scid.Equal(scid1), true)
 }
 
-func TestTransactionBasic(t *testing.T) {
+func TestTransactionStateBlock1(t *testing.T) {
 	addr, err := address.FromBase58(testAddress)
 	assert.Equal(t, err, nil)
 
@@ -52,7 +54,7 @@ func TestTransactionBasic(t *testing.T) {
 	assert.Equal(t, err != nil, true)
 
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
-	txb.AddInput(o1)
+	txb.AddInputs(o1)
 	bal := balance.New(balance.COLOR_IOTA, 1)
 	txb.AddOutput(addr, bal)
 
@@ -62,4 +64,90 @@ func TestTransactionBasic(t *testing.T) {
 	_, err = txb.Finalize()
 	assert.Equal(t, err, nil)
 
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+}
+
+func TestTransactionStateBlock2(t *testing.T) {
+	addr, err := address.FromBase58(testAddress)
+	assert.Equal(t, err, nil)
+
+	txb := NewTransactionBuilder()
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+
+	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
+	txb.AddInputs(o1)
+	bal := balance.New(balance.COLOR_IOTA, 1)
+	txb.AddOutput(addr, bal)
+
+	scid, _ := ScIdFromString(testScid)
+	txb.AddStateBlock(scid, 42)
+	txb.SetStateBlockParams(StateBlockParams{
+		Timestamp:       time.Now().UnixNano(),
+		RequestId:       NewRandomRequestId(2),
+		StateUpdateHash: *hashing.RandomHash(nil),
+	})
+	_, err = txb.Finalize()
+	assert.Equal(t, err, nil)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+}
+
+func TestTransactionRequestBlock(t *testing.T) {
+	addr, err := address.FromBase58(testAddress)
+	assert.Equal(t, err, nil)
+
+	txb := NewTransactionBuilder()
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+
+	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
+	txb.AddInputs(o1)
+	bal := balance.New(balance.COLOR_IOTA, 1)
+	txb.AddOutput(addr, bal)
+
+	scid, _ := ScIdFromString(testScid)
+
+	reqBlk := NewRequestBlock(scid)
+	txb.AddRequestBlock(reqBlk)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err, nil)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+}
+
+func TestTransactionMultiBlocks(t *testing.T) {
+	addr, err := address.FromBase58(testAddress)
+	assert.Equal(t, err, nil)
+
+	txb := NewTransactionBuilder()
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+
+	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
+	txb.AddInputs(o1)
+	bal := balance.New(balance.COLOR_IOTA, 1)
+	txb.AddOutput(addr, bal)
+
+	scid, _ := ScIdFromString(testScid)
+
+	txb.AddStateBlock(scid, 42)
+	txb.SetStateBlockParams(StateBlockParams{
+		Timestamp:       time.Now().UnixNano(),
+		RequestId:       NewRandomRequestId(2),
+		StateUpdateHash: *hashing.RandomHash(nil),
+	})
+
+	reqBlk := NewRequestBlock(scid)
+	txb.AddRequestBlock(reqBlk)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err, nil)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
 }

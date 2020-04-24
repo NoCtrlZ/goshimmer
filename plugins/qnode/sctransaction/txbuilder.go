@@ -1,6 +1,7 @@
 package sctransaction
 
 import (
+	"errors"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
@@ -26,7 +27,7 @@ func NewTransactionBuilder() *TransactionBuilder {
 
 func (txb *TransactionBuilder) Finalize() (*Transaction, error) {
 	if txb.finalized {
-		panic("attempt to modify already finalized transaction builder")
+		return nil, errors.New("attempt to modify already finalized transaction builder")
 	}
 	txv := valuetransaction.New(txb.inputs, valuetransaction.NewOutputs(txb.outputs))
 	ret, err := NewTransaction(txv, txb.stateBlock, txb.requestBlocks)
@@ -37,8 +38,10 @@ func (txb *TransactionBuilder) Finalize() (*Transaction, error) {
 	return ret, nil
 }
 
-func (txb *TransactionBuilder) AddInput(oid valuetransaction.OutputId) {
-	txb.inputs.Add(oid)
+func (txb *TransactionBuilder) AddInputs(oid ...valuetransaction.OutputId) {
+	for _, o := range oid {
+		txb.inputs.Add(o)
+	}
 }
 
 func (txb *TransactionBuilder) AddOutput(addr address.Address, bal *balance.Balance) {

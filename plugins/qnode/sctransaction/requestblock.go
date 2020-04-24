@@ -54,6 +54,18 @@ func (req *RequestBlock) Read(r io.Reader) error {
 
 // Request Id
 
+func NewRequestId(txid *valuetransaction.Id, index uint16) (ret RequestId) {
+	copy(ret[:valuetransaction.IdLength], txid.Bytes())
+	copy(ret[valuetransaction.IdLength:], util.Uint16To2Bytes(index)[:])
+	return
+}
+
+func NewRandomRequestId(index uint16) (ret RequestId) {
+	copy(ret[:valuetransaction.IdLength], hashing.RandomHash(nil).Bytes())
+	copy(ret[valuetransaction.IdLength:], util.Uint16To2Bytes(index)[:])
+	return
+}
+
 func (rid *RequestId) Bytes() []byte {
 	return rid[:]
 }
