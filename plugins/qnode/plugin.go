@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/api"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/admapi"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/dkgapi"
+	"github.com/iotaledger/goshimmer/plugins/qnode/dispatcher"
 	"github.com/iotaledger/goshimmer/plugins/webapi"
 	"github.com/iotaledger/hive.go/logger"
 	"github.com/iotaledger/hive.go/node"
@@ -23,6 +24,8 @@ func configPlugin(_ *node.Plugin) {
 	log = logger.NewLogger(name)
 	admapi.InitLogger()
 	dkgapi.InitLogger()
+	dispatcher.InitLogger()
+	dispatcher.Start()
 
 	log.Infof("Started Qnode plugin")
 

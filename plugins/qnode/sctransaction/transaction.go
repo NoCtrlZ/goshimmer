@@ -35,19 +35,20 @@ func NewTransaction(vtx *valuetransaction.Transaction, stateBlock *StateBlock, r
 	return ret, nil
 }
 
-// parses dataPayload
-func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, error) {
+// parses dataPayload. Error is returned only if pre-parsing succeeded and parsing failed
+// usually this can happen only due to targeted attack or
+func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, bool, error) {
 	dataPayload := vtx.GetDataPayload()
 	if !CheckScPayloadPrefix(dataPayload) {
 		// pre-parsing and rejecting if clearly not and SC transaction
-		return nil, errors.New("not a SC transaction")
+		return nil, false, nil
 	}
 	rdr := bytes.NewReader(dataPayload)
 	ret := &Transaction{Transaction: vtx}
 	if err := ret.ReadDataPayload(rdr); err != nil {
-		return nil, err
+		return nil, true, err
 	}
-	return ret, nil
+	return ret, true, nil
 }
 
 func (tx *Transaction) State() (*StateBlock, bool) {
