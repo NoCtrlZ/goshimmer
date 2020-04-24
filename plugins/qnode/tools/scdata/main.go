@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/transaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"

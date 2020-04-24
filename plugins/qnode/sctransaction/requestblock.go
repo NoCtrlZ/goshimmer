@@ -12,11 +12,6 @@ const RequestIdSize = hashing.HashSize + 2
 
 type RequestId [RequestIdSize]byte
 
-type RequestRef struct {
-	reqId *RequestId
-	tx    Transaction
-}
-
 type RequestBlock struct {
 	scid *ScId
 	body *RequestBody

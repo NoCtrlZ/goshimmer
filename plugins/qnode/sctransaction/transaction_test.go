@@ -3,11 +3,13 @@ package sctransaction
 import (
 	"bytes"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
 	"github.com/magiconair/properties/assert"
 	"testing"
 )
 
-func TestBasic(t *testing.T) {
+func TestBasicScId(t *testing.T) {
 	addr := address.RandomOfType(address.VERSION_BLS)
 	color := RandomColor()
 	scid := NewScId(&addr, color)
@@ -39,5 +41,25 @@ func TestRandScid(t *testing.T) {
 	scid1, err := ScIdFromString(scid.String())
 	assert.Equal(t, err, nil)
 	assert.Equal(t, scid.Equal(scid1), true)
+}
+
+func TestTransactionBasic(t *testing.T) {
+	addr, err := address.FromBase58(testAddress)
+	assert.Equal(t, err, nil)
+
+	txb := NewTransactionBuilder()
+	_, err = txb.Finalize()
+	assert.Equal(t, err != nil, true)
+
+	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
+	txb.AddInput(o1)
+	bal := balance.New(balance.COLOR_IOTA, 1)
+	txb.AddOutput(addr, bal)
+
+	scid, _ := ScIdFromString(testScid)
+	txb.AddStateBlock(scid, 42)
+
+	_, err = txb.Finalize()
+	assert.Equal(t, err, nil)
 
 }

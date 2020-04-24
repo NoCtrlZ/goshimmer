@@ -18,6 +18,22 @@ type Transaction struct {
 	requestBlocks []*RequestBlock
 }
 
+func NewTransaction(vtx *valuetransaction.Transaction, stateBlock *StateBlock, requestBlocks []*RequestBlock) (*Transaction, error) {
+	ret := &Transaction{
+		Transaction:   vtx,
+		stateBlock:    stateBlock,
+		requestBlocks: requestBlocks,
+	}
+	scpayload, err := ret.DataScPayloadBytes()
+	if err != nil {
+		return nil, err
+	}
+	if err := vtx.SetDataPayload(scpayload); err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
 // parses dataPayload
 func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, error) {
 	dataPayload := vtx.GetDataPayload()
