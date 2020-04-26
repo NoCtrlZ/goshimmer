@@ -21,9 +21,10 @@ type StateBlock struct {
 	// requestId tx hash + requestId index which originated this state update
 	// this reference makes requestId (inputs to state update) immutable part of the state update
 	requestId RequestId
-	// TODO may be nil, in this case it is just a timestamped checkpoint
-	// otherwise it references StateBody
-	stateUpdateHash hashing.HashValue
+	// state hash, referencing the hash of the cached state. It is a tip of the Merkle chain of state updates.
+	// it is only used while syncing the state to check weather the state is correct.
+	// each moment in time node maintains valid current state of the SC and it can be accessed directly
+	stateHash hashing.HashValue
 }
 
 type StateBlockParams struct {
@@ -58,13 +59,13 @@ func (sb *StateBlock) RequestId() *RequestId {
 }
 
 func (sb *StateBlock) StateUpdateHash() *hashing.HashValue {
-	return &sb.stateUpdateHash
+	return &sb.stateHash
 }
 
 func (sb *StateBlock) WithParams(params StateBlockParams) *StateBlock {
 	sb.timestamp = params.Timestamp
 	sb.requestId = params.RequestId
-	sb.stateUpdateHash = params.StateUpdateHash
+	sb.stateHash = params.StateUpdateHash
 	return sb
 }
 
@@ -84,7 +85,7 @@ func (sb *StateBlock) Write(w io.Writer) error {
 	if err := sb.requestId.Write(w); err != nil {
 		return err
 	}
-	if err := sb.stateUpdateHash.Write(w); err != nil {
+	if err := sb.stateHash.Write(w); err != nil {
 		return err
 	}
 	return nil
@@ -115,6 +116,6 @@ func (sb *StateBlock) Read(r io.Reader) error {
 	sb.stateIndex = stateIndex
 	sb.timestamp = int64(timestamp)
 	sb.requestId = reqId
-	sb.stateUpdateHash = stateUpdateHash
+	sb.stateHash = stateUpdateHash
 	return nil
 }

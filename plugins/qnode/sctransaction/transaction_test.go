@@ -14,7 +14,7 @@ import (
 func TestBasicScId(t *testing.T) {
 	addr := address.RandomOfType(address.VERSION_BLS)
 	color := RandomColor()
-	scid := NewScId(addr, color)
+	scid := NewScId(color, addr)
 
 	scidstr := scid.String()
 	scid1, err := ScIdFromString(scidstr)
@@ -26,9 +26,35 @@ func TestBasicScId(t *testing.T) {
 }
 
 const (
-	testAddress = "kKELws7qgMmpsufwf13CEQkRmYbCnrTg7f1qKNRgyVZ7"
-	testScid    = "DsHiYnydheNLfhkc9sYPySVcEnyhxgtP4wWhKsczbnrRpYXrabwEjuej2N7bvb1qtdgGMewiWonzsD1zmLJAAXdE"
+	testAddress = "mtNnGt72bZd25v291TjEzw5uTonExip24cAjtB38x4tq"
+	testColor   = "3MrmupSNH8gPH2ZcEiLPno5dTNycgAE1qDs4cgbzgMLm"
+	testScid    = "46Smwtm1jH2hQ4gEYb7skX1EBMQSi1oLvcDpUwEudB6qJV96GpWjucD398R3s3UJ6kgrsZWhHw6FiSCMiGZ47QsA9"
 )
+
+//
+//func TestGenData(t *testing.T){
+//	addr := address.RandomOfType(address.VERSION_BLS)
+//	t.Logf("addr = %s", addr.String())
+//	color := RandomColor()
+//	t.Logf("color = %s", color.String())
+//	scid := NewScId(color, addr)
+//	t.Logf("scid = %s", scid.String())
+//}
+
+func TestScid(t *testing.T) {
+	scid, err := ScIdFromString(testScid)
+	assert.Equal(t, err, nil)
+	addr := scid.Address()
+	assert.Equal(t, addr.Version(), address.VERSION_BLS)
+	color, err := ColorFromString(testColor)
+	assert.Equal(t, err, nil)
+
+	assert.Equal(t, color, scid.Color())
+	assert.Equal(t, addr, scid.Address())
+
+	scidBack := NewScId(color, addr).String()
+	assert.Equal(t, scidBack, testScid)
+}
 
 func TestRandScid(t *testing.T) {
 	addr, err := address.FromBase58(testAddress)

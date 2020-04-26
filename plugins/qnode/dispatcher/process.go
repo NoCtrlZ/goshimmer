@@ -3,7 +3,6 @@ package dispatcher
 
 import (
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
@@ -50,21 +49,20 @@ func transactionToBeIgnored(vtx *valuetransaction.Transaction) bool {
 	checksumGiven := util.Uint32From4Bytes(data[1 : 1+4])
 	checksumCalculated := crc32.ChecksumIEEE(data[1+4 : 1+4+sctransaction.ScIdLength])
 	if checksumGiven != checksumCalculated {
-		// wrong checksum
+		// wrong checksum, not a SC transaction
 		return true
 	}
 	// check transaction which only have state if it is processed by this node
 	hasState, numRequests := sctransaction.DecodeMetaByte(data[0])
 	if hasState && numRequests == 0 {
-		// check in the table
-		var col balance.Color
-		copy(col[:], data[1+4+address.Length:])
+		// check the color of state in the dictionary of SCs processed by the node
+		col, _ := sctransaction.ColorFromBytes(data[1+4 : 1+4+balance.ColorLength])
 		if !isColorProcessedByNode(col) {
 			// it may be a valid sc transaction, but definitely not interesting for this node
 			return true
 		}
 	}
-	// transaction must be parsed
+	// transaction must be parsed and processed
 	return false
 }
 
@@ -98,14 +96,17 @@ func checkState(tx *sctransaction.Transaction) (bool, bool, error) {
 	isOriginTx := false
 	outBalance := sctransaction.SumBalancesOfColor(balances, scid.Color())
 	if outBalance == 0 {
-		// for origin transaction check COLOR_NEW
+		// for the origin transaction check COLOR_NEW
 		outBalance = sctransaction.SumBalancesOfColor(balances, balance.COLOR_NEW)
 		isOriginTx = true
 	}
 	if outBalance != 1 {
+		// supply of the SC token must be exactly 1
 		return false, false, fmt.Errorf("non-existent or wrong output with SC token in sc tx %s", tx.Id().String())
 	}
 	if isOriginTx {
+		// if this is an origin tx, the the hash (Id) of the transaction must be equal
+		// to the color of the scid
 		if balance.Color(tx.Id()) != scid.Color() {
 			return false, false, fmt.Errorf("for an origin sc transaction tx hash must be equal to the scid color. Inconsistent tx %s", tx.Id().String())
 		}
