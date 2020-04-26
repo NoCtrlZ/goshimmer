@@ -67,7 +67,7 @@ func transactionToBeIgnored(vtx *valuetransaction.Transaction) bool {
 }
 
 func processState(tx *sctransaction.Transaction) {
-	hasState, isOrigin, err := checkState(tx)
+	hasState, err := checkState(tx)
 	if err != nil {
 		log.Error(err)
 		return
@@ -76,22 +76,23 @@ func processState(tx *sctransaction.Transaction) {
 		return
 	}
 	// all state block validations passed
-	isOrigin = isOrigin
-	// TODO dispatch state message
+	if syncMgr := getSyncMgr(tx.MustState().ScId().Color()); syncMgr != nil {
+		syncMgr.ProcessStateMsg(tx)
+	}
 }
 
 // validates and returns if it hash state, is it origin state or error
-func checkState(tx *sctransaction.Transaction) (bool, bool, error) {
+func checkState(tx *sctransaction.Transaction) (bool, error) {
 	stateBlock, stateExists := tx.State()
 	if !stateExists {
-		return false, false, nil
+		return false, nil
 	}
 	scid := stateBlock.ScId()
 	balances, ok := tx.OutputBalancesByAddress(scid.Address())
 	if !ok || len(balances) == 0 {
 		// expected output of SC token to the SC address
 		// invalid SC transaction. Ignore
-		return false, false, fmt.Errorf("didn't find output to the SC address. tx id %s", tx.Id().String())
+		return false, fmt.Errorf("didn't find output to the SC address. tx id %s", tx.Id().String())
 	}
 	isOriginTx := false
 	outBalance := sctransaction.SumBalancesOfColor(balances, scid.Color())
@@ -102,16 +103,16 @@ func checkState(tx *sctransaction.Transaction) (bool, bool, error) {
 	}
 	if outBalance != 1 {
 		// supply of the SC token must be exactly 1
-		return false, false, fmt.Errorf("non-existent or wrong output with SC token in sc tx %s", tx.Id().String())
+		return false, fmt.Errorf("non-existent or wrong output with SC token in sc tx %s", tx.Id().String())
 	}
 	if isOriginTx {
 		// if this is an origin tx, the the hash (Id) of the transaction must be equal
 		// to the color of the scid
 		if balance.Color(tx.Id()) != scid.Color() {
-			return false, false, fmt.Errorf("for an origin sc transaction tx hash must be equal to the scid color. Inconsistent tx %s", tx.Id().String())
+			return false, fmt.Errorf("for an origin sc transaction tx hash must be equal to the scid color. Inconsistent tx %s", tx.Id().String())
 		}
 	}
-	return true, isOriginTx, nil
+	return true, nil
 }
 
 func processRequests(tx *sctransaction.Transaction) {

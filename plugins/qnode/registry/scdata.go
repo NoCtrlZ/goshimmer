@@ -15,8 +15,10 @@ import (
 	"github.com/iotaledger/hive.go/database"
 )
 
-// SCData represents information on the SC and the committee, available to the node
 // scid contains hash of the origin tx and the sc account address
+// TODO move OwnerPubKey, ProgramHash, Description to state variables. only NodeLocations are left outside the state
+// TODO provide immutablity or access authorization for spec vars
+//
 type SCData struct {
 	ScId          sctransaction.ScId `json:"scid"`
 	OwnerPubKey   *HashValue         `json:"owner_pub_key"`
