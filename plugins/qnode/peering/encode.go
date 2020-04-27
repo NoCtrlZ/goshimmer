@@ -1,4 +1,4 @@
-package messaging
+package peering
 
 import (
 	"bytes"
@@ -21,31 +21,31 @@ import (
 //  -- otherwise panicL wrong MsgType
 
 // always puts timestamp into first 8 bytes and 1 byte msg type
-func encodeMessage(up *qnode_events.PeerMessage) ([]byte, time.Time) {
+func encodeMessage(msg *qnode_events.PeerMessage) ([]byte, time.Time) {
 	var buf bytes.Buffer
-	// puts timestamp
+	// puts timestamp first
 	ts := time.Now()
 	_ = util.WriteUint64(&buf, uint64(ts.UnixNano()))
 	switch {
-	case up == nil:
+	case msg == nil:
 		buf.WriteByte(MsgTypeHeartbeat)
 
-	case up.MsgType == MsgTypeHeartbeat:
+	case msg.MsgType == MsgTypeHeartbeat:
 		buf.WriteByte(MsgTypeHeartbeat)
 
-	case up.MsgType == MsgTypeHandshake:
+	case msg.MsgType == MsgTypeHandshake:
 		buf.WriteByte(MsgTypeHandshake)
-		buf.Write(up.MsgData)
+		buf.Write(msg.MsgData)
 
-	case up.MsgType >= FirstCommitteeMsgCode:
-		buf.WriteByte(up.MsgType)
-		buf.Write(up.ScColor.Bytes())
-		_ = util.WriteUint16(&buf, up.SenderIndex)
-		_ = util.WriteUint32(&buf, uint32(len(up.MsgData)))
-		buf.Write(up.MsgData)
+	case msg.MsgType >= FirstCommitteeMsgCode:
+		buf.WriteByte(msg.MsgType)
+		buf.Write(msg.ScColor.Bytes())
+		_ = util.WriteUint16(&buf, msg.SenderIndex)
+		_ = util.WriteUint32(&buf, uint32(len(msg.MsgData)))
+		buf.Write(msg.MsgData)
 
 	default:
-		log.Panicf("wrong msg type %d", up.MsgType)
+		log.Panicf("wrong msg type %d", msg.MsgType)
 	}
 	return buf.Bytes(), ts
 }

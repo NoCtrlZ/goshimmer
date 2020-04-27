@@ -15,9 +15,7 @@ func init() {
 	Events.ValueTransactionReceived = events.NewEvent(func(handler interface{}, params ...interface{}) {
 		handler.(func(_ *valuetransaction.Transaction))(params[0].(*valuetransaction.Transaction))
 	})
-	Events.ValueTransactionReceived = events.NewEvent(func(handler interface{}, params ...interface{}) {
-		handler.(func(_ *PeerMessage))(params[0].(*PeerMessage))
-	})
+	Events.PeerMessageReceived = events.NewEvent(PeerMessageCaller)
 }
 
 type PeerMessage struct {
@@ -26,4 +24,8 @@ type PeerMessage struct {
 	SenderIndex uint16
 	MsgType     byte
 	MsgData     []byte
+}
+
+func PeerMessageCaller(handler interface{}, params ...interface{}) {
+	handler.(func(_ *PeerMessage))(params[0].(*PeerMessage))
 }

@@ -2,15 +2,15 @@ package dispatcher
 
 import (
 	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
-	"github.com/iotaledger/goshimmer/plugins/qnode/syncmgr"
 	"sync"
 )
 
 // unique key for a smart contract is Color of its scid
 
 var (
-	scontracts      = make(map[balance.Color]syncmgr.SyncManager)
+	scontracts      = make(map[balance.Color]committee.SyncManager)
 	scontractsMutex = &sync.RWMutex{}
 )
 
@@ -24,7 +24,7 @@ func loadAllSContracts(ownAddr *registry.PortAddr) (int, error) {
 	}
 	num := 0
 	for _, scdata := range sclist {
-		scontracts[scdata.ScId.Color()] = syncmgr.NewSyncManager(scdata)
+		scontracts[scdata.ScId.Color()] = committee.NewSyncManager(scdata)
 		num++
 	}
 	return num, nil
@@ -39,7 +39,7 @@ func isColorProcessedByNode(color balance.Color) bool {
 	return ok
 }
 
-func getSyncMgr(color balance.Color) syncmgr.SyncManager {
+func getSyncMgr(color balance.Color) committee.SyncManager {
 	scontractsMutex.RLock()
 	defer scontractsMutex.RUnlock()
 

@@ -1,4 +1,4 @@
-package messaging
+package peering
 
 import (
 	"fmt"
@@ -113,13 +113,13 @@ func DisposePeer(portAddr *registry.PortAddr) *Peer {
 }
 
 // wait some time the rests peer to be connected by the loops
-func (c *Peer) runAfter(d time.Duration) {
+func (peer *Peer) runAfter(d time.Duration) {
 	go func() {
 		time.Sleep(d)
-		c.Lock()
-		c.startOnce = &sync.Once{}
-		c.Unlock()
-		log.Debugf("will run %s again", c.peerPortAddr.String())
+		peer.Lock()
+		peer.startOnce = &sync.Once{}
+		peer.Unlock()
+		log.Debugf("will run %s again", peer.peerPortAddr.String())
 	}()
 }
 

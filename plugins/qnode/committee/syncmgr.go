@@ -1,4 +1,4 @@
-package syncmgr
+package committee
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"

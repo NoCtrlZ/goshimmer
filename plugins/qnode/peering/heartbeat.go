@@ -1,4 +1,4 @@
-package messaging
+package peering
 
 import (
 	"time"
@@ -9,64 +9,61 @@ import (
 // these messages are processed by processHeartbeat method
 // the rest are forwarded to SC operator
 
-func (c *Peer) initHeartbeats() {
-	c.lastHeartbeatSent = time.Time{}
-	c.lastHeartbeatReceived = time.Time{}
-	c.hbRingBufIdx = 0
-	for i := range c.latencyRingBuf {
-		c.latencyRingBuf[i] = 0
+func (peer *Peer) initHeartbeats() {
+	peer.lastHeartbeatSent = time.Time{}
+	peer.lastHeartbeatReceived = time.Time{}
+	peer.hbRingBufIdx = 0
+	for i := range peer.latencyRingBuf {
+		peer.latencyRingBuf[i] = 0
 	}
 }
 
-func (c *Peer) receiveHeartbeat(ts int64) {
-	c.Lock()
-	c.lastHeartbeatReceived = time.Now()
-	lagNano := c.lastHeartbeatReceived.UnixNano() - ts
-	c.latencyRingBuf[c.hbRingBufIdx] = lagNano
-	c.hbRingBufIdx = (c.hbRingBufIdx + 1) % numHeartbeatsToKeep
-	c.Unlock()
+func (peer *Peer) receiveHeartbeat(ts int64) {
+	peer.Lock()
+	peer.lastHeartbeatReceived = time.Now()
+	lagNano := peer.lastHeartbeatReceived.UnixNano() - ts
+	peer.latencyRingBuf[peer.hbRingBufIdx] = lagNano
+	peer.hbRingBufIdx = (peer.hbRingBufIdx + 1) % numHeartbeatsToKeep
+	peer.Unlock()
 
-	//log.Debugf("heartbeat received from %s, lag %f milisec", c.peerPortAddr.String(), float64(lagNano/10000)/100)
+	//log.Debugf("heartbeat received from %s, lag %f milisec", peer.peerPortAddr.String(), float64(lagNano/10000)/100)
 }
 
-func (c *Peer) scheduleNexHeartbeat() {
+func (peer *Peer) scheduleNexHeartbeat() {
 	time.Sleep(heartbeatEvery)
-	if peerAlive, _ := c.isAlive(); !peerAlive {
-		log.Debugf("stopped sending heartbeat: peer %s is dead", c.peerPortAddr.String())
+	if peerAlive, _ := peer.IsAlive(); !peerAlive {
+		log.Debugf("stopped sending heartbeat: peer %s is dead", peer.peerPortAddr.String())
 		return
 	}
 
-	c.Lock()
+	peer.Lock()
 
-	if time.Since(c.lastHeartbeatSent) < heartbeatEvery {
+	if time.Since(peer.lastHeartbeatSent) < heartbeatEvery {
 		// was recently sent. exit
-		c.Unlock()
+		peer.Unlock()
 		return
 	}
 	var hbMsgData []byte
-	hbMsgData, c.lastHeartbeatSent = wrapPacket(nil)
+	hbMsgData, peer.lastHeartbeatSent = encodeMessage(nil)
 
-	c.Unlock()
+	peer.Unlock()
 
-	_ = c.sendData(hbMsgData)
-	//log.Debugf("sent heartbeat to %s", c.peerPortAddr.String())
-
-	// repeat after some time
+	_ = peer.sendData(hbMsgData)
 }
 
 // return true if is alive and average latencyRingBuf in nanosec
-func (c *Peer) isAlive() (bool, int64) {
-	c.RLock()
-	defer c.RUnlock()
-	if c.peerconn == nil || !c.handshakeOk {
+func (peer *Peer) IsAlive() (bool, int64) {
+	peer.RLock()
+	defer peer.RUnlock()
+	if peer.peerconn == nil || !peer.handshakeOk {
 		return false, 0
 	}
 
-	if time.Since(c.lastHeartbeatReceived) > heartbeatEvery*isDeadAfterMissing {
+	if time.Since(peer.lastHeartbeatReceived) > heartbeatEvery*isDeadAfterMissing {
 		return false, 0
 	}
 	sum := int64(0)
-	for _, l := range c.latencyRingBuf {
+	for _, l := range peer.latencyRingBuf {
 		sum += l
 	}
 	return true, sum / numHeartbeatsToKeep

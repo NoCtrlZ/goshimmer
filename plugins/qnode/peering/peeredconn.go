@@ -1,4 +1,4 @@
-package messaging
+package peering
 
 import (
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"

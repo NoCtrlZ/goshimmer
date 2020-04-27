@@ -1,4 +1,4 @@
-package messaging
+package peering
 
 import "github.com/iotaledger/hive.go/logger"
 

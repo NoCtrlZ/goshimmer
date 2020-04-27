@@ -1,6 +1,7 @@
-package messaging
+package peering
 
 import (
+	"errors"
 	"fmt"
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
@@ -33,38 +34,38 @@ type Peer struct {
 // retry net.Dial once, on fail after 0.5s
 var dialRetryPolicy = backoff.ConstantBackOff(backoffDelay).With(backoff.MaxRetries(dialRetries))
 
-func (c *Peer) isInbound() bool {
-	return isInboundAddr(c.peerPortAddr.String())
+func (peer *Peer) isInbound() bool {
+	return isInboundAddr(peer.peerPortAddr.String())
 }
 
-func (c *Peer) connStatus() (bool, bool) {
-	c.RLock()
-	defer c.RUnlock()
-	return c.peerconn != nil, c.handshakeOk
+func (peer *Peer) connStatus() (bool, bool) {
+	peer.RLock()
+	defer peer.RUnlock()
+	return peer.peerconn != nil, peer.handshakeOk
 }
 
-func (c *Peer) closeConn() {
-	c.Lock()
-	defer c.Unlock()
-	if c.peerconn != nil {
-		_ = c.peerconn.Close()
+func (peer *Peer) closeConn() {
+	peer.Lock()
+	defer peer.Unlock()
+	if peer.peerconn != nil {
+		_ = peer.peerconn.Close()
 	}
 }
 
 // dials outbound address and established connection
-func (c *Peer) runOutbound() {
-	if c.isInbound() {
+func (peer *Peer) runOutbound() {
+	if peer.isInbound() {
 		return
 	}
-	if c.peerconn != nil {
-		panic("c.peerconn != nil")
+	if peer.peerconn != nil {
+		panic("peer.peerconn != nil")
 	}
-	log.Debugf("runOutbound %s", c.peerPortAddr.String())
+	log.Debugf("runOutbound %s", peer.peerPortAddr.String())
 
-	defer c.runAfter(restartAfter)
+	defer peer.runAfter(restartAfter)
 
 	var conn net.Conn
-	addr := fmt.Sprintf("%s:%d", c.peerPortAddr.Addr, c.peerPortAddr.Port)
+	addr := fmt.Sprintf("%s:%d", peer.peerPortAddr.Addr, peer.peerPortAddr.Port)
 	if err := backoff.Retry(dialRetryPolicy, func() error {
 		var err error
 		conn, err = net.DialTimeout("tcp", addr, dialTimeout)
@@ -77,42 +78,74 @@ func (c *Peer) runOutbound() {
 		return
 	}
 	//manconn := network.NewManagedConnection(conn)
-	c.peerconn = newPeeredConnection(conn, c)
-	if err := c.sendHandshake(); err != nil {
+	peer.peerconn = newPeeredConnection(conn, peer)
+	if err := peer.sendHandshake(); err != nil {
 		log.Errorf("error during sendHandshake: %v", err)
 		return
 	}
-	log.Debugf("starting reading outbound %s", c.peerPortAddr.String())
-	if err := c.peerconn.Read(); err != nil {
+	log.Debugf("starting reading outbound %s", peer.peerPortAddr.String())
+	if err := peer.peerconn.Read(); err != nil {
 		log.Error(err)
 	}
-	log.Debugf("stopped reading. Closing %s", c.peerPortAddr.String())
-	c.closeConn()
+	log.Debugf("stopped reading. Closing %s", peer.peerPortAddr.String())
+	peer.closeConn()
 }
 
 // sends handshake message. It contains IP address of this end.
 // The address is used by another end for peering
-func (c *Peer) sendHandshake() error {
+func (peer *Peer) sendHandshake() error {
 	data, _ := encodeMessage(&qnode_events.PeerMessage{
 		MsgType: MsgTypeHandshake,
 		MsgData: []byte(OwnPortAddr().String()),
 	})
-	num, err := c.peerconn.Write(data)
-	log.Debugf("sendHandshake %d bytes to %s", num, c.peerPortAddr.String())
+	num, err := peer.peerconn.Write(data)
+	log.Debugf("sendHandshake %d bytes to %s", num, peer.peerPortAddr.String())
 	return err
 }
 
-func (c *Peer) sendData(data []byte) error {
-	c.RLock()
-	defer c.RUnlock()
-
-	if c.peerconn == nil {
-		return fmt.Errorf("error while sending data: connection with %s not established", c.peerPortAddr.String())
+func (peer *Peer) SendMsg(msg *qnode_events.PeerMessage) error {
+	if msg.MsgType < FirstCommitteeMsgCode {
+		return errors.New("reserved message code")
 	}
-	num, err := c.peerconn.Write(data)
+	data, ts := encodeMessage(msg)
+	peer.RLock()
+	defer peer.RUnlock()
+
+	peer.lastHeartbeatSent = ts
+	return peer.sendData(data)
+}
+
+// sends same msg to all peers in the slice which are not nil
+// with the same timestamp
+func SendMsgToPeers(msg *qnode_events.PeerMessage, peers ...*Peer) (uint16, time.Time) {
+	if msg.MsgType < FirstCommitteeMsgCode {
+		return 0, time.Time{}
+	}
+	// timestamped here, once
+	data, ts := encodeMessage(msg)
+	ret := uint16(0)
+	for _, peer := range peers {
+		if peer == nil {
+			continue
+		}
+		peer.RLock()
+		peer.lastHeartbeatSent = ts
+		if err := peer.sendData(data); err == nil {
+			ret++
+		}
+		peer.RUnlock()
+	}
+	return ret, ts
+}
+
+func (peer *Peer) sendData(data []byte) error {
+	if peer.peerconn == nil {
+		return fmt.Errorf("error while sending data: connection with %s not established", peer.peerPortAddr.String())
+	}
+	num, err := peer.peerconn.Write(data)
 	if num != len(data) {
 		return fmt.Errorf("not all bytes written. err = %v", err)
 	}
-	go c.scheduleNexHeartbeat()
-	return err
+	go peer.scheduleNexHeartbeat()
+	return nil
 }
