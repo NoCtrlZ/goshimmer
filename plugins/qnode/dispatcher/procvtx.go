@@ -10,7 +10,6 @@ import (
 	"hash/crc32"
 )
 
-// to be called for event attachment closure
 func processIncomingValueTransaction(vtx *valuetransaction.Transaction) {
 	// quick check to filter out those which are definitely not interesting
 	if transactionToBeIgnored(vtx) {
