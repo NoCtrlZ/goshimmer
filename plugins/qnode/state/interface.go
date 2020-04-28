@@ -1,22 +1,20 @@
 package state
 
 import (
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 )
 
 type VariableState interface {
 	StateIndex() uint32
 	Apply(StateUpdate) VariableState
 	Bytes() []byte
-	LoadFromDb(balance.Color) error
-	SaveToDb(balance.Color) error
+	SaveToDb() error
 }
 
 type StateUpdate interface {
-	StateTransactionId() transaction.Id
-	SetStateTransactionId(transaction.Id)
+	StateIndex() uint32
+	StateTransactionId() valuetransaction.Id
+	SetStateTransactionId(valuetransaction.Id)
 	Bytes() []byte
-	LoadFromDb(balance.Color, uint32) error
-	SaveToDb(balance.Color, uint32) error
+	SaveToDb() error
 }

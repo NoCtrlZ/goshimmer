@@ -5,7 +5,7 @@ package commiteeconn
 import (
 	"errors"
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/goshimmer/plugins/qnode/peering"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"

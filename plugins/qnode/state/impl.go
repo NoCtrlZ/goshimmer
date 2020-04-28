@@ -2,12 +2,10 @@ package state
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
-	"github.com/iotaledger/goshimmer/plugins/qnode/db"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
-	"github.com/iotaledger/hive.go/database"
 	"io"
 )
 
@@ -20,37 +18,29 @@ import (
 // in the key: color and state index
 
 type mockVariableState struct {
+	scid       sctransaction.ScId
 	stateIndex uint32
 	merkleHash hashing.HashValue
 }
 
 type mockStateUpdate struct {
-	stateTxId valuetransaction.Id
-}
-
-// database keys
-
-const (
-	stateUpdateDbPrefix   = "upd_"
-	variableStateDbPrefix = "vs_"
-)
-
-func StateUpdateDBKey(color balance.Color, stateIndex uint32) []byte {
-	var buf bytes.Buffer
-	buf.Write([]byte(stateUpdateDbPrefix))
-	buf.Write(color.Bytes())
-	buf.Write(util.Uint32To4Bytes(stateIndex))
-	return buf.Bytes()
-}
-
-func VariableStateDBKey(color balance.Color) []byte {
-	var buf bytes.Buffer
-	buf.Write([]byte(variableStateDbPrefix))
-	buf.Write(color.Bytes())
-	return buf.Bytes()
+	scid       sctransaction.ScId
+	stateIndex uint32
+	stateTxId  valuetransaction.Id
 }
 
 // StateUpdate
+
+func NewStateUpdate(scid sctransaction.ScId, stateIndex uint32) StateUpdate {
+	return &mockStateUpdate{
+		scid:       scid,
+		stateIndex: stateIndex,
+	}
+}
+
+func (su *mockStateUpdate) StateIndex() uint32 {
+	return su.stateIndex
+}
 
 func (su *mockStateUpdate) StateTransactionId() valuetransaction.Id {
 	return su.stateTxId
@@ -78,30 +68,6 @@ func (su *mockStateUpdate) Bytes() []byte {
 	return buf.Bytes()
 }
 
-func (su *mockStateUpdate) LoadFromDb(color balance.Color, stateIndex uint32) error {
-	dbase, err := db.Get()
-	if err != nil {
-		return err
-	}
-	entry, err := dbase.Get(StateUpdateDBKey(color, stateIndex))
-	if err != nil {
-		return err
-	}
-	rdr := bytes.NewReader(entry.Value)
-	return su.read(rdr)
-}
-
-func (su *mockStateUpdate) SaveToDb(color balance.Color, stateIndex uint32) error {
-	dbase, err := db.Get()
-	if err != nil {
-		return err
-	}
-	return dbase.Set(database.Entry{
-		Key:   StateUpdateDBKey(color, stateIndex),
-		Value: su.Bytes(),
-	})
-}
-
 // VariableState
 
 func NewMockVariableState(stateIndex uint32, hash hashing.HashValue) VariableState {
@@ -116,8 +82,15 @@ func (vs *mockVariableState) StateIndex() uint32 {
 }
 
 func (vs *mockVariableState) Apply(stateUpdate StateUpdate) VariableState {
-	merkleHash := hashing.HashData(vs.merkleHash.Bytes())
-	return NewMockVariableState(vs.stateIndex+1, *merkleHash)
+	merkleHash := hashing.NilHash
+	if vs != nil {
+		merkleHash = hashing.HashData(vs.merkleHash.Bytes())
+	}
+	return NewMockVariableState(stateUpdate.StateIndex(), *merkleHash)
+}
+
+func CreateOriginVariableState(stateUpdate StateUpdate) VariableState {
+	return VariableState(nil).Apply(stateUpdate)
 }
 
 func (vs *mockVariableState) write(w io.Writer) error {
@@ -136,28 +109,4 @@ func (vs *mockVariableState) Bytes() []byte {
 	var buf bytes.Buffer
 	_ = vs.write(&buf)
 	return buf.Bytes()
-}
-
-func (vs *mockVariableState) LoadFromDb(color balance.Color) error {
-	dbase, err := db.Get()
-	if err != nil {
-		return err
-	}
-	entry, err := dbase.Get(VariableStateDBKey(color))
-	if err != nil {
-		return err
-	}
-	rdr := bytes.NewReader(entry.Value)
-	return vs.read(rdr)
-}
-
-func (vs *mockVariableState) SaveToDb(color balance.Color) error {
-	dbase, err := db.Get()
-	if err != nil {
-		return err
-	}
-	return dbase.Set(database.Entry{
-		Key:   VariableStateDBKey(color),
-		Value: vs.Bytes(),
-	})
 }

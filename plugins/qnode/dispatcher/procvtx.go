@@ -3,8 +3,8 @@ package dispatcher
 
 import (
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"hash/crc32"
