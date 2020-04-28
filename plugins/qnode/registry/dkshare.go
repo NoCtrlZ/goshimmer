@@ -3,7 +3,7 @@ package registry
 import (
 	"bytes"
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/packages/database"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"

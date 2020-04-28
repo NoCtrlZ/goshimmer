@@ -3,7 +3,6 @@
 package statemgr
 
 import (
-	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
 	"sync"
@@ -14,7 +13,10 @@ type StateManager struct {
 	scid        sctransaction.ScId
 	isCorrupted bool
 	// last state transaction obtained from the tangle
+	// it may be not solidified yet in the SC ledger
 	lastStateTransaction *sctransaction.Transaction
+	// last solid transaction obtained from the tangle
+	lastSolidTransaction *sctransaction.Transaction
 	// last variable state stored in the database
 	lastSolidVariableState state.VariableState
 	// last state update saved in the database
@@ -57,51 +59,82 @@ func (sm *StateManager) synchronizationStep() {
 	sm.refreshLastSolidState()
 }
 
+// loads last solid state from the database. Solid state consists of:
+// -- last variable state. Loaded from qnode by scid.color
+// -- last state update. Loaded from the qnode DB by scid.color and state index, taken from the variable state
+// -- last solid transaction. Loaded from the tangle by tx id stored in the last solid state update
+// Special conditions for the origin state
 func (sm *StateManager) refreshLastSolidState() {
-	if sm.lastStateTransaction != nil && sm.lastSolidVariableState != nil {
+	var err error
+	sm.lastSolidVariableState, err = state.LoadVariableState(sm.scid)
+	if err != nil {
+		log.Errorf("can't load variable state for scid %s: %v", sm.scid.String(), err)
+		sm.isCorrupted = true
 		return
 	}
-	if sm.lastStateTransaction == nil || sm.lastSolidVariableState == nil {
-		var err error
-		if sm.lastStateTransaction, err = sctransaction.LoadStateTx(sm.scid); err != nil {
-			log.Errorf("wrong scid or state is corrupted. Can't get last state transaction for scid = %s: %v",
-				sm.scid.String(), err)
-			sm.isCorrupted = true
-			return
-		}
-		sm.lastSolidVariableState, sm.lastSolidStateUpdate, err = loadLastSolidState(sm.scid)
-		if err != nil {
-			log.Errorf("corrupted state: %v", err)
-			sm.isCorrupted = true
-			return
-		}
-		if sm.lastSolidVariableState == nil && sm.lastSolidStateUpdate != nil && sm.lastSolidStateUpdate.StateIndex() == 0 {
-			// origin state
-			sm.lastSolidVariableState = state.CreateOriginVariableState(sm.lastSolidStateUpdate)
-			if err := sm.lastSolidVariableState.SaveToDb(); err != nil {
-				log.Errorf("failed to save origing state for scid = %s", sm.scid.String())
-			}
-		}
+	solidStateIndex := uint32(0)
+	if sm.lastSolidVariableState != nil {
+		solidStateIndex = sm.lastSolidVariableState.StateIndex()
 	}
-}
-
-func loadLastSolidState(scid sctransaction.ScId) (state.VariableState, state.StateUpdate, error) {
-	variableState, err := state.LoadVariableState(scid)
-	checkOrigin := false
+	sm.lastSolidStateUpdate, err = state.LoadStateUpdate(sm.scid, solidStateIndex)
 	if err != nil {
-		log.Warnf("no variable state found for scid = %c", scid.String())
-		checkOrigin = true // it may be an origin transaction
+		log.Errorf("can't load state update index %d for scid %s: %v", solidStateIndex, sm.scid.String(), err)
+		sm.isCorrupted = true
+		return
 	}
-	var stateUpdate state.StateUpdate
-	if checkOrigin {
-		if stateUpdate, err = state.LoadStateUpdate(scid, 0); err != nil {
-			return nil, nil, fmt.Errorf("failed to load last state for scid = %s", scid.String())
-		}
+	if sm.lastSolidStateUpdate == nil {
+		log.Errorf("can't find solid state update with index %d scid %s", solidStateIndex, sm.scid.String())
+		return
 	}
-	if variableState == nil && stateUpdate != nil && stateUpdate.StateIndex() != 0 {
-		// assertion
-		panic("inconsistency")
+	if sm.lastSolidVariableState == nil {
+		// origin state
+		log.Infof("origin state detected for scid %s", sm.scid.String())
+
+		// TODO not finished mess
+
 	}
-	// if variableState ==  nil and stateUpdate != nil it is an origin state
-	return variableState, stateUpdate, nil
+
+	//// if state transaction is found, loading last records from the SC ledger db
+	//, sm.lastSolidStateUpdate, err = loadLastSolidState(sm.scid)
+	//if sm.lastSolidVariableState == nil{
+	//	log.Warnf("variable state doesn't exist for scid = %s", sm.scid.String())
+	//}
+	//if sm.lastSolidVariableState == nil{
+	//	log.Warnf("variable state doesn't exist for scid = %s", sm.scid.String())
+	//}
+	//
+	//if sm.lastStateTransaction, err = sctransaction.LoadStateTx(sm.scid); err != nil {
+	//	// if there's no state transaction on the tangle it is serious inconsistency
+	//	// state manager is supposed to run only when SC is properly initiated
+	//
+	//	log.Errorf("major inconsistency: Can't get last state transaction for scid %s: %v",
+	//		sm.scid.String(), err)
+	//	sm.isCorrupted = true
+	//
+	//	return
+	//}
+	//
+	//if sm.lastSolidVariableState == nil && sm.lastSolidStateUpdate != nil{
+	//	if sm.lastSolidStateUpdate.StateIndex() == 0{
+	//		log.Infof("origin state detected for scid %s", sm.scid.String())
+	//	} else {
+	//		log.Errorf("major inconsistency of the state for scid %s", sm.scid.String())
+	//
+	//		sm.isCorrupted = true
+	//		return
+	//	}
+	//}
+	//
+	//if err != nil {
+	//	log.Errorf("corrupted state: %v", err)
+	//	sm.isCorrupted = true
+	//	return
+	//}
+	//if sm.lastSolidVariableState == nil && sm.lastSolidStateUpdate != nil && sm.lastSolidStateUpdate.StateIndex() == 0 {
+	//	// origin state
+	//	sm.lastSolidVariableState = state.CreateOriginVariableState(sm.lastSolidStateUpdate)
+	//	if err := sm.lastSolidVariableState.SaveToDb(); err != nil {
+	//		log.Errorf("failed to save origing state for scid = %s", sm.scid.String())
+	//	}
+	//}
 }

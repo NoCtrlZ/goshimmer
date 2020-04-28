@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -17,7 +18,7 @@ const (
 	variableStateDbPrefix = "vs_"
 )
 
-func StateUpdateDBKey(color balance.Color, stateIndex uint32) []byte {
+func StateUpdateStorageKey(color balance.Color, stateIndex uint32) []byte {
 	var buf bytes.Buffer
 	buf.Write([]byte(stateUpdateDbPrefix))
 	buf.Write(color.Bytes())
@@ -25,7 +26,7 @@ func StateUpdateDBKey(color balance.Color, stateIndex uint32) []byte {
 	return buf.Bytes()
 }
 
-func VariableStateDBKey(color balance.Color) []byte {
+func VariableStateStorageKey(color balance.Color) []byte {
 	var buf bytes.Buffer
 	buf.Write([]byte(variableStateDbPrefix))
 	buf.Write(color.Bytes())
@@ -34,11 +35,16 @@ func VariableStateDBKey(color balance.Color) []byte {
 
 // loads state update with the given index
 func LoadStateUpdate(scid sctransaction.ScId, stateIndex uint32) (StateUpdate, error) {
+	storageKey := StateUpdateStorageKey(scid.Color(), stateIndex)
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
 	}
-	entry, err := dbase.Get(StateUpdateDBKey(scid.Color(), stateIndex))
+	exist, err := dbase.Contains(storageKey)
+	if err != nil || !exist {
+		return nil, err
+	}
+	entry, err := dbase.Get(storageKey)
 	if err != nil {
 		return nil, err
 	}
@@ -60,18 +66,23 @@ func (su *mockStateUpdate) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   StateUpdateDBKey(su.scid.Color(), su.stateIndex),
+		Key:   StateUpdateStorageKey(su.scid.Color(), su.stateIndex),
 		Value: su.Bytes(),
 	})
 }
 
 // loads variable state from db
 func LoadVariableState(scid sctransaction.ScId) (VariableState, error) {
+	storageKey := VariableStateStorageKey(scid.Color())
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
 	}
-	entry, err := dbase.Get(VariableStateDBKey(scid.Color()))
+	exist, err := dbase.Contains(storageKey)
+	if err != nil || !exist {
+		return nil, err
+	}
+	entry, err := dbase.Get(storageKey)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +97,13 @@ func LoadVariableState(scid sctransaction.ScId) (VariableState, error) {
 	return ret, nil
 }
 
+func ExistDKShareInRegistry(addr address.Address) (bool, error) {
+	dbase, err := db.Get()
+	if err != nil {
+		return false, err
+	}
+}
+
 // saves variable state to db
 func (vs *mockVariableState) SaveToDb() error {
 	dbase, err := db.Get()
@@ -93,7 +111,7 @@ func (vs *mockVariableState) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   VariableStateDBKey(vs.scid.Color()),
+		Key:   VariableStateStorageKey(vs.scid.Color()),
 		Value: vs.Bytes(),
 	})
 }
