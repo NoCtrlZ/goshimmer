@@ -54,15 +54,22 @@ func (sm *StateManager) synchronizationStep() {
 		return
 	}
 	// step 1: get last state transaction
+	sm.refreshLastSolidState()
+}
+
+func (sm *StateManager) refreshLastSolidState() {
+	if sm.lastStateTransaction != nil && sm.lastSolidVariableState != nil {
+		return
+	}
 	if sm.lastStateTransaction == nil || sm.lastSolidVariableState == nil {
 		var err error
 		if sm.lastStateTransaction, err = sctransaction.LoadStateTx(sm.scid); err != nil {
 			log.Errorf("wrong scid or state is corrupted. Can't get last state transaction for scid = %s: %v",
 				sm.scid.String(), err)
 			sm.isCorrupted = true
+			return
 		}
-
-		sm.lastSolidVariableState, sm.lastSolidStateUpdate, err = sm.loadLastSolidState()
+		sm.lastSolidVariableState, sm.lastSolidStateUpdate, err = loadLastSolidState(sm.scid)
 		if err != nil {
 			log.Errorf("corrupted state: %v", err)
 			sm.isCorrupted = true
@@ -75,23 +82,20 @@ func (sm *StateManager) synchronizationStep() {
 				log.Errorf("failed to save origing state for scid = %s", sm.scid.String())
 			}
 		}
-
-		return
 	}
-
 }
 
-func (sm *StateManager) loadLastSolidState() (state.VariableState, state.StateUpdate, error) {
-	variableState, err := state.LoadVariableState(sm.scid)
+func loadLastSolidState(scid sctransaction.ScId) (state.VariableState, state.StateUpdate, error) {
+	variableState, err := state.LoadVariableState(scid)
 	checkOrigin := false
 	if err != nil {
-		log.Warnf("no variable state found for scid = %c", sm.scid.String())
+		log.Warnf("no variable state found for scid = %c", scid.String())
 		checkOrigin = true // it may be an origin transaction
 	}
 	var stateUpdate state.StateUpdate
 	if checkOrigin {
-		if stateUpdate, err = state.LoadStateUpdate(sm.scid, 0); err != nil {
-			return nil, nil, fmt.Errorf("failed to load last state for scid = %s", sm.scid.String())
+		if stateUpdate, err = state.LoadStateUpdate(scid, 0); err != nil {
+			return nil, nil, fmt.Errorf("failed to load last state for scid = %s", scid.String())
 		}
 	}
 	if variableState == nil && stateUpdate != nil && stateUpdate.StateIndex() != 0 {
