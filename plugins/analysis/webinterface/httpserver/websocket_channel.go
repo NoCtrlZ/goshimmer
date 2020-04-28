@@ -24,7 +24,7 @@ func NewWebSocketChannel(ws *websocket.Conn) *WebSocketChannel {
 	return wsChan
 }
 
-// Write writes into the given WebSocketChannel.
+// write writes into the given WebSocketChannel.
 func (c *WebSocketChannel) Write(update string) {
 	c.send <- update
 }
