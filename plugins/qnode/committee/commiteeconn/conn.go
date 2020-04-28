@@ -1,4 +1,6 @@
-package committee
+// the committeecon package implements
+// Conn object is responsible for the communications between committee nodes
+package commiteeconn
 
 import (
 	"errors"

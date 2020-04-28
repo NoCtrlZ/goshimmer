@@ -93,7 +93,7 @@ func UsePeer(portAddr *registry.PortAddr) *Peer {
 }
 
 // decreases counter
-func DisposePeer(portAddr *registry.PortAddr) *Peer {
+func StopUsingPeer(portAddr *registry.PortAddr) *Peer {
 	peersMutex.Lock()
 	defer peersMutex.Unlock()
 

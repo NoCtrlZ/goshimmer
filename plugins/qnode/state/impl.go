@@ -111,6 +111,10 @@ func NewMockVariableState(stateIndex uint32, hash hashing.HashValue) VariableSta
 	}
 }
 
+func (vs *mockVariableState) StateIndex() uint32 {
+	return vs.stateIndex
+}
+
 func (vs *mockVariableState) Apply(stateUpdate StateUpdate) VariableState {
 	merkleHash := hashing.HashData(vs.merkleHash.Bytes())
 	return NewMockVariableState(vs.stateIndex+1, *merkleHash)

@@ -6,6 +6,7 @@ import (
 )
 
 type VariableState interface {
+	StateIndex() uint32
 	Apply(StateUpdate) VariableState
 	Bytes() []byte
 	LoadFromDb(balance.Color) error
