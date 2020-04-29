@@ -38,10 +38,12 @@ func main() {
 	}
 
 	params.Addresses = make([]string, 0, params.NumKeys)
+	numSuccess := 0
 	for i := 0; i < int(params.NumKeys); i++ {
 		addr, err := apilib.GenerateNewDistributedKeySet(params.Hosts, params.N, params.T)
 		if err == nil {
 			params.Addresses = append(params.Addresses, addr.String())
+			numSuccess++
 			fmt.Printf("generated new key. Address: %s\n", addr.String())
 		} else {
 			fmt.Printf("error: %v\n", err)
@@ -55,6 +57,9 @@ func main() {
 	err = ioutil.WriteFile(fname+".resp.json", data, 0644)
 	if err != nil {
 		fmt.Printf("error: %v\n", err)
+		return
+	}
+	if numSuccess == 0 {
 		return
 	}
 	//----- crosscheck

@@ -105,7 +105,7 @@ func (ks *DKShare) Read(r io.Reader) error {
 	ks.N = n
 	ks.T = t
 	ks.Index = index
-	ks.Address = &addr
+	ks.Address = addr
 	ks.PubKeys = pubKeys
 	ks.priKey = priKey
 	return nil

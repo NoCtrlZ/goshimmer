@@ -12,11 +12,6 @@ const RequestIdSize = hashing.HashSize + 2
 
 type RequestId [RequestIdSize]byte
 
-type RequestRef struct {
-	reqId *RequestId
-	tx    Transaction
-}
-
 type RequestBlock struct {
 	scid *ScId
 	body *RequestBody
@@ -58,6 +53,18 @@ func (req *RequestBlock) Read(r io.Reader) error {
 // TODO the rest of request body
 
 // Request Id
+
+func NewRequestId(txid *valuetransaction.Id, index uint16) (ret RequestId) {
+	copy(ret[:valuetransaction.IdLength], txid.Bytes())
+	copy(ret[valuetransaction.IdLength:], util.Uint16To2Bytes(index)[:])
+	return
+}
+
+func NewRandomRequestId(index uint16) (ret RequestId) {
+	copy(ret[:valuetransaction.IdLength], hashing.RandomHash(nil).Bytes())
+	copy(ret[valuetransaction.IdLength:], util.Uint16To2Bytes(index)[:])
+	return
+}
 
 func (rid *RequestId) Bytes() []byte {
 	return rid[:]

@@ -28,7 +28,7 @@ type DKShare struct {
 	// BLS address represented by the set of shares. It is used as a key to find the DKShare
 	// all nodes in the committee have DKShare records with same address
 	// Address is blake2 hash of master public key prefixed with one byte of signature type
-	Address *address.Address
+	Address address.Address
 
 	// partial public keys of all committee nodes for this DKS
 	// may be used to identify and authenticate individual committee node
@@ -123,8 +123,7 @@ func (ks *DKShare) FinalizeDKS(pubKeys []kyber.Point) error {
 		return err
 	}
 	// calculate address, the permanent key ID
-	a := address.FromBLSPubKey(pubKeyBin)
-	ks.Address = &a
+	ks.Address = address.FromBLSPubKey(pubKeyBin)
 
 	ks.PriShares = nil // not needed anymore
 	ks.Committed = true

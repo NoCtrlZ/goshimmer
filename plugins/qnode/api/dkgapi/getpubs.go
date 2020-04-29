@@ -47,7 +47,7 @@ func GetKeyPubInfoReq(req *GetPubKeyInfoRequest) *GetPubKeyInfoResponse {
 	if addr.Version() != address.VERSION_BLS {
 		return &GetPubKeyInfoResponse{Err: "not a BLS address"}
 	}
-	ks, ok, err := registry.GetDKShare(&addr)
+	ks, ok, err := registry.GetDKShare(addr)
 	if err != nil {
 		return &GetPubKeyInfoResponse{Err: err.Error()}
 	}

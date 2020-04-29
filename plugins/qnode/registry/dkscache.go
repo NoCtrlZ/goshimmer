@@ -13,9 +13,9 @@ var (
 
 // GetDKShare retrieves distributed key share from registry or the cache
 // returns dkshare, exists flag and error
-func GetDKShare(addr *address.Address) (*tcrypto.DKShare, bool, error) {
+func GetDKShare(addr address.Address) (*tcrypto.DKShare, bool, error) {
 	dkscacheMutex.RLock()
-	ret, ok := dkscache[*addr]
+	ret, ok := dkscache[addr]
 	if ok {
 		defer dkscacheMutex.RUnlock()
 		return ret, true, nil
@@ -37,6 +37,6 @@ func GetDKShare(addr *address.Address) (*tcrypto.DKShare, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	dkscache[*addr] = ks
+	dkscache[addr] = ks
 	return ks, true, nil
 }

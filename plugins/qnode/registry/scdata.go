@@ -15,14 +15,16 @@ import (
 	"github.com/iotaledger/hive.go/database"
 )
 
-// SCData represents information on the SC and the committee, available to the node
 // scid contains hash of the origin tx and the sc account address
+// TODO move OwnerPubKey, ProgramHash, Description to state variables. only NodeLocations are left outside the state
+// TODO provide immutablity or access authorization for spec vars
+//
 type SCData struct {
-	ScId          *sctransaction.ScId `json:"scid"`
-	OwnerPubKey   *HashValue          `json:"owner_pub_key"`
-	Description   string              `json:"description"`
-	ProgramHash   *HashValue          `json:"program_hash"`
-	NodeLocations []*PortAddr         `json:"node_locations"`
+	ScId          sctransaction.ScId `json:"scid"`
+	OwnerPubKey   *HashValue         `json:"owner_pub_key"`
+	Description   string             `json:"description"`
+	ProgramHash   HashValue          `json:"program_hash"`
+	NodeLocations []*PortAddr        `json:"node_locations"`
 }
 
 // GetScList retrieves all SCdata records from the registry
@@ -74,7 +76,7 @@ func validate(scdata *SCData, ownAddr *PortAddr) bool {
 var dbSCDataGroupPrefix = HashStrings("scdata").Bytes()
 
 // key of the entry
-func dbSCDataKey(scid *sctransaction.ScId) []byte {
+func dbSCDataKey(scid sctransaction.ScId) []byte {
 	var buf bytes.Buffer
 	buf.Write(dbSCDataGroupPrefix)
 	buf.Write(scid.Bytes())
@@ -99,7 +101,7 @@ func SaveSCData(scd *SCData) error {
 	})
 }
 
-func GetSCData(scid *sctransaction.ScId) (*SCData, error) {
+func GetSCData(scid sctransaction.ScId) (*SCData, error) {
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err

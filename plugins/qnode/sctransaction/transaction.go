@@ -5,7 +5,9 @@ package sctransaction
 import (
 	"bytes"
 	"errors"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"io"
 )
@@ -18,19 +20,32 @@ type Transaction struct {
 	requestBlocks []*RequestBlock
 }
 
-// parses dataPayload
-func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, error) {
-	dataPayload := vtx.GetDataPayload()
-	if !CheckScPayloadPrefix(dataPayload) {
-		// pre-parsing and rejecting if clearly not and SC transaction
-		return nil, errors.New("not a SC transaction")
+// creates new sc transaction. It is immutable, i.e. tx hash is stable
+func NewTransaction(vtx *valuetransaction.Transaction, stateBlock *StateBlock, requestBlocks []*RequestBlock) (*Transaction, error) {
+	ret := &Transaction{
+		Transaction:   vtx,
+		stateBlock:    stateBlock,
+		requestBlocks: requestBlocks,
 	}
-	rdr := bytes.NewReader(dataPayload)
-	ret := &Transaction{Transaction: vtx}
-	if err := ret.ReadDataPayload(rdr); err != nil {
+	scpayload, err := ret.DataScPayloadBytes()
+	if err != nil {
+		return nil, err
+	}
+	if err := vtx.SetDataPayload(scpayload); err != nil {
 		return nil, err
 	}
 	return ret, nil
+}
+
+// parses dataPayload. Error is returned only if pre-parsing succeeded and parsing failed
+// usually this can happen only due to targeted attack or
+func ParseValueTransaction(vtx *valuetransaction.Transaction) (*Transaction, bool, error) {
+	rdr := bytes.NewReader(vtx.GetDataPayload())
+	ret := &Transaction{Transaction: vtx}
+	if err := ret.ReadDataPayload(rdr); err != nil {
+		return nil, true, err
+	}
+	return ret, true, nil
 }
 
 func (tx *Transaction) State() (*StateBlock, bool) {
@@ -58,6 +73,19 @@ func (tx *Transaction) DataScPayloadBytes() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (tx *Transaction) OutputBalancesByAddress(addr address.Address) ([]*balance.Balance, bool) {
+	untyped, ok := tx.Outputs().Get(addr)
+	if !ok {
+		return nil, false
+	}
+
+	ret, ok := untyped.([]*balance.Balance)
+	if !ok {
+		panic("OutputBalancesByAddress: balances expected")
+	}
+	return ret, true
 }
 
 // function writes bytes of the SC transaction-specific part
@@ -105,7 +133,7 @@ func (tx *Transaction) ReadDataPayload(r io.Reader) error {
 	if b, err := util.ReadByte(r); err != nil {
 		return err
 	} else {
-		hasState, numRequests = decodeMetaByte(b)
+		hasState, numRequests = DecodeMetaByte(b)
 	}
 	// ignore checksum. It is only needed to check if the dataPayload can be parsed without parsing
 	var checksum uint32

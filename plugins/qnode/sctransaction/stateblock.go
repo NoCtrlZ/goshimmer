@@ -20,10 +20,18 @@ type StateBlock struct {
 	timestamp int64
 	// requestId tx hash + requestId index which originated this state update
 	// this reference makes requestId (inputs to state update) immutable part of the state update
-	requestId *RequestId
-	// TODO may be nil, in this case it is just a timestamped checkpoint
-	// otherwise it references StateBody
-	stateUpdateHash *hashing.HashValue
+	requestId RequestId
+	// variable state hash.
+	// it is used to validate the variable state in the SC ledger while syncing
+	// note that by having this has it is still impossible to reach respective state update without
+	// syncing the whole chain
+	variableStateHash hashing.HashValue
+}
+
+type StateBlockParams struct {
+	Timestamp         int64
+	RequestId         RequestId
+	VariableStateHash hashing.HashValue
 }
 
 func NewStateBlock(scid *ScId, stateIndex uint32) *StateBlock {
@@ -48,25 +56,17 @@ func (sb *StateBlock) Timestamp() int64 {
 }
 
 func (sb *StateBlock) RequestId() *RequestId {
-	return sb.requestId
+	return &sb.requestId
 }
 
-func (sb *StateBlock) StateUpdateHash() *hashing.HashValue {
-	return sb.stateUpdateHash
+func (sb *StateBlock) VariableStateHash() *hashing.HashValue {
+	return &sb.variableStateHash
 }
 
-func (sb *StateBlock) WithTimestamp(ts int64) *StateBlock {
-	sb.timestamp = ts
-	return sb
-}
-
-func (sb *StateBlock) WithRequestId(reqId *RequestId) *StateBlock {
-	sb.requestId = reqId
-	return sb
-}
-
-func (sb *StateBlock) WithStateUpdateHash(h *hashing.HashValue) *StateBlock {
-	sb.stateUpdateHash = h
+func (sb *StateBlock) WithParams(params StateBlockParams) *StateBlock {
+	sb.timestamp = params.Timestamp
+	sb.requestId = params.RequestId
+	sb.variableStateHash = params.VariableStateHash
 	return sb
 }
 
@@ -86,19 +86,8 @@ func (sb *StateBlock) Write(w io.Writer) error {
 	if err := sb.requestId.Write(w); err != nil {
 		return err
 	}
-	var b byte
-	if sb.stateUpdateHash == nil {
-		b = 0
-	} else {
-		b = 0xFF
-	}
-	if err := util.WriteByte(w, b); err != nil {
+	if err := sb.variableStateHash.Write(w); err != nil {
 		return err
-	}
-	if sb.stateUpdateHash != nil {
-		if err := sb.stateUpdateHash.Write(w); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -116,25 +105,18 @@ func (sb *StateBlock) Read(r io.Reader) error {
 	if err := util.ReadUint64(r, &timestamp); err != nil {
 		return err
 	}
-	reqId := new(RequestId)
+	var reqId RequestId
 	if err := reqId.Read(r); err != nil {
 		return err
 	}
-	var stateUpdateHash *hashing.HashValue
-	if b, err := util.ReadByte(r); err != nil {
+	var stateUpdateHash hashing.HashValue
+	if err := stateUpdateHash.Read(r); err != nil {
 		return err
-	} else {
-		if b != 0 {
-			stateUpdateHash := new(hashing.HashValue)
-			if err := stateUpdateHash.Read(r); err != nil {
-				return err
-			}
-		}
 	}
 	sb.scid = scid
 	sb.stateIndex = stateIndex
 	sb.timestamp = int64(timestamp)
 	sb.requestId = reqId
-	sb.stateUpdateHash = stateUpdateHash
+	sb.variableStateHash = stateUpdateHash
 	return nil
 }

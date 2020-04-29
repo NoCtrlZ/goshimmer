@@ -36,7 +36,7 @@ func PutSCData(addr string, port int, adata *registry.SCData) error {
 }
 
 // calls the nodes to get SCData record by scid
-func GetSCdata(addr string, port int, scid *sctransaction.ScId) (*registry.SCData, error) {
+func GetSCdata(addr string, port int, scid sctransaction.ScId) (*registry.SCData, error) {
 	req := admapi.GetSCDataRequest{ScId: scid}
 	data, err := json.Marshal(&req)
 	if err != nil {

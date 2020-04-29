@@ -14,22 +14,22 @@ import (
 )
 
 var LOCAL_CORE_PLUGINS = node.Plugins(
-	banner.PLUGIN,
-	config.PLUGIN,
-	logger.PLUGIN,
-	cli.PLUGIN,
+	banner.Plugin,
+	config.Plugin,
+	logger.Plugin,
+	cli.Plugin,
 	//portcheck.PLUGIN,
-	database.PLUGIN,
+	database.Plugin,
 	//autopeering.PLUGIN,
 	//messagelayer.PLUGIN,
 	//gossip.PLUGIN,
-	gracefulshutdown.PLUGIN,
+	gracefulshutdown.Plugin,
 	//metrics.PLUGIN,
 	//drng.PLUGIN,
 )
 
 var LOCAL_WEBAPI_PLUGINS = node.Plugins(
-	webapi.PLUGIN,
+	webapi.Plugin,
 	//webauth.PLUGIN,
 	//spammer.PLUGIN,
 	//data.PLUGIN,

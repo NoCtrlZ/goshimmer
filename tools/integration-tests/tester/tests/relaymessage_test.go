@@ -34,23 +34,14 @@ func TestRelayMessages(t *testing.T) {
 
 	// check for messages on every peer
 	for _, peer := range n.Peers() {
-		resp, err := peer.FindMessageById(ids)
+		resp, err := peer.FindMessageByID(ids)
 		require.NoError(t, err)
 
-		// check for the count of messages
-		assert.Equal(t, numMessages, len(resp.Messages))
-
 		// check that all messages are present in response
-	outer:
-		for _, id := range ids {
-			for _, msg := range resp.Messages {
-				// if message found skip to next
-				if msg.Id == id {
-					continue outer
-				}
-			}
-
-			t.Errorf("MessageId=%s not found in peer %s.", id, peer.String())
+		respIDs := make([]string, len(resp.Messages))
+		for i, msg := range resp.Messages {
+			respIDs[i] = msg.ID
 		}
+		assert.ElementsMatchf(t, ids, respIDs, "messages do not match sent in %s", peer.String())
 	}
 }
