@@ -48,7 +48,7 @@ func main() {
 					}
 					fmt.Printf("Requesting SC data from nodes\n")
 					fmt.Printf("Reading input from file: %s\n", c.Args().Get(0))
-					GetDKS(c.Args().Get(0))
+					CheckDKS(c.Args().Get(0))
 					return nil
 				},
 			},
@@ -97,7 +97,7 @@ func NewDKS(fname string) {
 	}
 }
 
-func GetDKS(fname string) {
+func CheckDKS(fname string) {
 	data, err := ioutil.ReadFile(fname)
 	if err != nil {
 		panic(err)
