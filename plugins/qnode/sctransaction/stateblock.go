@@ -21,16 +21,17 @@ type StateBlock struct {
 	// requestId tx hash + requestId index which originated this state update
 	// this reference makes requestId (inputs to state update) immutable part of the state update
 	requestId RequestId
-	// state hash, referencing the hash of the cached state. It is a tip of the Merkle chain of state updates.
-	// it is only used while syncing the state to check weather the state is correct.
-	// each moment in time node maintains valid current state of the SC and it can be accessed directly
-	stateHash hashing.HashValue
+	// variable state hash.
+	// it is used to validate the variable state in the SC ledger while syncing
+	// note that by having this has it is still impossible to reach respective state update without
+	// syncing the whole chain
+	variableStateHash hashing.HashValue
 }
 
 type StateBlockParams struct {
-	Timestamp       int64
-	RequestId       RequestId
-	StateUpdateHash hashing.HashValue
+	Timestamp         int64
+	RequestId         RequestId
+	VariableStateHash hashing.HashValue
 }
 
 func NewStateBlock(scid *ScId, stateIndex uint32) *StateBlock {
@@ -58,14 +59,14 @@ func (sb *StateBlock) RequestId() *RequestId {
 	return &sb.requestId
 }
 
-func (sb *StateBlock) StateUpdateHash() *hashing.HashValue {
-	return &sb.stateHash
+func (sb *StateBlock) VariableStateHash() *hashing.HashValue {
+	return &sb.variableStateHash
 }
 
 func (sb *StateBlock) WithParams(params StateBlockParams) *StateBlock {
 	sb.timestamp = params.Timestamp
 	sb.requestId = params.RequestId
-	sb.stateHash = params.StateUpdateHash
+	sb.variableStateHash = params.VariableStateHash
 	return sb
 }
 
@@ -85,7 +86,7 @@ func (sb *StateBlock) Write(w io.Writer) error {
 	if err := sb.requestId.Write(w); err != nil {
 		return err
 	}
-	if err := sb.stateHash.Write(w); err != nil {
+	if err := sb.variableStateHash.Write(w); err != nil {
 		return err
 	}
 	return nil
@@ -116,6 +117,6 @@ func (sb *StateBlock) Read(r io.Reader) error {
 	sb.stateIndex = stateIndex
 	sb.timestamp = int64(timestamp)
 	sb.requestId = reqId
-	sb.stateHash = stateUpdateHash
+	sb.variableStateHash = stateUpdateHash
 	return nil
 }

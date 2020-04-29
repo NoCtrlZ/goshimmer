@@ -109,9 +109,9 @@ func TestTransactionStateBlock2(t *testing.T) {
 	scid, _ := ScIdFromString(testScid)
 	txb.AddStateBlock(scid, 42)
 	txb.SetStateBlockParams(StateBlockParams{
-		Timestamp:       time.Now().UnixNano(),
-		RequestId:       NewRandomRequestId(2),
-		StateUpdateHash: *hashing.RandomHash(nil),
+		Timestamp:         time.Now().UnixNano(),
+		RequestId:         NewRandomRequestId(2),
+		VariableStateHash: *hashing.RandomHash(nil),
 	})
 	_, err = txb.Finalize()
 	assert.Equal(t, err, nil)
@@ -162,9 +162,9 @@ func TestTransactionMultiBlocks(t *testing.T) {
 
 	txb.AddStateBlock(scid, 42)
 	txb.SetStateBlockParams(StateBlockParams{
-		Timestamp:       time.Now().UnixNano(),
-		RequestId:       NewRandomRequestId(2),
-		StateUpdateHash: *hashing.RandomHash(nil),
+		Timestamp:         time.Now().UnixNano(),
+		RequestId:         NewRandomRequestId(2),
+		VariableStateHash: *hashing.RandomHash(nil),
 	})
 
 	reqBlk := NewRequestBlock(scid)
