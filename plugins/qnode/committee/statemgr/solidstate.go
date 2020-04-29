@@ -128,5 +128,4 @@ func (sm *StateManager) refreshSolidState() {
 		sm.isCorrupted = true
 		return
 	}
-
 }
