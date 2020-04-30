@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"hash/crc32"
@@ -25,8 +26,8 @@ func processIncomingValueTransaction(vtx *valuetransaction.Transaction) {
 		return
 	}
 	log.Debugw("SC transaction received", "id", tx.Id().String())
-	processState(tx)
-	processRequests(tx)
+	dispatchState(tx)
+	dispatchRequests(tx)
 }
 
 // recognizes if the payload can be a parsed as SC payload and it is of interest
@@ -56,7 +57,7 @@ func transactionToBeIgnored(vtx *valuetransaction.Transaction) bool {
 	if hasState && numRequests == 0 {
 		// check the color of state in the dictionary of SCs processed by the node
 		col, _ := sctransaction.ColorFromBytes(data[1+4 : 1+4+balance.ColorLength])
-		if !isColorProcessedByNode(col) {
+		if getCommittee(col) == nil {
 			// it may be a valid sc transaction, but definitely not interesting for this node
 			return true
 		}
@@ -65,23 +66,8 @@ func transactionToBeIgnored(vtx *valuetransaction.Transaction) bool {
 	return false
 }
 
-func processState(tx *sctransaction.Transaction) {
-	hasState, err := checkState(tx)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	if !hasState {
-		return
-	}
-	// all state block validations passed
-	if syncMgr := getSyncMgr(tx.MustState().ScId().Color()); syncMgr != nil {
-		syncMgr.ProcessStateMsg(tx)
-	}
-}
-
-// validates and returns if it hash state, is it origin state or error
-func checkState(tx *sctransaction.Transaction) (bool, error) {
+// validates and returns if it has state block, is it origin state or error
+func validateState(tx *sctransaction.Transaction) (bool, error) {
 	stateBlock, stateExists := tx.State()
 	if !stateExists {
 		return false, nil
@@ -97,7 +83,7 @@ func checkState(tx *sctransaction.Transaction) (bool, error) {
 	outBalance := sctransaction.SumBalancesOfColor(balances, scid.Color())
 	if outBalance == 0 {
 		// for the origin transaction check COLOR_NEW
-		outBalance = sctransaction.SumBalancesOfColor(balances, balance.COLOR_NEW)
+		outBalance = sctransaction.SumBalancesOfColor(balances, balance.ColorNew)
 		isOriginTx = true
 	}
 	if outBalance != 1 {
@@ -114,6 +100,28 @@ func checkState(tx *sctransaction.Transaction) (bool, error) {
 	return true, nil
 }
 
-func processRequests(tx *sctransaction.Transaction) {
-	// TODO
+func dispatchState(tx *sctransaction.Transaction) {
+	hasState, err := validateState(tx)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	if !hasState {
+		return
+	}
+	// all state block validations passed
+	if committee := getCommittee(tx.MustState().ScId().Color()); committee != nil {
+		committee.ProcessMessage(commtypes.StateTransactionMsg{Transaction: tx})
+	}
+}
+
+func dispatchRequests(tx *sctransaction.Transaction) {
+	for i, reqBlk := range tx.Requests() {
+		if committee := getCommittee(reqBlk.ScId().Color()); committee != nil {
+			committee.ProcessMessage(commtypes.RequestMsg{
+				Transaction: tx,
+				Index:       uint16(i),
+			})
+		}
+	}
 }

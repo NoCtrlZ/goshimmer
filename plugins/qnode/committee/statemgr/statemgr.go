@@ -11,7 +11,9 @@ type StateManager struct {
 	scid sctransaction.ScId
 
 	// state is corrupted, SC can't proceed
-	isCorrupted bool
+	isCorrupted    bool
+	isSolidified   bool
+	isSynchronized bool
 
 	// pending state updates are state updates calculated by the VM
 	// may be several of them with different timestamps
@@ -36,7 +38,7 @@ type StateManager struct {
 
 	// largest state index seen from other messages. If this index is more than 1 step ahead then
 	// the solid one, state is not synced
-	lastEvidencedStateIndex uint32
+	largestEvidencedStateIndex uint32
 }
 
 func NewStateManager(scid sctransaction.ScId) *StateManager {
@@ -46,34 +48,14 @@ func NewStateManager(scid sctransaction.ScId) *StateManager {
 	}
 }
 
-func (sm *StateManager) isSynchronized() bool {
-	if sm.isCorrupted {
-		return false
-	}
-	if sm.lastStateTransaction == nil {
-		return false
-	}
-
-	if sm.solidVariableState == nil {
-		return false
-	}
-
-	if sm.lastEvidencedStateIndex > sm.solidVariableState.StateIndex()+1 {
-		return false
-	}
-	if sm.lastStateTransaction.MustState().StateIndex() != sm.solidVariableState.StateIndex() {
-		return false
-	}
-	return true
+func (sm *StateManager) IsCorruptedState() bool {
+	return sm.isCorrupted
 }
 
-func (sm *StateManager) synchronizationStep() {
-	if sm.isCorrupted {
-		return
-	}
-	if sm.isSynchronized() {
-		return
-	}
-	// step 1: get last state transaction
-	sm.refreshSolidState()
+func (sm *StateManager) IsSolidifiedState() bool {
+	return sm.isSolidified
+}
+
+func (sm *StateManager) IsSynchronizedState() bool {
+	return sm.isSynchronized
 }

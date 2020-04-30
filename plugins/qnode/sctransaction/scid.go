@@ -26,6 +26,8 @@ const ScIdLength = balance.ColorLength + address.Length
 // request to it and to find its state on the tangle.
 type ScId [ScIdLength]byte
 
+var NilScId ScId
+
 func NewScId(color balance.Color, addr address.Address) *ScId {
 	var ret ScId
 	copy(ret[:balance.ColorLength], color.Bytes())

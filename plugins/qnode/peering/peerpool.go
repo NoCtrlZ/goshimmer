@@ -47,6 +47,16 @@ func OwnPortAddr() *registry.PortAddr {
 	}
 }
 
+func FindOwnIndex(netLocations []*registry.PortAddr) (uint16, bool) {
+	ownLoc := OwnPortAddr().String()
+	for i, loc := range netLocations {
+		if ownLoc == loc.String() {
+			return uint16(i), true
+		}
+	}
+	return 0, false
+}
+
 func closeAll() {
 	peersMutex.Lock()
 	defer peersMutex.Unlock()
@@ -93,7 +103,7 @@ func UsePeer(portAddr *registry.PortAddr) *Peer {
 }
 
 // decreases counter
-func StopUsingPeer(portAddr *registry.PortAddr) *Peer {
+func StopUsingPeer(portAddr *registry.PortAddr) {
 	peersMutex.Lock()
 	defer peersMutex.Unlock()
 

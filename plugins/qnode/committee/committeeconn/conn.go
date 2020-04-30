@@ -1,29 +1,29 @@
 // the committeecon package implements
 // Conn object is responsible for the communications between committee nodes
-package commiteeconn
+package committeeconn
 
 import (
-	"errors"
 	"fmt"
-	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/goshimmer/plugins/qnode/peering"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
+	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"time"
 )
 
 type Conn struct {
 	ownIndex uint16
-	ownColor balance.Color
+	scid     sctransaction.ScId
 	peers    []*peering.Peer
 }
 
-func NewConnection(ownColor balance.Color, ownIndex uint16, peers []*registry.PortAddr) (*Conn, error) {
-	if int(ownIndex) >= len(peers) {
-		return nil, errors.New("wrong index")
+func NewConnection(scid sctransaction.ScId, peers []*registry.PortAddr) (*Conn, error) {
+	ownIndex, ok := peering.FindOwnIndex(peers)
+	if !ok {
+		return nil, fmt.Errorf("not processed by this node scid: %s", scid.String())
 	}
 	ret := &Conn{
-		ownColor: ownColor,
+		scid:     scid,
 		ownIndex: ownIndex,
 		peers:    make([]*peering.Peer, 0, len(peers))}
 	for i, pa := range peers {
@@ -41,7 +41,7 @@ func (conn *Conn) SendMsg(targetPeerIndex uint16, msgType byte, msgData []byte) 
 	}
 	peer := conn.peers[targetPeerIndex]
 	msg := &events.PeerMessage{
-		ScColor:     conn.ownColor,
+		ScColor:     conn.scid.Color(),
 		SenderIndex: conn.ownIndex,
 		MsgType:     msgType,
 		MsgData:     msgData,
@@ -51,7 +51,7 @@ func (conn *Conn) SendMsg(targetPeerIndex uint16, msgType byte, msgData []byte) 
 
 func (conn *Conn) SendMsgToPeers(msgType byte, msgData []byte) (uint16, time.Time) {
 	msg := &events.PeerMessage{
-		ScColor:     conn.ownColor,
+		ScColor:     conn.scid.Color(),
 		SenderIndex: conn.ownIndex,
 		MsgType:     msgType,
 		MsgData:     msgData,

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
@@ -50,22 +49,14 @@ func (su *mockStateUpdate) SetStateTransactionId(vtxId valuetransaction.Id) {
 	su.stateTxId = vtxId
 }
 
-func (su *mockStateUpdate) write(w io.Writer) error {
-	_, _ = w.Write(su.stateTxId[:])
-	return nil
+func (su *mockStateUpdate) Write(w io.Writer) error {
+	_, err := w.Write(su.stateTxId[:])
+	return err
 }
 
-func (su *mockStateUpdate) read(r io.Reader) error {
-	var b valuetransaction.Id
-	_, _ = r.Read(b[:])
-	su.stateTxId = b
-	return nil
-}
-
-func (su *mockStateUpdate) Bytes() []byte {
-	var buf bytes.Buffer
-	_ = su.write(&buf)
-	return buf.Bytes()
+func (su *mockStateUpdate) Read(r io.Reader) error {
+	_, err := r.Read(su.stateTxId[:])
+	return err
 }
 
 // VariableState
@@ -93,20 +84,18 @@ func CreateOriginVariableState(stateUpdate StateUpdate) VariableState {
 	return VariableState(nil).Apply(stateUpdate)
 }
 
-func (vs *mockVariableState) write(w io.Writer) error {
-	_, _ = w.Write(util.Uint32To4Bytes(vs.stateIndex))
-	_, _ = w.Write(vs.merkleHash.Bytes())
-	return nil
+func (vs *mockVariableState) Write(w io.Writer) error {
+	if _, err := w.Write(util.Uint32To4Bytes(vs.stateIndex)); err != nil {
+		return err
+	}
+	_, err := w.Write(vs.merkleHash.Bytes())
+	return err
 }
 
-func (vs *mockVariableState) read(r io.Reader) error {
-	_ = util.ReadUint32(r, &vs.stateIndex)
-	_, _ = r.Read(vs.merkleHash.Bytes())
-	return nil
-}
-
-func (vs *mockVariableState) Bytes() []byte {
-	var buf bytes.Buffer
-	_ = vs.write(&buf)
-	return buf.Bytes()
+func (vs *mockVariableState) Read(r io.Reader) error {
+	if err := util.ReadUint32(r, &vs.stateIndex); err != nil {
+		return err
+	}
+	_, err := r.Read(vs.merkleHash.Bytes())
+	return err
 }

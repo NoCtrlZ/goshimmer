@@ -2,19 +2,22 @@ package state
 
 import (
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
+	"io"
 )
 
 type VariableState interface {
 	StateIndex() uint32
 	Apply(StateUpdate) VariableState
-	Bytes() []byte
 	SaveToDb() error
+	Read(io.Reader) error
+	Write(io.Writer) error
 }
 
 type StateUpdate interface {
 	StateIndex() uint32
 	StateTransactionId() valuetransaction.Id
 	SetStateTransactionId(valuetransaction.Id)
-	Bytes() []byte
 	SaveToDb() error
+	Read(io.Reader) error
+	Write(io.Writer) error
 }

@@ -19,6 +19,7 @@ func (sm *StateManager) refreshSolidState() {
 	if sm.isCorrupted {
 		return
 	}
+	sm.isSolidified = false
 	var err error
 
 	// load last variable state from the database
@@ -45,6 +46,7 @@ func (sm *StateManager) refreshSolidState() {
 	}
 	if sm.lastSolidStateUpdate == nil {
 		log.Errorf("can't find solid state update with index %d scid %s", solidStateIndex, sm.scid.String())
+		// not corrupted, but not solid yet
 		return
 	}
 	// load state transaction corresponding to the state update
@@ -73,16 +75,18 @@ func (sm *StateManager) refreshSolidState() {
 	}
 	if sm.solidVariableState != nil {
 		// validate the solid variable state and finish the refresh
-		varStateHash := hashing.HashData(sm.solidVariableState.Bytes())
-		if varStateHash != stateBlock.VariableStateHash() {
-			log.Errorw("major problem: last solid state transaction doesn;t validate the last solid variable state",
+		if hashing.GetHashValue(sm.solidVariableState) != stateBlock.VariableStateHash() {
+			log.Errorw("major problem: last solid state transaction doesn't validate the last solid variable state",
 				"state index", sm.lastSolidStateUpdate.StateIndex(),
 				"state tx id", sm.lastSolidStateTransaction.String(),
 				"scid", sm.scid.String(),
 			)
 
 			sm.isCorrupted = true
+			return
 		}
+
+		sm.isSolidified = true
 		return
 	}
 
@@ -108,7 +112,7 @@ func (sm *StateManager) refreshSolidState() {
 
 	// we have to check if the hash of the origin variable state is equal to the one in the origin transaction
 
-	if stateBlock.VariableStateHash() != hashing.HashData(sm.solidVariableState.Bytes()) {
+	if hashing.GetHashValue(sm.solidVariableState) != stateBlock.VariableStateHash() {
 		// something wrong
 		log.Errorw("major inconsistency: origin state transaction is inconsistent with the origin state update",
 			"tx id", sm.lastSolidStateTransaction.Id().String(),
@@ -128,4 +132,5 @@ func (sm *StateManager) refreshSolidState() {
 		sm.isCorrupted = true
 		return
 	}
+	sm.isSolidified = true
 }

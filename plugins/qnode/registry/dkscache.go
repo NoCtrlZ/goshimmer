@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"sync"
 )

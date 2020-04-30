@@ -61,8 +61,8 @@ func (sb *StateBlock) RequestIds() *[]RequestId {
 	return &sb.requestIds
 }
 
-func (sb *StateBlock) VariableStateHash() *hashing.HashValue {
-	return &sb.variableStateHash
+func (sb *StateBlock) VariableStateHash() hashing.HashValue {
+	return sb.variableStateHash
 }
 
 func (sb *StateBlock) WithParams(params StateBlockParams) *StateBlock {

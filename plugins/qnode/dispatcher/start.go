@@ -1,7 +1,7 @@
 package dispatcher
 
 import (
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/hive.go/daemon"
 	"github.com/iotaledger/hive.go/events"
@@ -15,7 +15,11 @@ func Start() {
 		chTxIn <- vtx
 	})
 
-	processPeerMsgClosure := events.NewClosure(processPeerMessage)
+	processPeerMsgClosure := events.NewClosure(func(msg *qnode_events.PeerMessage) {
+		if committee := getCommittee(msg.ScColor); committee != nil {
+			committee.ProcessMessage(msg)
+		}
+	})
 
 	err := daemon.BackgroundWorker("qnode dispatcher", func(shutdownSignal <-chan struct{}) {
 		// load all sc data records from registry
@@ -35,7 +39,7 @@ func Start() {
 
 		<-shutdownSignal
 
-		// starting acync cleanup on shutdown
+		// starting async cleanup on shutdown
 		go func() {
 			qnode_events.Events.ValueTransactionReceived.Detach(processValueTxClosure)
 			close(chTxIn)
