@@ -13,6 +13,7 @@ func (sm *StateManager) saveStateToDb(varState state.VariableState, stateUpd sta
 		return err
 	}
 	// ---- end of must be atomic. how to make it?
-	log.Infof("variable state #%d has been solidified for scid %s", varState.StateIndex(), sm.scid.String())
+	scid := sm.committee.ScId()
+	log.Infof("variable state #%d has been solidified for scid %s", varState.StateIndex(), scid.String())
 	return nil
 }

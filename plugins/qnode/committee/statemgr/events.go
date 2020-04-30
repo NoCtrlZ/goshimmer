@@ -48,5 +48,5 @@ func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionM
 	// it comes here when state transaction comes to empty place, where corresponding state updates
 	// does not exist. In this case synchronization is needed
 	sm.pendingStateUpdates = sm.pendingStateUpdates[:0] // clean up just in case
-	sm.isSynchronized = false
+	sm.setSynchronized(false)
 }

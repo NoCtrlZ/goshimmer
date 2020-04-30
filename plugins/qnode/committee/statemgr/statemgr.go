@@ -3,12 +3,15 @@
 package statemgr
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
+	"github.com/iotaledger/goshimmer/plugins/qnode/util"
+	"time"
 )
 
 type StateManager struct {
-	scid sctransaction.ScId
+	committee commtypes.Committee
 
 	// state is corrupted, SC can't proceed
 	isCorrupted    bool
@@ -39,12 +42,25 @@ type StateManager struct {
 	// largest state index seen from other messages. If this index is more than 1 step ahead then
 	// the solid one, state is not synced
 	largestEvidencedStateIndex uint32
+
+	// synchronization status. It is reset when state becomes synchronized
+	permutationOfPeers  []uint16
+	permutationIndex    uint16
+	syncMessageDeadline time.Time
 }
 
-func NewStateManager(scid sctransaction.ScId) *StateManager {
+func NewStateManager(committee commtypes.Committee) *StateManager {
 	return &StateManager{
-		scid:                scid,
+		committee:           committee,
 		pendingStateUpdates: make([]state.StateUpdate, 0),
+	}
+}
+
+func (sm *StateManager) setSynchronized(yes bool) {
+	sm.isSynchronized = yes
+	if sm.isSolidified && sm.isSynchronized {
+		sm.permutationOfPeers = util.GetPermutation(sm.committee.Size(), sm.lastStateTransaction.Id().Bytes())
+		sm.permutationIndex = sm.committee.Size() - 1
 	}
 }
 

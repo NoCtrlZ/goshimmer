@@ -7,11 +7,7 @@ import (
 	"time"
 )
 
-func (c *Committee) ProcessMessage(msg interface{}) {
-	c.chMsg <- msg
-}
-
-func (c *Committee) dispatchMessage(msg interface{}) {
+func (c *committee) dispatchMessage(msg interface{}) {
 	if c.stateMgr.IsCorruptedState() {
 		return
 	}
@@ -28,7 +24,7 @@ func (c *Committee) dispatchMessage(msg interface{}) {
 	}
 }
 
-func (c *Committee) processPeerMessage(msg *qnode_events.PeerMessage) {
+func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 	rdr := bytes.NewReader(msg.MsgData)
 
 	switch msg.MsgType {

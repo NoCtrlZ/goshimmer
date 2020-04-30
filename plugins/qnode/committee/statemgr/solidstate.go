@@ -22,10 +22,11 @@ func (sm *StateManager) refreshSolidState() {
 	sm.isSolidified = false
 	var err error
 
+	scid := sm.committee.ScId()
 	// load last variable state from the database
-	sm.solidVariableState, err = state.LoadVariableState(sm.scid)
+	sm.solidVariableState, err = state.LoadVariableState(scid)
 	if err != nil {
-		log.Errorf("can't load variable state for scid %s: %v", sm.scid.String(), err)
+		log.Errorf("can't load variable state for scid %s: %v", scid.String(), err)
 		sm.isCorrupted = true
 		return
 	}
@@ -38,14 +39,14 @@ func (sm *StateManager) refreshSolidState() {
 
 	// load solid state update from db with the state index taken from the variable state
 	// state index is 0 if variable state doesn't exist in the DB
-	sm.lastSolidStateUpdate, err = state.LoadStateUpdate(sm.scid, solidStateIndex)
+	sm.lastSolidStateUpdate, err = state.LoadStateUpdate(scid, solidStateIndex)
 	if err != nil {
-		log.Errorf("can't load state update index %d for scid %s: %v", solidStateIndex, sm.scid.String(), err)
+		log.Errorf("can't load state update index %d for scid %s: %v", solidStateIndex, scid.String(), err)
 		sm.isCorrupted = true
 		return
 	}
 	if sm.lastSolidStateUpdate == nil {
-		log.Errorf("can't find solid state update with index %d scid %s", solidStateIndex, sm.scid.String())
+		log.Errorf("can't find solid state update with index %d scid %s", solidStateIndex, scid.String())
 		// not corrupted, but not solid yet
 		return
 	}
@@ -55,7 +56,7 @@ func (sm *StateManager) refreshSolidState() {
 		log.Errorw("major problem: can't load state tx",
 			"state index", sm.lastSolidStateUpdate.StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
+			"scid", scid.String(),
 		)
 
 		sm.isCorrupted = true
@@ -67,7 +68,7 @@ func (sm *StateManager) refreshSolidState() {
 		log.Errorw("major inconsistency: invalid state block in the state transaction",
 			"state index", sm.lastSolidStateUpdate.StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
+			"scid", scid.String(),
 		)
 
 		sm.isCorrupted = true
@@ -79,7 +80,7 @@ func (sm *StateManager) refreshSolidState() {
 			log.Errorw("major problem: last solid state transaction doesn't validate the last solid variable state",
 				"state index", sm.lastSolidStateUpdate.StateIndex(),
 				"state tx id", sm.lastSolidStateTransaction.String(),
-				"scid", sm.scid.String(),
+				"scid", scid.String(),
 			)
 
 			sm.isCorrupted = true
@@ -100,7 +101,7 @@ func (sm *StateManager) refreshSolidState() {
 		log.Errorw("major inconsistency: can't find state block in the state transaction",
 			"state index", sm.lastSolidStateUpdate.StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
+			"scid", scid.String(),
 		)
 
 		sm.isCorrupted = true
@@ -116,7 +117,7 @@ func (sm *StateManager) refreshSolidState() {
 		// something wrong
 		log.Errorw("major inconsistency: origin state transaction is inconsistent with the origin state update",
 			"tx id", sm.lastSolidStateTransaction.Id().String(),
-			"scid", sm.scid.String(),
+			"scid", scid.String(),
 		)
 
 		sm.isCorrupted = true
@@ -125,7 +126,7 @@ func (sm *StateManager) refreshSolidState() {
 	// save origin state
 	if err = sm.solidVariableState.SaveToDb(); err != nil {
 		log.Errorw("can't save origin variable state",
-			"scid", sm.scid.String(),
+			"scid", scid.String(),
 			"err", err.Error(),
 		)
 
