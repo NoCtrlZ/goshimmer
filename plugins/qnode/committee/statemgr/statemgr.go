@@ -4,28 +4,24 @@ package statemgr
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
-	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"time"
 )
 
 type StateManager struct {
 	committee commtypes.Committee
 
-	// state is corrupted, SC can't proceed
-	isCorrupted    bool
-	isSolidified   bool
-	isSynchronized bool
-
 	// pending state updates are state updates calculated by the VM
 	// in servant mode.
 	// are not linked with the state transaction yet
-	pendingStateUpdates []state.StateUpdate
+	pendingStateUpdates map[hashing.HashValue]*pendingStateUpdate
 
 	// state transaction with state index next to the lastSolidStateTransaction
 	// it may be nil (does not exist or not fetched yet
-	nextStateTransaction *sctransaction.Transaction
+	nextStateTransaction    *sctransaction.Transaction
+	stateTransactionArrived time.Time
 
 	// last solid transaction obtained from the tangle by the reference from the
 	// solid state update
@@ -33,10 +29,6 @@ type StateManager struct {
 
 	// last variable state stored in the database
 	solidVariableState state.VariableState
-
-	// last state update stored in the database. Obtained by the index stored in variable state
-	// In case of origin state index is 0
-	lastSolidStateUpdate state.StateUpdate
 
 	// last state transaction received from the tangle
 	// it may be not solidified yet in the SC ledger
@@ -53,35 +45,20 @@ type StateManager struct {
 	syncMessageDeadline time.Time
 }
 
-func NewStateManager(committee commtypes.Committee) *StateManager {
-	return &StateManager{
+type pendingStateUpdate struct {
+	// state update, not validated yet
+	stateUpdate state.StateUpdate
+	// resulting variable state applied to the solidVariableState
+	nextVariableState state.VariableState
+}
+
+func New(committee commtypes.Committee) *StateManager {
+	ret := &StateManager{
 		committee:           committee,
-		pendingStateUpdates: make([]state.StateUpdate, 0),
+		pendingStateUpdates: make(map[hashing.HashValue]*pendingStateUpdate),
 	}
-}
-
-func (sm *StateManager) setSynchronized(yes bool) {
-	sm.isSynchronized = yes
-	if sm.isSolidified && sm.isSynchronized {
-		sm.permutationOfPeers = util.GetPermutation(sm.committee.Size(), sm.lastStateTransaction.Id().Bytes())
-		sm.permutationIndex = sm.committee.Size() - 1
-	}
-}
-
-func (sm *StateManager) accountLargestStateIndex(idx uint32) {
-	if idx > sm.largestEvidencedStateIndex {
-		sm.largestEvidencedStateIndex = idx
-	}
-}
-
-func (sm *StateManager) IsCorruptedState() bool {
-	return sm.isCorrupted
-}
-
-func (sm *StateManager) IsSolidifiedState() bool {
-	return sm.isSolidified
-}
-
-func (sm *StateManager) IsSynchronizedState() bool {
-	return sm.isSynchronized
+	go func() {
+		ret.initLoadState()
+	}()
+	return ret
 }

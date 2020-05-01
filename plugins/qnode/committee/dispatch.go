@@ -8,7 +8,7 @@ import (
 )
 
 func (c *committee) dispatchMessage(msg interface{}) {
-	if c.stateMgr.IsCorruptedState() {
+	if !c.isOperational.Load() {
 		return
 	}
 	switch msgt := msg.(type) {

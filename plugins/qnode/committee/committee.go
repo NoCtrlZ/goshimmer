@@ -9,16 +9,18 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/peering"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
+	"go.uber.org/atomic"
 	"time"
 )
 
 type committee struct {
-	ownIndex uint16
-	peers    []*peering.Peer
-	scdata   *registry.SCData
-	chMsg    chan interface{}
-	stateMgr *statemgr.StateManager
-	operator *consensus.Operator
+	isOperational atomic.Bool
+	ownIndex      uint16
+	peers         []*peering.Peer
+	scdata        *registry.SCData
+	chMsg         chan interface{}
+	stateMgr      *statemgr.StateManager
+	operator      *consensus.Operator
 }
 
 func New(scdata *registry.SCData) (commtypes.Committee, error) {
@@ -38,7 +40,7 @@ func New(scdata *registry.SCData) (commtypes.Committee, error) {
 		}
 	}
 
-	ret.stateMgr = statemgr.NewStateManager(ret)
+	ret.stateMgr = statemgr.New(ret)
 	ret.operator = consensus.NewOperator()
 
 	go func() {
@@ -51,6 +53,10 @@ func New(scdata *registry.SCData) (commtypes.Committee, error) {
 }
 
 // implements commtypes.Committee interface
+
+func (c *committee) SetOperational() {
+	c.isOperational.Store(true)
+}
 
 func (c *committee) ScId() sctransaction.ScId {
 	return c.scdata.ScId
