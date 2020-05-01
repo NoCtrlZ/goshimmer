@@ -54,7 +54,7 @@ func (sm *StateManager) refreshSolidState() {
 	sm.lastSolidStateTransaction, err = sctransaction.LoadTx(sm.lastSolidStateUpdate.StateTransactionId())
 	if err != nil {
 		log.Errorw("major problem: can't load state tx",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
+			"state index", sm.lastSolidStateUpdate.Essence().StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
 			"scid", scid.String(),
 		)
@@ -64,9 +64,9 @@ func (sm *StateManager) refreshSolidState() {
 	}
 	// validate state transaction by checking if it has correct state block
 	stateBlock, ok := sm.lastSolidStateTransaction.State()
-	if !ok || stateBlock.StateIndex() != sm.lastSolidStateUpdate.StateIndex() {
+	if !ok || stateBlock.StateIndex() != sm.lastSolidStateUpdate.Essence().StateIndex() {
 		log.Errorw("major inconsistency: invalid state block in the state transaction",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
+			"state index", sm.lastSolidStateUpdate.Essence().StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
 			"scid", scid.String(),
 		)
@@ -78,7 +78,7 @@ func (sm *StateManager) refreshSolidState() {
 		// validate the solid variable state and finish the refresh
 		if hashing.GetHashValue(sm.solidVariableState) != stateBlock.VariableStateHash() {
 			log.Errorw("major problem: last solid state transaction doesn't validate the last solid variable state",
-				"state index", sm.lastSolidStateUpdate.StateIndex(),
+				"state index", sm.lastSolidStateUpdate.Essence().StateIndex(),
 				"state tx id", sm.lastSolidStateTransaction.String(),
 				"scid", scid.String(),
 			)
@@ -97,9 +97,9 @@ func (sm *StateManager) refreshSolidState() {
 
 	// here sm.solidVariableState == nil, sm.lastSolidStateUpdate != nil
 	// so it may be an origin state
-	if sm.lastSolidStateUpdate.StateIndex() != 0 {
+	if sm.lastSolidStateUpdate.Essence().StateIndex() != 0 {
 		log.Errorw("major inconsistency: can't find state block in the state transaction",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
+			"state index", sm.lastSolidStateUpdate.Essence().StateIndex(),
 			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
 			"scid", scid.String(),
 		)

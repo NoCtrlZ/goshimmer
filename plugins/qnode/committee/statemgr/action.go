@@ -17,7 +17,7 @@ func (sm *StateManager) takeAction() {
 func (sm *StateManager) sendSyncRequestToPeer() {
 	sm.permutationIndex = (sm.permutationIndex + 1) % sm.committee.Size()
 	data := hashing.MustBytes(&commtypes.GetStateUpdateMsg{
-		StateIndex: sm.lastSolidStateUpdate.StateIndex() + 1,
+		StateIndex: sm.lastSolidStateUpdate.Essence().StateIndex() + 1,
 	})
 	for i := uint16(0); i < sm.committee.Size(); i++ {
 		targetPeerIndex := sm.permutationOfPeers[sm.permutationIndex]

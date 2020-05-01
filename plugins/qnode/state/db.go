@@ -48,10 +48,7 @@ func LoadStateUpdate(scid sctransaction.ScId, stateIndex uint32) (StateUpdate, e
 		return nil, err
 	}
 	rdr := bytes.NewReader(entry.Value)
-	ret := &mockStateUpdate{
-		scid:       scid,
-		stateIndex: stateIndex,
-	}
+	ret := NewStateUpdate(scid, stateIndex)
 	if err = ret.Read(rdr); err != nil {
 		return nil, err
 	}
@@ -65,7 +62,7 @@ func (su *mockStateUpdate) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   StateUpdateStorageKey(su.scid.Color(), su.stateIndex),
+		Key:   StateUpdateStorageKey(su.essence.scid.Color(), su.essence.stateIndex),
 		Value: hashing.MustBytes(su),
 	})
 }

@@ -22,23 +22,49 @@ type mockVariableState struct {
 	merkleHash hashing.HashValue
 }
 
+type mockStateUpdateEssence struct {
+	scid       sctransaction.ScId // persist in key
+	stateIndex uint32             // persist in key
+}
+
 type mockStateUpdate struct {
-	scid       sctransaction.ScId
-	stateIndex uint32
-	stateTxId  valuetransaction.Id
+	essence   *mockStateUpdateEssence
+	stateTxId valuetransaction.Id
 }
 
 // StateUpdate
 
 func NewStateUpdate(scid sctransaction.ScId, stateIndex uint32) StateUpdate {
 	return &mockStateUpdate{
-		scid:       scid,
-		stateIndex: stateIndex,
+		essence: &mockStateUpdateEssence{
+			scid:       scid,
+			stateIndex: stateIndex,
+		},
 	}
 }
 
-func (su *mockStateUpdate) StateIndex() uint32 {
-	return su.stateIndex
+// StateUpdateEssence
+
+func (se *mockStateUpdateEssence) StateIndex() uint32 {
+	return se.stateIndex
+}
+
+func (se *mockStateUpdateEssence) Write(w io.Writer) error {
+	_, err := w.Write(hashing.NilHash.Bytes()) // dummy writing
+	return err
+}
+
+func (se *mockStateUpdateEssence) Read(r io.Reader) error {
+	// dummy reading
+	var dummy hashing.HashValue
+	_, err := r.Read(dummy.Bytes())
+	return err
+}
+
+// StateUpdate interface
+
+func (su *mockStateUpdate) Essence() StateUpdateEssence {
+	return su.essence
 }
 
 func (su *mockStateUpdate) StateTransactionId() valuetransaction.Id {
@@ -49,12 +75,23 @@ func (su *mockStateUpdate) SetStateTransactionId(vtxId valuetransaction.Id) {
 	su.stateTxId = vtxId
 }
 
+func (su *mockStateUpdate) IsAnchored() bool {
+	return su.stateTxId != valuetransaction.Id(*hashing.NilHash)
+}
+
 func (su *mockStateUpdate) Write(w io.Writer) error {
+	if err := su.essence.Write(w); err != nil {
+		return err
+	}
 	_, err := w.Write(su.stateTxId[:])
 	return err
 }
 
 func (su *mockStateUpdate) Read(r io.Reader) error {
+	essence := &mockStateUpdateEssence{}
+	if err := essence.Read(r); err != nil {
+		return err
+	}
 	_, err := r.Read(su.stateTxId[:])
 	return err
 }
@@ -77,7 +114,7 @@ func (vs *mockVariableState) Apply(stateUpdate StateUpdate) VariableState {
 	if vs != nil {
 		merkleHash = hashing.HashData(vs.merkleHash.Bytes())
 	}
-	return NewMockVariableState(stateUpdate.StateIndex(), *merkleHash)
+	return NewMockVariableState(stateUpdate.Essence().StateIndex(), *merkleHash)
 }
 
 func CreateOriginVariableState(stateUpdate StateUpdate) VariableState {
