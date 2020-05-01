@@ -2,6 +2,7 @@ package state
 
 import (
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"io"
 )
 
@@ -13,19 +14,12 @@ type VariableState interface {
 	Write(io.Writer) error
 }
 
-// state update without anchor transaction hash
-type StateUpdateEssence interface {
-	StateIndex() uint32
-	Read(io.Reader) error
-	Write(io.Writer) error
-}
-
 // state update with anchor transaction hash
 type StateUpdate interface {
-	Essence() StateUpdateEssence
+	ScId() sctransaction.ScId
+	StateIndex() uint32
 	StateTransactionId() valuetransaction.Id
 	SetStateTransactionId(valuetransaction.Id)
-	IsAnchored() bool
 	SaveToDb() error
 	Read(io.Reader) error
 	Write(io.Writer) error

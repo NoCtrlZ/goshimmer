@@ -3,14 +3,29 @@ package statemgr
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
+	"github.com/iotaledger/goshimmer/plugins/qnode/state"
 )
 
+// respond to sync request 'GetStateUpdate'
 func (sm *StateManager) EventGetStateUpdateMsg(msg *commtypes.GetStateUpdateMsg) {
-
+	if stateUpd, err := state.LoadStateUpdate(sm.committee.ScId(), msg.StateIndex); err == nil {
+		_ = sm.committee.SendMsg(msg.SenderIndex, commtypes.MsgStateUpdate, hashing.MustBytes(&commtypes.StateUpdateMsg{
+			StateUpdate: stateUpd,
+		}))
+	}
+	// no need for action because it doesn't change of the state
 }
 
+// react to state update msg.
+// It collects state updates while waiting for the anchoring state transaction
+// only are stored updates to the current solid variable state
 func (sm *StateManager) EventStateUpdateMsg(msg *commtypes.StateUpdateMsg) {
-
+	if msg.StateUpdate.StateIndex() != sm.solidVariableState.StateIndex()+1 {
+		// only interested in the state updates for the current solid variable state
+		return
+	}
+	sm.pendingStateUpdates = append(sm.pendingStateUpdates, msg.StateUpdate)
+	sm.takeAction()
 }
 
 // triggered whenever new state transaction arrives
@@ -20,14 +35,13 @@ func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionM
 		return
 	}
 	stateBlock := msg.Transaction.MustState()
-	if stateBlock.StateIndex() > sm.largestEvidencedStateIndex {
-		sm.largestEvidencedStateIndex = stateBlock.StateIndex()
-	}
+	sm.accountLargestStateIndex(stateBlock.StateIndex())
+
 	if stateBlock.StateIndex() != sm.solidVariableState.StateIndex()+1 {
-		// expected next state index for the solidified state
-		// if not, it is out of sync (so, this branch shouldn't happen actually
+		// only interested for the state transaction to verify latest state update
 		return
 	}
+
 	// among pending state updates we locate the one, referenced by the new state transaction
 	for _, stateUpd := range sm.pendingStateUpdates {
 		newVariableState := sm.solidVariableState.Apply(stateUpd)

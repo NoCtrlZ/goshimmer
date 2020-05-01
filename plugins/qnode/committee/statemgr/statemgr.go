@@ -1,5 +1,5 @@
 // statemgr package implements object which is responsible for the smart contract
-// ledger state to be synchronized with other committee nodes
+// ledger state to be synchronized and validated
 package statemgr
 
 import (
@@ -19,9 +19,13 @@ type StateManager struct {
 	isSynchronized bool
 
 	// pending state updates are state updates calculated by the VM
-	// may be several of them with different timestamps
-	// upon arrival of state transaction one of them will be solidified
+	// in servant mode.
+	// are not linked with the state transaction yet
 	pendingStateUpdates []state.StateUpdate
+
+	// state transaction with state index next to the lastSolidStateTransaction
+	// it may be nil (does not exist or not fetched yet
+	nextStateTransaction *sctransaction.Transaction
 
 	// last solid transaction obtained from the tangle by the reference from the
 	// solid state update
@@ -61,6 +65,12 @@ func (sm *StateManager) setSynchronized(yes bool) {
 	if sm.isSolidified && sm.isSynchronized {
 		sm.permutationOfPeers = util.GetPermutation(sm.committee.Size(), sm.lastStateTransaction.Id().Bytes())
 		sm.permutationIndex = sm.committee.Size() - 1
+	}
+}
+
+func (sm *StateManager) accountLargestStateIndex(idx uint32) {
+	if idx > sm.largestEvidencedStateIndex {
+		sm.largestEvidencedStateIndex = idx
 	}
 }
 

@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -48,9 +49,14 @@ func LoadStateUpdate(scid sctransaction.ScId, stateIndex uint32) (StateUpdate, e
 		return nil, err
 	}
 	rdr := bytes.NewReader(entry.Value)
-	ret := NewStateUpdate(scid, stateIndex)
+	ret := NewStateUpdate(sctransaction.NilScId, 0)
 	if err = ret.Read(rdr); err != nil {
 		return nil, err
+	}
+	// check consistency of the stored object
+	if ret.ScId() != scid || ret.StateIndex() != stateIndex {
+		return nil, fmt.Errorf("LoadStateUpdate: invalid state update record in DB at state index %d scid %s",
+			stateIndex, scid.String())
 	}
 	return ret, nil
 }
@@ -62,7 +68,7 @@ func (su *mockStateUpdate) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   StateUpdateStorageKey(su.essence.scid.Color(), su.essence.stateIndex),
+		Key:   StateUpdateStorageKey(su.scid.Color(), su.stateIndex),
 		Value: hashing.MustBytes(su),
 	})
 }
