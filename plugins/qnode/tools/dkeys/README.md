@@ -3,7 +3,7 @@
 ```
 $ go run main.go new ./newdks.json
 ```
-## Get DKS
+## Check DKS
 ```
-$ go run main.go get ./newdks.json
+$ go run main.go check ./newdks.json.resp.json
 ```

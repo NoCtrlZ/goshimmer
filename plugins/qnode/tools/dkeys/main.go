@@ -38,9 +38,9 @@ func main() {
 				},
 			},
 			{
-				Name:    "get",
-				Aliases: []string{"g"},
-				Usage:   "Get dks from each committee nodes",
+				Name:    "check",
+				Aliases: []string{"c"},
+				Usage:   "Check dks from each committee nodes",
 				Action: func(c *cli.Context) error {
 					if c.Args().Get(0) == "" {
 						fmt.Printf("contract path is required\n")
