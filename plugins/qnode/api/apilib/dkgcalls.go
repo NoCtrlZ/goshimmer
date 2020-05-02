@@ -94,3 +94,19 @@ func callGetPubKeyInfo(addr string, port int, params dkgapi.GetPubKeyInfoRequest
 	}
 	return result
 }
+
+func callGetKey(addr string, port int) (*dkgapi.GetDKSResponse, error) {
+	var dks dkgapi.GetDKSResponse
+	url := fmt.Sprintf("http://%s:%d/adm/getdks", addr, port)
+	fmt.Println(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	err = json.NewDecoder(resp.Body).Decode(&dks)
+	// if err != nil {
+	// 	fmt.Println("call get key json")
+	// 	return nil, err
+	// }
+	return &dks, nil
+}
