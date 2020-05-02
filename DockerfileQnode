@@ -1,0 +1,20 @@
+FROM golang:1.13-alpine
+RUN apk add --no-cache git gcc g++
+
+# Set The Current Working Directory Inside The Container
+RUN mkdir /goshimmer
+WORKDIR /goshimmer
+
+# Copy Everything From The Current Directory And Download Dependencies
+COPY . .
+RUN go mod download
+
+# Copy Default Config File To Qnode Directory
+COPY config.default.json ./plugins/qnode/config.json
+
+# Change Directory
+WORKDIR /goshimmer/plugins/qnode/
+
+EXPOSE 8080
+
+ENTRYPOINT ["go run qnode-test/main.go"]
