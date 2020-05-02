@@ -111,14 +111,14 @@ func dispatchState(tx *sctransaction.Transaction) {
 	}
 	// all state block validations passed
 	if committee := getCommittee(tx.MustState().ScId().Color()); committee != nil {
-		committee.ProcessMessage(commtypes.StateTransactionMsg{Transaction: tx})
+		committee.ReceiveMessage(commtypes.StateTransactionMsg{Transaction: tx})
 	}
 }
 
 func dispatchRequests(tx *sctransaction.Transaction) {
 	for i, reqBlk := range tx.Requests() {
 		if committee := getCommittee(reqBlk.ScId().Color()); committee != nil {
-			committee.ProcessMessage(commtypes.RequestMsg{
+			committee.ReceiveMessage(commtypes.RequestMsg{
 				Transaction: tx,
 				Index:       uint16(i),
 			})

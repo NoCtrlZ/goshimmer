@@ -17,7 +17,7 @@ func Start() {
 
 	processPeerMsgClosure := events.NewClosure(func(msg *qnode_events.PeerMessage) {
 		if committee := getCommittee(msg.ScColor); committee != nil {
-			committee.ProcessMessage(msg)
+			committee.ReceiveMessage(msg)
 		}
 	})
 

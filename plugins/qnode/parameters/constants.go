@@ -14,3 +14,9 @@ const (
 	Gi = 1000 * Mi
 	Ti = 1000 * Gi
 )
+
+const (
+	SyncPeriodForTheLeader        = 15 * time.Second
+	SyncPeriodForTheSubordinate   = 10 * time.Second
+	SyncPeriodBetweenSyncMessages = 1 * time.Second
+)

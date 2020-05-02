@@ -14,12 +14,15 @@ func (c *committee) dispatchMessage(msg interface{}) {
 	switch msgt := msg.(type) {
 
 	case *qnode_events.PeerMessage:
+		// receive a message from peer
 		c.processPeerMessage(msgt)
 
 	case commtypes.StateTransactionMsg:
+		// receive state transaction message
 		c.stateMgr.EventStateTransactionMsg(msgt)
 
 	case commtypes.RequestMsg:
+		// receive request message
 		c.operator.EventRequestMsg(msgt)
 	}
 }
@@ -77,6 +80,7 @@ func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 			return
 		}
 		msgt.SenderIndex = msg.SenderIndex
+
 		c.stateMgr.EventStateUpdateMsg(msgt)
 
 	default:

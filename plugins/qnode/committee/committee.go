@@ -58,6 +58,11 @@ func (c *committee) SetOperational() {
 	c.isOperational.Store(true)
 }
 
+func (c *committee) Dismiss() {
+	c.isOperational.Store(false)
+	close(c.chMsg)
+}
+
 func (c *committee) ScId() sctransaction.ScId {
 	return c.scdata.ScId
 }
@@ -66,8 +71,10 @@ func (c *committee) Size() uint16 {
 	return uint16(len(c.scdata.NodeLocations))
 }
 
-func (c *committee) ProcessMessage(msg interface{}) {
-	c.chMsg <- msg
+func (c *committee) ReceiveMessage(msg interface{}) {
+	if c.isOperational.Load() {
+		c.chMsg <- msg
+	}
 }
 
 // sends message to peer with index

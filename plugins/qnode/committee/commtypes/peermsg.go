@@ -79,6 +79,8 @@ type StateUpdateMsg struct {
 	SenderIndex uint16
 	// state update
 	StateUpdate state.StateUpdate
+	// locally calculated by VM (needed for syncing)
+	FromVM bool
 }
 
 func (msg *NotifyReqMsg) Write(w io.Writer) error {
@@ -181,10 +183,16 @@ func (msg *GetStateUpdateMsg) Read(r io.Reader) error {
 }
 
 func (msg *StateUpdateMsg) Write(w io.Writer) error {
-	return msg.StateUpdate.Write(w)
+	if err := msg.StateUpdate.Write(w); err != nil {
+		return err
+	}
+	return util.WriteBoolByte(w, msg.FromVM)
 }
 
 func (msg *StateUpdateMsg) Read(r io.Reader) error {
 	msg.StateUpdate = state.NewStateUpdate(sctransaction.NilScId, 0)
-	return msg.StateUpdate.Read(r)
+	if err := msg.StateUpdate.Read(r); err != nil {
+		return err
+	}
+	return util.ReadBoolByte(r, &msg.FromVM)
 }

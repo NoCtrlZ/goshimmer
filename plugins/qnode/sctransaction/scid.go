@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 	"io"
@@ -27,6 +29,7 @@ const ScIdLength = balance.ColorLength + address.Length
 type ScId [ScIdLength]byte
 
 var NilScId ScId
+var NilId = valuetransaction.Id(*hashing.NilHash)
 
 func NewScId(color balance.Color, addr address.Address) *ScId {
 	var ret ScId
