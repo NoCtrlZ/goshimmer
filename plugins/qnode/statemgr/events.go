@@ -19,7 +19,7 @@ func (sm *StateManager) EventGetStateUpdateMsg(msg *commtypes.GetStateUpdateMsg)
 	// no need for action because it doesn't change of the state
 }
 
-// react to state update msg.
+// respond to state update msg.
 // It collects state updates while waiting for the anchoring state transaction
 // only are stored updates to the current solid variable state
 func (sm *StateManager) EventStateUpdateMsg(msg *commtypes.StateUpdateMsg) {
