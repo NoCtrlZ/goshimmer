@@ -2,7 +2,7 @@ package committee
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"time"
 )

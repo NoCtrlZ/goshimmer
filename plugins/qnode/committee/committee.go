@@ -2,13 +2,13 @@ package committee
 
 import (
 	"fmt"
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/consensus"
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/statemgr"
+	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/consensus"
 	"github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"github.com/iotaledger/goshimmer/plugins/qnode/peering"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/statemgr"
 	"go.uber.org/atomic"
 	"time"
 )

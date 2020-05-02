@@ -1,6 +1,6 @@
 package consensus
 
-import "github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+import "github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 
 func (op *Operator) EventNotifyReqMsg(msg *commtypes.NotifyReqMsg) {
 

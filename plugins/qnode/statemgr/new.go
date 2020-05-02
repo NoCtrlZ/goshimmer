@@ -3,7 +3,7 @@
 package statemgr
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"

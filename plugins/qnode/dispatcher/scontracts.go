@@ -3,7 +3,7 @@ package dispatcher
 import (
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
-	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"sync"
 )
