@@ -2,18 +2,28 @@ package consensus
 
 import "github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 
-func (op *Operator) EventNotifyReqMsg(msg *commtypes.NotifyReqMsg) {
+func (op *ConsensusOperator) EventStateTransitionMsg(msg *commtypes.StateTransitionMsg) {
 
 }
 
-func (op *Operator) EventStartProcessingReqMsg(msg *commtypes.StartProcessingReqMsg) {
+func (op *ConsensusOperator) EventNotifyReqMsg(msg *commtypes.NotifyReqMsg) {
 
 }
 
-func (op *Operator) EventSignedHashMsg(msg *commtypes.SignedHashMsg) {
+func (op *ConsensusOperator) EventStartProcessingReqMsg(msg *commtypes.StartProcessingReqMsg) {
 
 }
 
-func (op *Operator) EventRequestMsg(msg commtypes.RequestMsg) {
+func (op *ConsensusOperator) EventSignedHashMsg(msg *commtypes.SignedHashMsg) {
 
+}
+
+func (op *ConsensusOperator) EventRequestMsg(msg commtypes.RequestMsg) {
+
+}
+
+func (op *ConsensusOperator) EventTimerMsg(msg commtypes.TimerTick) {
+	if msg%10 == 0 {
+		op.takeAction()
+	}
 }

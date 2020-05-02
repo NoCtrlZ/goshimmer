@@ -29,7 +29,8 @@ func (sm *StateManager) EventStateUpdateMsg(msg *commtypes.StateUpdateMsg) {
 	if msg.StateUpdate.StateTransactionId() != sctransaction.NilId && !msg.FromVM {
 		// state update has state transaction in it and it is posted by this node as a leader
 		// so we need to ask for corresponding state transaction
-		sm.asyncLoadStateTransaction(msg.StateUpdate.StateTransactionId(), sm.committee.ScId(), msg.StateUpdate.StateIndex())
+		// except when it is calculated locally by the VM
+		sm.loadStateTransaction(msg.StateUpdate.StateTransactionId(), sm.committee.ScId(), msg.StateUpdate.StateIndex())
 		sm.syncMessageDeadline = time.Now().Add(parameters.SyncPeriodBetweenSyncMessages)
 	}
 	sm.takeAction()
@@ -42,6 +43,7 @@ func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionM
 		return
 	}
 	sm.updateSynchronizationStatus(stateBlock.StateIndex())
+
 	if sm.solidVariableState == nil || stateBlock.StateIndex() != sm.solidVariableState.StateIndex()+1 {
 		// only interested for the state transaction to verify latest state update
 		return
@@ -49,4 +51,10 @@ func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionM
 	sm.nextStateTransaction = msg.Transaction
 
 	sm.takeAction()
+}
+
+func (sm *StateManager) EventTimerMsg(msg commtypes.TimerTick) {
+	if msg%10 == 0 {
+		sm.takeAction()
+	}
 }

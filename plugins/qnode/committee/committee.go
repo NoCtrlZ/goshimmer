@@ -5,6 +5,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/consensus"
 	"github.com/iotaledger/goshimmer/plugins/qnode/events"
+	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/peering"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
@@ -20,7 +21,7 @@ type committee struct {
 	scdata        *registry.SCData
 	chMsg         chan interface{}
 	stateMgr      *statemgr.StateManager
-	operator      *consensus.Operator
+	operator      *consensus.ConsensusOperator
 }
 
 func New(scdata *registry.SCData) (commtypes.Committee, error) {
@@ -48,6 +49,16 @@ func New(scdata *registry.SCData) (commtypes.Committee, error) {
 			ret.dispatchMessage(msg)
 		}
 	}()
+
+	if parameters.UseTimer {
+		go func() {
+			tick := 0
+			for {
+				time.Sleep(parameters.TimerTickPeriod)
+				ret.ReceiveMessage(commtypes.TimerTick(tick))
+			}
+		}()
+	}
 
 	return ret, nil
 }

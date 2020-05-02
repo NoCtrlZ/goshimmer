@@ -47,12 +47,23 @@ func (sm *StateManager) checkStateTransition() bool {
 
 	log.Infof("state transition %s --> #%d scid %s", prevStateIndex, sm.solidVariableState.StateIndex())
 
+	saveTx := sm.nextStateTransaction
+
+	// update state manager variables to the new state
 	sm.solidVariableState = pending.nextVariableState
 	sm.nextStateTransaction = nil
 	sm.pendingStateUpdates = make(map[hashing.HashValue]*pendingStateUpdate) // clean pending state updates
 	sm.permutationOfPeers = util.GetPermutation(sm.committee.Size(), varStateHash.Bytes())
 	sm.permutationIndex = 0
 	sm.syncMessageDeadline = time.Now() // if not synced then immediately
+
+	// if synchronized, notify consensus operator about state transition
+	if sm.isSynchronized() {
+		sm.committee.ReceiveMessage(&commtypes.StateTransitionMsg{
+			VariableState:    sm.solidVariableState,
+			StateTransaction: saveTx,
+		})
+	}
 	return true
 }
 
@@ -103,39 +114,46 @@ func (sm *StateManager) isSynchronized() bool {
 
 // async loads state transaction from DB and validates it
 // posts 'StateTransactionMsg' to the committee upon success
-func (sm *StateManager) asyncLoadStateTransaction(txid transaction.Id, scid sctransaction.ScId, stateIndex uint32) {
-	go func() {
-		tx, err := sctransaction.LoadTx(txid)
-		if err != nil {
-			log.Errorf("can't load state tx",
-				"txid", txid.String(),
-				"stateIndex", stateIndex,
-				"scid", scid.String(),
-			)
-			return
-		}
-		stateBlock, ok := tx.State()
-		if !ok {
-			log.Errorf("not a state tx",
-				"txid", txid.String(),
-				"stateIndex", stateIndex,
-				"scid", scid.String(),
-			)
-			return
-		}
-		if *stateBlock.ScId() != scid || stateBlock.StateIndex() != stateIndex {
-			log.Errorf("unexpected state tx data",
-				"txid", txid.String(),
-				"stateIndex", stateIndex,
-				"scid", scid.String(),
-			)
-			return
-		}
-		// posting to the committee's queue
-		sm.committee.ReceiveMessage(commtypes.StateTransactionMsg{
-			Transaction: tx,
-		})
-	}()
+func (sm *StateManager) loadStateTransaction(txid transaction.Id, scid sctransaction.ScId, stateIndex uint32) {
+	tx, err := sctransaction.LoadTx(txid)
+	if err != nil {
+		log.Errorf("can't load state tx",
+			"txid", txid.String(),
+			"stateIndex", stateIndex,
+			"scid", scid.String(),
+		)
+		return
+	}
+	stateBlock, ok := tx.State()
+	if !ok {
+		log.Errorf("not a state tx",
+			"txid", txid.String(),
+			"stateIndex", stateIndex,
+			"scid", scid.String(),
+		)
+		return
+	}
+	if *stateBlock.ScId() != scid || stateBlock.StateIndex() != stateIndex {
+		log.Errorf("unexpected state tx data",
+			"txid", txid.String(),
+			"stateIndex", stateIndex,
+			"scid", scid.String(),
+		)
+		return
+	}
+	// posting to the committee's queue
+	sm.committee.ReceiveMessage(commtypes.StateTransactionMsg{
+		Transaction: tx,
+	})
+}
+
+func (sm *StateManager) findLastStateTransaction(scid sctransaction.ScId) {
+	// finds transaction, which owns output with colored toke scid.Color()
+	// notifies committee about it
+	// posting to the committee's queue
+	sm.committee.ReceiveMessage(commtypes.StateTransactionMsg{
+		Transaction: nil, // TODO stub
+	})
 }
 
 // adding state update to the 'pending' map

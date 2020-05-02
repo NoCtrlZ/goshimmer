@@ -11,11 +11,20 @@ func (c *committee) dispatchMessage(msg interface{}) {
 	if !c.isOperational.Load() {
 		return
 	}
+	stateMgr := false
+
 	switch msgt := msg.(type) {
 
 	case *qnode_events.PeerMessage:
 		// receive a message from peer
 		c.processPeerMessage(msgt)
+
+	case *commtypes.StateUpdateMsg:
+		// StateUpdateMsg may come from peer and from own consensus operator
+		c.stateMgr.EventStateUpdateMsg(msgt)
+
+	case *commtypes.StateTransitionMsg:
+		c.operator.EventStateTransitionMsg(msgt)
 
 	case commtypes.StateTransactionMsg:
 		// receive state transaction message
@@ -24,6 +33,14 @@ func (c *committee) dispatchMessage(msg interface{}) {
 	case commtypes.RequestMsg:
 		// receive request message
 		c.operator.EventRequestMsg(msgt)
+
+	case commtypes.TimerTick:
+		if stateMgr {
+			c.stateMgr.EventTimerMsg(msgt)
+		} else {
+			c.operator.EventTimerMsg(msgt)
+		}
+		stateMgr = !stateMgr
 	}
 }
 

@@ -20,3 +20,8 @@ const (
 	SyncPeriodForTheSubordinate   = 10 * time.Second
 	SyncPeriodBetweenSyncMessages = 1 * time.Second
 )
+
+const (
+	TimerTickPeriod = 50 * time.Millisecond
+	UseTimer        = true
+)
