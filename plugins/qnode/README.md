@@ -11,7 +11,11 @@ Execute the following command on `root` directory.
 ```
 $ docker-compose -f docker-compose.qnode.yml up
 ```
-
+The `qnode` api server will be listening on [localhost:8080](http://localhost/8080/adm/getsclist)  
+If you want to stop container, execute the following command.
+```
+$ docker-compose -f docker-compose.qnode.yml down
+```
 ## Loadmap
 There are four steps to complete qnode project.
 - Finish developing of the core
