@@ -83,6 +83,7 @@ type StateUpdateMsg struct {
 
 // state manager notifies consensus operator about changed state
 // only sent internally within committee
+// state transition is always from state N to state N+1
 type StateTransitionMsg struct {
 	// new variable state
 	VariableState state.VariableState

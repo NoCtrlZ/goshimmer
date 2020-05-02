@@ -10,6 +10,7 @@ import (
 type Committee interface {
 	ScId() sctransaction.ScId
 	Size() uint16
+	OwnPeerIndex() uint16
 	SetOperational()
 	Dismiss()
 	SendMsg(targetPeerIndex uint16, msgType byte, msgData []byte) error

@@ -124,3 +124,7 @@ func (c *committee) IsAlivePeer(peerIndex uint16) bool {
 	ret, _ := c.peers[peerIndex].IsAlive()
 	return ret
 }
+
+func (c *committee) OwnPeerIndex() uint16 {
+	return c.ownIndex
+}

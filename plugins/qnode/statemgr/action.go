@@ -45,7 +45,6 @@ func (sm *StateManager) checkStateTransition() bool {
 	if sm.solidVariableState.StateIndex() > 0 {
 		prevStateIndex = fmt.Sprintf("#%d", sm.solidVariableState.StateIndex()-1)
 	}
-
 	log.Infof("state transition %s --> #%d scid %s", prevStateIndex, sm.solidVariableState.StateIndex())
 
 	saveTx := sm.nextStateTransaction
