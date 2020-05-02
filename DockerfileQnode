@@ -10,11 +10,11 @@ COPY . .
 RUN go mod download
 
 # Copy Default Config File To Qnode Directory
-COPY config.default.json ./plugins/qnode/config.json
+COPY config.docker.json ./plugins/qnode/config.json
 
 # Change Directory
 WORKDIR /goshimmer/plugins/qnode/
 
 EXPOSE 8080
 
-ENTRYPOINT ["go run qnode-test/main.go"]
+ENTRYPOINT ["go", "run", "./qnode-test/main.go"]

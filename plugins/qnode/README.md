@@ -6,6 +6,12 @@ $ cp ../../config.default.json ./config.json
 $ go run qnode-test/main.go
 ```
 
+## Docker
+Execute the following command on `root` directory.
+```
+$ docker-compose -f docker-compose.qnode.yml up
+```
+
 ## Loadmap
 There are four steps to complete qnode project.
 - Finish developing of the core
