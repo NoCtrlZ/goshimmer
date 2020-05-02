@@ -16,7 +16,7 @@ func (sm *StateManager) takeAction() {
 	if sm.checkStateTransition() {
 		return
 	}
-	sm.queryStateUpdateFromPeerIfNeeded()
+	sm.requestStateUpdateFromPeerIfNeeded()
 }
 
 // if state is corrupted, will never synchronize
@@ -44,26 +44,29 @@ func (sm *StateManager) checkStateTransition() bool {
 	if sm.solidVariableState.StateIndex() > 0 {
 		prevStateIndex = fmt.Sprintf("#%d", sm.solidVariableState.StateIndex()-1)
 	}
+
 	log.Infof("state transition %s --> #%d scid %s", prevStateIndex, sm.solidVariableState.StateIndex())
 
 	sm.solidVariableState = pending.nextVariableState
+	sm.nextStateTransaction = nil
+	sm.pendingStateUpdates = make(map[hashing.HashValue]*pendingStateUpdate) // clean pending state updates
 	sm.permutationOfPeers = util.GetPermutation(sm.committee.Size(), varStateHash.Bytes())
 	sm.permutationIndex = 0
-	sm.syncMessageDeadline = time.Now() // if not synced the immediately
-	return false
+	sm.syncMessageDeadline = time.Now() // if not synced then immediately
+	return true
 }
 
-func (sm *StateManager) queryStateUpdateFromPeerIfNeeded() {
+func (sm *StateManager) requestStateUpdateFromPeerIfNeeded() {
 	if sm.solidVariableState == nil {
 		return
 	}
 	if sm.isSynchronized() {
-		// state is synced
+		// state is synced, no need for more info
 		return
 	}
 	// not synced
 	if !sm.syncMessageDeadline.Before(time.Now()) {
-		// not time yet
+		// not time yet for the next message
 		return
 	}
 	// it is time to ask for the next state update to next peer in the permutation
@@ -71,6 +74,7 @@ func (sm *StateManager) queryStateUpdateFromPeerIfNeeded() {
 	data := hashing.MustBytes(&commtypes.GetStateUpdateMsg{
 		StateIndex: sm.solidVariableState.StateIndex() + 1,
 	})
+	// send messages until first without error
 	for i := uint16(0); i < sm.committee.Size(); i++ {
 		targetPeerIndex := sm.permutationOfPeers[sm.permutationIndex]
 		if err := sm.committee.SendMsg(targetPeerIndex, commtypes.MsgGetStateUpdate, data); err == nil {
@@ -81,7 +85,7 @@ func (sm *StateManager) queryStateUpdateFromPeerIfNeeded() {
 	}
 }
 
-func (sm *StateManager) checkSynchronized(idx uint32) {
+func (sm *StateManager) updateSynchronizationStatus(idx uint32) {
 	// synced state is when current state index is behind
 	// the largestEvidencedStateIndex no more than by 1 point
 	wasSynchronized := sm.isSynchronized()
