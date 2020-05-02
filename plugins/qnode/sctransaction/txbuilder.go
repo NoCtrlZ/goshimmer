@@ -2,9 +2,9 @@ package sctransaction
 
 import (
 	"errors"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 )
 
 // object with interface to build SC transaction and value transaction within it

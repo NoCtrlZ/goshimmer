@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
 	"io"
@@ -25,6 +25,8 @@ const ScIdLength = balance.ColorLength + address.Length
 // Therefore, the ScId contains all information about SC needed to create a valid
 // request to it and to find its state on the tangle.
 type ScId [ScIdLength]byte
+
+var NilScId ScId
 
 func NewScId(color balance.Color, addr address.Address) *ScId {
 	var ret ScId

@@ -3,6 +3,7 @@ package dispatcher
 import (
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"sync"
 )
@@ -10,7 +11,7 @@ import (
 // unique key for a smart contract is Color of its scid
 
 var (
-	scontracts      = make(map[balance.Color]committee.Committee)
+	scontracts      = make(map[balance.Color]commtypes.Committee)
 	scontractsMutex = &sync.RWMutex{}
 )
 
@@ -24,22 +25,17 @@ func loadAllSContracts(ownAddr *registry.PortAddr) (int, error) {
 	}
 	num := 0
 	for _, scdata := range sclist {
-		scontracts[scdata.ScId.Color()] = committee.NewSyncManager(scdata)
-		num++
+		if c, err := committee.New(scdata); err == nil {
+			scontracts[scdata.ScId.Color()] = c
+			num++
+		} else {
+			log.Warn(err)
+		}
 	}
 	return num, nil
 }
 
-// is the SC with the color processed by this node
-func isColorProcessedByNode(color balance.Color) bool {
-	scontractsMutex.RLock()
-	defer scontractsMutex.RUnlock()
-
-	_, ok := scontracts[color]
-	return ok
-}
-
-func getSyncMgr(color balance.Color) committee.SyncManager {
+func getCommittee(color balance.Color) commtypes.Committee {
 	scontractsMutex.RLock()
 	defer scontractsMutex.RUnlock()
 

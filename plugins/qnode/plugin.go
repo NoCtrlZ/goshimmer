@@ -31,7 +31,7 @@ func configPlugin(_ *node.Plugin) {
 	cwd, _ := os.Getwd()
 	log.Debugw("+++++ dbg",
 		"current working dir", cwd,
-		"bindAddress", config.Node.GetString(webapi.BIND_ADDRESS),
+		"bindAddress", config.Node.GetString(webapi.CfgBindAddress),
 	)
 	dispatcher.Start()
 	api.InitEndpoints()

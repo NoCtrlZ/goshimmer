@@ -2,7 +2,7 @@ package sctransaction
 
 import (
 	"errors"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"io"

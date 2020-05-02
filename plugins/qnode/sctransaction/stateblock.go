@@ -18,9 +18,10 @@ type StateBlock struct {
 	stateIndex uint32
 	// timestamp of the transaction. 0 means transaction is not timestamped
 	timestamp int64
-	// requestId tx hash + requestId index which originated this state update
-	// this reference makes requestId (inputs to state update) immutable part of the state update
-	requestId RequestId
+	// requestId = tx hash + requestId index which originated this state update
+	// the list is needed for batches of requests
+	// this reference makes requestIds (inputs to state update) immutable part of the state update
+	requestIds []RequestId
 	// variable state hash.
 	// it is used to validate the variable state in the SC ledger while syncing
 	// note that by having this has it is still impossible to reach respective state update without
@@ -30,7 +31,7 @@ type StateBlock struct {
 
 type StateBlockParams struct {
 	Timestamp         int64
-	RequestId         RequestId
+	RequestIds        []RequestId
 	VariableStateHash hashing.HashValue
 }
 
@@ -38,6 +39,7 @@ func NewStateBlock(scid *ScId, stateIndex uint32) *StateBlock {
 	return &StateBlock{
 		scid:       scid,
 		stateIndex: stateIndex,
+		requestIds: make([]RequestId, 0),
 	}
 }
 
@@ -55,17 +57,17 @@ func (sb *StateBlock) Timestamp() int64 {
 	return sb.timestamp
 }
 
-func (sb *StateBlock) RequestId() *RequestId {
-	return &sb.requestId
+func (sb *StateBlock) RequestIds() *[]RequestId {
+	return &sb.requestIds
 }
 
-func (sb *StateBlock) VariableStateHash() *hashing.HashValue {
-	return &sb.variableStateHash
+func (sb *StateBlock) VariableStateHash() hashing.HashValue {
+	return sb.variableStateHash
 }
 
 func (sb *StateBlock) WithParams(params StateBlockParams) *StateBlock {
 	sb.timestamp = params.Timestamp
-	sb.requestId = params.RequestId
+	sb.requestIds = params.RequestIds
 	sb.variableStateHash = params.VariableStateHash
 	return sb
 }
@@ -83,8 +85,13 @@ func (sb *StateBlock) Write(w io.Writer) error {
 	if err := util.WriteUint64(w, uint64(sb.timestamp)); err != nil {
 		return err
 	}
-	if err := sb.requestId.Write(w); err != nil {
+	if err := util.WriteUint16(w, uint16(len(sb.requestIds))); err != nil {
 		return err
+	}
+	for i := range sb.requestIds {
+		if err := sb.requestIds[i].Write(w); err != nil {
+			return err
+		}
 	}
 	if err := sb.variableStateHash.Write(w); err != nil {
 		return err
@@ -105,9 +112,15 @@ func (sb *StateBlock) Read(r io.Reader) error {
 	if err := util.ReadUint64(r, &timestamp); err != nil {
 		return err
 	}
-	var reqId RequestId
-	if err := reqId.Read(r); err != nil {
+	var size uint16
+	if err := util.ReadUint16(r, &size); err != nil {
 		return err
+	}
+	requestIds := make([]RequestId, size)
+	for i := range sb.requestIds {
+		if err := sb.requestIds[i].Read(r); err != nil {
+			return err
+		}
 	}
 	var stateUpdateHash hashing.HashValue
 	if err := stateUpdateHash.Read(r); err != nil {
@@ -116,7 +129,7 @@ func (sb *StateBlock) Read(r io.Reader) error {
 	sb.scid = scid
 	sb.stateIndex = stateIndex
 	sb.timestamp = int64(timestamp)
-	sb.requestId = reqId
+	sb.requestIds = requestIds
 	sb.variableStateHash = stateUpdateHash
 	return nil
 }

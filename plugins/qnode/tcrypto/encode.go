@@ -2,7 +2,7 @@ package tcrypto
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"

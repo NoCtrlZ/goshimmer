@@ -2,7 +2,7 @@ package state
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
+	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	"github.com/iotaledger/goshimmer/plugins/qnode/db"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
@@ -49,12 +49,14 @@ func LoadStateUpdate(scid sctransaction.ScId, stateIndex uint32) (StateUpdate, e
 		return nil, err
 	}
 	rdr := bytes.NewReader(entry.Value)
-	ret := &mockStateUpdate{
-		scid:       scid,
-		stateIndex: stateIndex,
-	}
-	if err = ret.read(rdr); err != nil {
+	ret := NewStateUpdate(sctransaction.NilScId, 0)
+	if err = ret.Read(rdr); err != nil {
 		return nil, err
+	}
+	// check consistency of the stored object
+	if ret.ScId() != scid || ret.StateIndex() != stateIndex {
+		return nil, fmt.Errorf("LoadStateUpdate: invalid state update record in DB at state index %d scid %s",
+			stateIndex, scid.String())
 	}
 	return ret, nil
 }
@@ -67,7 +69,7 @@ func (su *mockStateUpdate) SaveToDb() error {
 	}
 	return dbase.Set(database.Entry{
 		Key:   StateUpdateStorageKey(su.scid.Color(), su.stateIndex),
-		Value: su.Bytes(),
+		Value: hashing.MustBytes(su),
 	})
 }
 
@@ -91,17 +93,10 @@ func LoadVariableState(scid sctransaction.ScId) (VariableState, error) {
 		scid:       scid,
 		merkleHash: hashing.HashValue{},
 	}
-	if err = ret.read(rdr); err != nil {
+	if err = ret.Read(rdr); err != nil {
 		return nil, err
 	}
 	return ret, nil
-}
-
-func ExistDKShareInRegistry(addr address.Address) (bool, error) {
-	dbase, err := db.Get()
-	if err != nil {
-		return false, err
-	}
 }
 
 // saves variable state to db
@@ -112,6 +107,6 @@ func (vs *mockVariableState) SaveToDb() error {
 	}
 	return dbase.Set(database.Entry{
 		Key:   VariableStateStorageKey(vs.scid.Color()),
-		Value: vs.Bytes(),
+		Value: hashing.MustBytes(vs),
 	})
 }

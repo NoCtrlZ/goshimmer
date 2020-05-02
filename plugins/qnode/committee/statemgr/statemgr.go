@@ -1,22 +1,27 @@
 // statemgr package implements object which is responsible for the smart contract
-// ledger state to be synchronized with other committee nodes
+// ledger state to be synchronized and validated
 package statemgr
 
 import (
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
+	"time"
 )
 
 type StateManager struct {
-	scid sctransaction.ScId
-
-	// state is corrupted, SC can't proceed
-	isCorrupted bool
+	committee commtypes.Committee
 
 	// pending state updates are state updates calculated by the VM
-	// may be several of them with different timestamps
-	// upon arrival of state transaction one of them will be solidified
-	pendingStateUpdates []state.StateUpdate
+	// in servant mode.
+	// are not linked with the state transaction yet
+	pendingStateUpdates map[hashing.HashValue]*pendingStateUpdate
+
+	// state transaction with state index next to the lastSolidStateTransaction
+	// it may be nil (does not exist or not fetched yet
+	nextStateTransaction    *sctransaction.Transaction
+	stateTransactionArrived time.Time
 
 	// last solid transaction obtained from the tangle by the reference from the
 	// solid state update
@@ -25,10 +30,6 @@ type StateManager struct {
 	// last variable state stored in the database
 	solidVariableState state.VariableState
 
-	// last state update stored in the database. Obtained by the index stored in variable state
-	// In case of origin state index is 0
-	lastSolidStateUpdate state.StateUpdate
-
 	// last state transaction received from the tangle
 	// it may be not solidified yet in the SC ledger
 	// if it coincides with the lastSolidStateTransaction, the state is in sync, otherwise it is not
@@ -36,44 +37,28 @@ type StateManager struct {
 
 	// largest state index seen from other messages. If this index is more than 1 step ahead then
 	// the solid one, state is not synced
-	lastEvidencedStateIndex uint32
+	largestEvidencedStateIndex uint32
+
+	// synchronization status. It is reset when state becomes synchronized
+	permutationOfPeers  []uint16
+	permutationIndex    uint16
+	syncMessageDeadline time.Time
 }
 
-func NewStateManager(scid sctransaction.ScId) *StateManager {
-	return &StateManager{
-		scid:                scid,
-		pendingStateUpdates: make([]state.StateUpdate, 0),
-	}
+type pendingStateUpdate struct {
+	// state update, not validated yet
+	stateUpdate state.StateUpdate
+	// resulting variable state applied to the solidVariableState
+	nextVariableState state.VariableState
 }
 
-func (sm *StateManager) isSynchronized() bool {
-	if sm.isCorrupted {
-		return false
+func New(committee commtypes.Committee) *StateManager {
+	ret := &StateManager{
+		committee:           committee,
+		pendingStateUpdates: make(map[hashing.HashValue]*pendingStateUpdate),
 	}
-	if sm.lastStateTransaction == nil {
-		return false
-	}
-
-	if sm.solidVariableState == nil {
-		return false
-	}
-
-	if sm.lastEvidencedStateIndex > sm.solidVariableState.StateIndex()+1 {
-		return false
-	}
-	if sm.lastStateTransaction.MustState().StateIndex() != sm.solidVariableState.StateIndex() {
-		return false
-	}
-	return true
-}
-
-func (sm *StateManager) synchronizationStep() {
-	if sm.isCorrupted {
-		return
-	}
-	if sm.isSynchronized() {
-		return
-	}
-	// step 1: get last state transaction
-	sm.refreshSolidState()
+	go func() {
+		ret.initLoadState()
+	}()
+	return ret
 }

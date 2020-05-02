@@ -2,9 +2,9 @@ package sctransaction
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/balance"
-	valuetransaction "github.com/iotaledger/goshimmer/packages/binary/valuetransfer/transaction"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
+	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/magiconair/properties/assert"
 	"testing"
@@ -80,7 +80,7 @@ func TestTransactionStateBlock1(t *testing.T) {
 
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
-	bal := balance.New(balance.COLOR_IOTA, 1)
+	bal := balance.New(balance.ColorIOTA, 1)
 	txb.AddOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
@@ -103,14 +103,14 @@ func TestTransactionStateBlock2(t *testing.T) {
 
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
-	bal := balance.New(balance.COLOR_IOTA, 1)
+	bal := balance.New(balance.ColorIOTA, 1)
 	txb.AddOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
 	txb.AddStateBlock(scid, 42)
 	txb.SetStateBlockParams(StateBlockParams{
 		Timestamp:         time.Now().UnixNano(),
-		RequestId:         NewRandomRequestId(2),
+		RequestIds:        []RequestId{NewRandomRequestId(2)},
 		VariableStateHash: *hashing.RandomHash(nil),
 	})
 	_, err = txb.Finalize()
@@ -130,7 +130,7 @@ func TestTransactionRequestBlock(t *testing.T) {
 
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
-	bal := balance.New(balance.COLOR_IOTA, 1)
+	bal := balance.New(balance.ColorIOTA, 1)
 	txb.AddOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
@@ -155,7 +155,7 @@ func TestTransactionMultiBlocks(t *testing.T) {
 
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
-	bal := balance.New(balance.COLOR_IOTA, 1)
+	bal := balance.New(balance.ColorIOTA, 1)
 	txb.AddOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
@@ -163,7 +163,7 @@ func TestTransactionMultiBlocks(t *testing.T) {
 	txb.AddStateBlock(scid, 42)
 	txb.SetStateBlockParams(StateBlockParams{
 		Timestamp:         time.Now().UnixNano(),
-		RequestId:         NewRandomRequestId(2),
+		RequestIds:        []RequestId{NewRandomRequestId(2)},
 		VariableStateHash: *hashing.RandomHash(nil),
 	})
 

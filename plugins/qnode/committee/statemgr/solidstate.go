@@ -2,30 +2,19 @@ package statemgr
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
-	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
 )
 
-// loads and validates last solid state from the database.
-// Upon return, if !sm.isCorrupted the last solid state is valid, otherwise SC can't proceed
-//
-// Solid state consists of:
-// -- variable state. Loaded from qnode by scid.color
-// -- last state update. Loaded from the qnode DB by scid.color and state index, taken from the variable state
-// -- last solid transaction. Loaded from the tangle by tx id stored in the last solid state update
-// Special conditions for the origin state. If the function detects non solidified but correct origin state,
-// it will solidify it by creating origin variable state in the ledger
-func (sm *StateManager) refreshSolidState() {
-	if sm.isCorrupted {
-		return
-	}
+// initial loading of the solid state
+func (sm *StateManager) initLoadState() {
 	var err error
 
+	scid := sm.committee.ScId()
 	// load last variable state from the database
-	sm.solidVariableState, err = state.LoadVariableState(sm.scid)
+	sm.solidVariableState, err = state.LoadVariableState(scid)
 	if err != nil {
-		log.Errorf("can't load variable state for scid %s: %v", sm.scid.String(), err)
-		sm.isCorrupted = true
+		log.Errorf("can't load variable state for scid %s: %v", scid.String(), err)
+
 		return
 	}
 	solidStateIndex := uint32(0)
@@ -37,96 +26,37 @@ func (sm *StateManager) refreshSolidState() {
 
 	// load solid state update from db with the state index taken from the variable state
 	// state index is 0 if variable state doesn't exist in the DB
-	sm.lastSolidStateUpdate, err = state.LoadStateUpdate(sm.scid, solidStateIndex)
+	stateUpdate, err := state.LoadStateUpdate(scid, solidStateIndex)
 	if err != nil {
-		log.Errorf("can't load state update index %d for scid %s: %v", solidStateIndex, sm.scid.String(), err)
-		sm.isCorrupted = true
+		log.Errorf("can't load state update index %d for scid %s: %v", solidStateIndex, scid.String(), err)
+
 		return
 	}
-	if sm.lastSolidStateUpdate == nil {
-		log.Errorf("can't find solid state update with index %d scid %s", solidStateIndex, sm.scid.String())
+	sm.addPendingStateUpdate(stateUpdate)
+
+	// open msg queue for the committee
+	sm.committee.SetOperational()
+
+	// here we have at least sm.lastSolidStateUpdate
+	// for genesis state sm.solidVariableState == nil
+	// async load state transaction
+	sm.asyncLoadStateTransaction(stateUpdate.StateTransactionId(), sm.committee.ScId(), stateUpdate.StateIndex())
+
+}
+
+func (sm *StateManager) addPendingStateUpdate(stateUpdate state.StateUpdate) {
+	if sm.solidVariableState != nil && stateUpdate.StateIndex() != sm.solidVariableState.StateIndex()+1 {
 		return
 	}
-	// load state transaction corresponding to the state update
-	sm.lastSolidStateTransaction, err = sctransaction.LoadTx(sm.lastSolidStateUpdate.StateTransactionId())
-	if err != nil {
-		log.Errorw("major problem: can't load state tx",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
-			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
-		)
-
-		sm.isCorrupted = true
-		return
+	var varState state.VariableState
+	if sm.solidVariableState == nil {
+		varState = state.CreateOriginVariableState(stateUpdate)
+	} else {
+		varState = sm.solidVariableState.Apply(stateUpdate)
 	}
-	// validate state transaction by checking if it has correct state block
-	stateBlock, ok := sm.lastSolidStateTransaction.State()
-	if !ok || stateBlock.StateIndex() != sm.lastSolidStateUpdate.StateIndex() {
-		log.Errorw("major inconsistency: invalid state block in the state transaction",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
-			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
-		)
-
-		sm.isCorrupted = true
-		return
+	pending := &pendingStateUpdate{
+		stateUpdate:       stateUpdate,
+		nextVariableState: varState,
 	}
-	if sm.solidVariableState != nil {
-		// validate the solid variable state and finish the refresh
-		varStateHash := hashing.HashData(sm.solidVariableState.Bytes())
-		if varStateHash != stateBlock.VariableStateHash() {
-			log.Errorw("major problem: last solid state transaction doesn;t validate the last solid variable state",
-				"state index", sm.lastSolidStateUpdate.StateIndex(),
-				"state tx id", sm.lastSolidStateTransaction.String(),
-				"scid", sm.scid.String(),
-			)
-
-			sm.isCorrupted = true
-		}
-		return
-	}
-
-	if !(sm.solidVariableState == nil && sm.lastSolidStateUpdate != nil) {
-		panic("assertion failed: sm.solidVariableState == nil && sm.lastSolidStateUpdate != nil")
-	}
-
-	// here sm.solidVariableState == nil, sm.lastSolidStateUpdate != nil
-	// so it may be an origin state
-	if sm.lastSolidStateUpdate.StateIndex() != 0 {
-		log.Errorw("major inconsistency: can't find state block in the state transaction",
-			"state index", sm.lastSolidStateUpdate.StateIndex(),
-			"tx id", sm.lastSolidStateUpdate.StateTransactionId().String(),
-			"scid", sm.scid.String(),
-		)
-
-		sm.isCorrupted = true
-		return
-	}
-	// here we have consistent origin state
-	// we calculate origin variable state and store it
-	sm.solidVariableState = state.CreateOriginVariableState(sm.lastSolidStateUpdate)
-
-	// we have to check if the hash of the origin variable state is equal to the one in the origin transaction
-
-	if stateBlock.VariableStateHash() != hashing.HashData(sm.solidVariableState.Bytes()) {
-		// something wrong
-		log.Errorw("major inconsistency: origin state transaction is inconsistent with the origin state update",
-			"tx id", sm.lastSolidStateTransaction.Id().String(),
-			"scid", sm.scid.String(),
-		)
-
-		sm.isCorrupted = true
-		return
-	}
-	// save origin state
-	if err = sm.solidVariableState.SaveToDb(); err != nil {
-		log.Errorw("can't save origin variable state",
-			"scid", sm.scid.String(),
-			"err", err.Error(),
-		)
-
-		sm.isCorrupted = true
-		return
-	}
-
+	sm.pendingStateUpdates[hashing.GetHashValue(varState)] = pending
 }

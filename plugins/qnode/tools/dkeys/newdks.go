@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/plugins/qnode/api/apilib"
 	"github.com/iotaledger/goshimmer/plugins/qnode/registry"
 	"io/ioutil"

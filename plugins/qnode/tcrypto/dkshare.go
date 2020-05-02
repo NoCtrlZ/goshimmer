@@ -3,7 +3,7 @@ package tcrypto
 
 import (
 	"fmt"
-	"github.com/iotaledger/goshimmer/packages/binary/valuetransfer/address"
+	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/address"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto/tbdn"
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"
