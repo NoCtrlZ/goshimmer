@@ -21,7 +21,7 @@ type committee struct {
 	scdata        *registry.SCData
 	chMsg         chan interface{}
 	stateMgr      *statemgr.StateManager
-	operator      *consensus.ConsensusOperator
+	operator      *consensus.Operator
 }
 
 func New(scdata *registry.SCData) (commtypes.Committee, error) {

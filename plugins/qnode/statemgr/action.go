@@ -19,7 +19,6 @@ func (sm *StateManager) takeAction() {
 	sm.requestStateUpdateFromPeerIfNeeded()
 }
 
-// if state is corrupted, will never synchronize
 func (sm *StateManager) checkStateTransition() bool {
 	if sm.nextStateTransaction == nil {
 		return false
@@ -35,7 +34,7 @@ func (sm *StateManager) checkStateTransition() bool {
 	// it is approved by the nextStateTransaction
 	pending.stateUpdate.SetStateTransactionId(sm.nextStateTransaction.Id())
 
-	if err := sm.saveStateToDb(pending.nextVariableState, pending.stateUpdate); err != nil {
+	if err := state.SaveStateToDb(pending.stateUpdate, pending.nextVariableState, sm.nextStateTransaction.MustState().RequestIds()); err != nil {
 		log.Errorf("failed to save state #%d: %v", pending.stateUpdate.StateIndex(), err)
 		return false
 	}

@@ -1,5 +1,5 @@
 package consensus
 
-func (op *ConsensusOperator) takeAction() {
+func (op *Operator) takeAction() {
 
 }
