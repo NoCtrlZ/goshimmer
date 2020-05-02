@@ -34,7 +34,9 @@ func (sm *StateManager) checkStateTransition() bool {
 	// it is approved by the nextStateTransaction
 	pending.stateUpdate.SetStateTransactionId(sm.nextStateTransaction.Id())
 
-	if err := state.SaveStateToDb(pending.stateUpdate, pending.nextVariableState, sm.nextStateTransaction.MustState().RequestIds()); err != nil {
+	// save the new state and mark requests as processed
+	reqIds := sm.nextStateTransaction.MustState().RequestIds()
+	if err := state.SaveStateToDb(pending.stateUpdate, pending.nextVariableState, reqIds); err != nil {
 		log.Errorf("failed to save state #%d: %v", pending.stateUpdate.StateIndex(), err)
 		return false
 	}
