@@ -1,7 +1,7 @@
 package statemgr
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
@@ -10,9 +10,9 @@ import (
 )
 
 // respond to sync request 'GetStateUpdate'
-func (sm *StateManager) EventGetStateUpdateMsg(msg *commtypes.GetStateUpdateMsg) {
+func (sm *StateManager) EventGetStateUpdateMsg(msg *committee.GetStateUpdateMsg) {
 	if stateUpd, err := state.LoadStateUpdate(sm.committee.ScId(), msg.StateIndex); err == nil {
-		_ = sm.committee.SendMsg(msg.SenderIndex, commtypes.MsgStateUpdate, hashing.MustBytes(&commtypes.StateUpdateMsg{
+		_ = sm.committee.SendMsg(msg.SenderIndex, committee.MsgStateUpdate, hashing.MustBytes(&committee.StateUpdateMsg{
 			StateUpdate: stateUpd,
 		}))
 	}
@@ -22,7 +22,7 @@ func (sm *StateManager) EventGetStateUpdateMsg(msg *commtypes.GetStateUpdateMsg)
 // respond to state update msg.
 // It collects state updates while waiting for the anchoring state transaction
 // only are stored updates to the current solid variable state
-func (sm *StateManager) EventStateUpdateMsg(msg *commtypes.StateUpdateMsg) {
+func (sm *StateManager) EventStateUpdateMsg(msg *committee.StateUpdateMsg) {
 	if !sm.addPendingStateUpdate(msg.StateUpdate) {
 		return
 	}
@@ -37,7 +37,7 @@ func (sm *StateManager) EventStateUpdateMsg(msg *commtypes.StateUpdateMsg) {
 }
 
 // triggered whenever new state transaction arrives
-func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionMsg) {
+func (sm *StateManager) EventStateTransactionMsg(msg committee.StateTransactionMsg) {
 	stateBlock, ok := msg.Transaction.State()
 	if !ok {
 		return
@@ -53,7 +53,7 @@ func (sm *StateManager) EventStateTransactionMsg(msg commtypes.StateTransactionM
 	sm.takeAction()
 }
 
-func (sm *StateManager) EventTimerMsg(msg commtypes.TimerTick) {
+func (sm *StateManager) EventTimerMsg(msg committee.TimerTick) {
 	if msg%10 == 0 {
 		sm.takeAction()
 	}

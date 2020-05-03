@@ -1,8 +1,8 @@
-package commtypes
+package commiteeimpl
 
 import "github.com/iotaledger/hive.go/logger"
 
-const modulename = "qnode/commtypes"
+const modulename = "qnode/committeeObj"
 
 var log *logger.Logger
 

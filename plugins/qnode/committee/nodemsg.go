@@ -1,4 +1,4 @@
-package commtypes
+package committee
 
 import "github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 

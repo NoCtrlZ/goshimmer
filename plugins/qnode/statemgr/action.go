@@ -3,7 +3,7 @@ package statemgr
 import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/parameters"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
@@ -59,7 +59,7 @@ func (sm *StateManager) checkStateTransition() bool {
 
 	// if synchronized, notify consensus operator about state transition
 	if sm.isSynchronized() {
-		sm.committee.ReceiveMessage(&commtypes.StateTransitionMsg{
+		sm.committee.ReceiveMessage(&committee.StateTransitionMsg{
 			VariableState:    sm.solidVariableState,
 			StateTransaction: saveTx,
 		})
@@ -82,13 +82,13 @@ func (sm *StateManager) requestStateUpdateFromPeerIfNeeded() {
 	}
 	// it is time to ask for the next state update to next peer in the permutation
 	sm.permutationIndex = (sm.permutationIndex + 1) % sm.committee.Size()
-	data := hashing.MustBytes(&commtypes.GetStateUpdateMsg{
+	data := hashing.MustBytes(&committee.GetStateUpdateMsg{
 		StateIndex: sm.solidVariableState.StateIndex() + 1,
 	})
 	// send messages until first without error
 	for i := uint16(0); i < sm.committee.Size(); i++ {
 		targetPeerIndex := sm.permutationOfPeers[sm.permutationIndex]
-		if err := sm.committee.SendMsg(targetPeerIndex, commtypes.MsgGetStateUpdate, data); err == nil {
+		if err := sm.committee.SendMsg(targetPeerIndex, committee.MsgGetStateUpdate, data); err == nil {
 			break
 		}
 		sm.permutationIndex = (sm.permutationIndex + 1) % sm.committee.Size()
@@ -142,7 +142,7 @@ func (sm *StateManager) loadStateTransaction(txid transaction.Id, scid sctransac
 		return
 	}
 	// posting to the committee's queue
-	sm.committee.ReceiveMessage(commtypes.StateTransactionMsg{
+	sm.committee.ReceiveMessage(committee.StateTransactionMsg{
 		Transaction: tx,
 	})
 }
@@ -151,7 +151,7 @@ func (sm *StateManager) findLastStateTransaction(scid sctransaction.ScId) {
 	// finds transaction, which owns output with colored toke scid.Color()
 	// notifies committee about it
 	// posting to the committee's queue
-	sm.committee.ReceiveMessage(commtypes.StateTransactionMsg{
+	sm.committee.ReceiveMessage(committee.StateTransactionMsg{
 		Transaction: nil, // TODO stub
 	})
 }

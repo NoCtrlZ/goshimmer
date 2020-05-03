@@ -1,13 +1,13 @@
-package committee
+package commiteeimpl
 
 import (
 	"bytes"
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"
 	"time"
 )
 
-func (c *committee) dispatchMessage(msg interface{}) {
+func (c *committeeObj) dispatchMessage(msg interface{}) {
 	if !c.isOperational.Load() {
 		return
 	}
@@ -19,22 +19,22 @@ func (c *committee) dispatchMessage(msg interface{}) {
 		// receive a message from peer
 		c.processPeerMessage(msgt)
 
-	case *commtypes.StateUpdateMsg:
+	case *committee.StateUpdateMsg:
 		// StateUpdateMsg may come from peer and from own consensus operator
 		c.stateMgr.EventStateUpdateMsg(msgt)
 
-	case *commtypes.StateTransitionMsg:
+	case *committee.StateTransitionMsg:
 		c.operator.EventStateTransitionMsg(msgt)
 
-	case commtypes.StateTransactionMsg:
+	case committee.StateTransactionMsg:
 		// receive state transaction message
 		c.stateMgr.EventStateTransactionMsg(msgt)
 
-	case commtypes.RequestMsg:
+	case committee.RequestMsg:
 		// receive request message
 		c.operator.EventRequestMsg(msgt)
 
-	case commtypes.TimerTick:
+	case committee.TimerTick:
 		if stateMgr {
 			c.stateMgr.EventTimerMsg(msgt)
 		} else {
@@ -44,13 +44,13 @@ func (c *committee) dispatchMessage(msg interface{}) {
 	}
 }
 
-func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
+func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 	rdr := bytes.NewReader(msg.MsgData)
 
 	switch msg.MsgType {
 
-	case commtypes.MsgNotifyRequests:
-		msgt := &commtypes.NotifyReqMsg{}
+	case committee.MsgNotifyRequests:
+		msgt := &committee.NotifyReqMsg{}
 		if err := msgt.Read(rdr); err != nil {
 			log.Error(err)
 			return
@@ -59,8 +59,8 @@ func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 
 		c.operator.EventNotifyReqMsg(msgt)
 
-	case commtypes.MsgStartProcessingRequest:
-		msgt := &commtypes.StartProcessingReqMsg{}
+	case committee.MsgStartProcessingRequest:
+		msgt := &committee.StartProcessingReqMsg{}
 		if err := msgt.Read(rdr); err != nil {
 			log.Error(err)
 			return
@@ -70,8 +70,8 @@ func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 
 		c.operator.EventStartProcessingReqMsg(msgt)
 
-	case commtypes.MsgSignedHash:
-		msgt := &commtypes.SignedHashMsg{}
+	case committee.MsgSignedHash:
+		msgt := &committee.SignedHashMsg{}
 		if err := msgt.Read(rdr); err != nil {
 			log.Error(err)
 			return
@@ -81,8 +81,8 @@ func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 
 		c.operator.EventSignedHashMsg(msgt)
 
-	case commtypes.MsgGetStateUpdate:
-		msgt := &commtypes.GetStateUpdateMsg{}
+	case committee.MsgGetStateUpdate:
+		msgt := &committee.GetStateUpdateMsg{}
 		if err := msgt.Read(rdr); err != nil {
 			log.Error(err)
 			return
@@ -90,8 +90,8 @@ func (c *committee) processPeerMessage(msg *qnode_events.PeerMessage) {
 		msgt.SenderIndex = msg.SenderIndex
 		c.stateMgr.EventGetStateUpdateMsg(msgt)
 
-	case commtypes.MsgStateUpdate:
-		msgt := &commtypes.StateUpdateMsg{}
+	case committee.MsgStateUpdate:
+		msgt := &committee.StateUpdateMsg{}
 		if err := msgt.Read(rdr); err != nil {
 			log.Error(err)
 			return

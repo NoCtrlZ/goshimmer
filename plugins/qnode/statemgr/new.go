@@ -3,7 +3,7 @@
 package statemgr
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
@@ -11,7 +11,7 @@ import (
 )
 
 type StateManager struct {
-	committee commtypes.Committee
+	committee committee.Committee
 
 	// pending state updates are a candidates to confirmation by the state transaction
 	// which leads to the state transaction
@@ -48,7 +48,7 @@ type pendingStateUpdate struct {
 	nextVariableState state.VariableState
 }
 
-func New(committee commtypes.Committee) *StateManager {
+func New(committee committee.Committee) *StateManager {
 	ret := &StateManager{
 		committee:           committee,
 		pendingStateUpdates: make(map[hashing.HashValue]*pendingStateUpdate),

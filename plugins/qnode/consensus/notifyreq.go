@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"time"
@@ -16,7 +16,7 @@ func (op *Operator) sendRequestNotificationsToLeader(reqs []*request) {
 	for i := range ids {
 		ids[i] = reqs[i].reqId
 	}
-	msgData := hashing.MustBytes(&commtypes.NotifyReqMsg{
+	msgData := hashing.MustBytes(&committee.NotifyReqMsg{
 		StateIndex: op.stateTx.MustState().StateIndex(),
 		RequestIds: ids,
 	})
@@ -31,7 +31,7 @@ func (op *Operator) sendRequestNotificationsToLeader(reqs []*request) {
 			op.moveToNextLeader()
 			continue
 		}
-		err := op.committee.SendMsg(op.currentLeaderPeerIndex(), commtypes.MsgNotifyRequests, msgData)
+		err := op.committee.SendMsg(op.currentLeaderPeerIndex(), committee.MsgNotifyRequests, msgData)
 		if err == nil {
 			op.setLeaderRotationDeadline(time.Now().Add(leaderRotationPeriod))
 			// first node to which data was successfully sent is assumed the leader

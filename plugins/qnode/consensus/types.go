@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
@@ -10,11 +10,11 @@ import (
 )
 
 type Operator struct {
-	committee     commtypes.Committee
+	committee     committee.Committee
 	stateTx       *sctransaction.Transaction
 	variableState state.VariableState
 	// VM
-	processor commtypes.Processor
+	processor committee.Processor
 
 	requests          map[sctransaction.RequestId]*request
 	processedRequests map[sctransaction.RequestId]time.Duration

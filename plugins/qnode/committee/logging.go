@@ -2,7 +2,7 @@ package committee
 
 import "github.com/iotaledger/hive.go/logger"
 
-const modulename = "qnode/committee"
+const modulename = "qnode/commtypes"
 
 var log *logger.Logger
 
