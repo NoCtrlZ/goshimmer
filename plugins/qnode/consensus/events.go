@@ -27,8 +27,8 @@ func (op *Operator) EventRequestMsg(reqMsg committee.RequestMsg) {
 	req := op.requestFromMsg(&reqMsg)
 	req.log.Debugw("eventRequestMsg", "id", reqMsg.Id().Short())
 
-	// include request in own list of the current state
-	op.accountRequestIdNotifications(op.committee.OwnPeerIndex(), op.stateTx.MustState().StateIndex(), req.reqId)
+	// include request into own list of the current state
+	op.appendRequestIdNotifications(op.committee.OwnPeerIndex(), op.stateTx.MustState().StateIndex(), req.reqId)
 
 	// the current leader is notified about new request
 	op.sendRequestNotificationsToLeader([]*request{req})

@@ -64,7 +64,7 @@ func (op *Operator) sortedRequestIdsByAge() []*sctransaction.RequestId {
 
 // includes request ids into the respective list of notifications,
 // by the sender index
-func (op *Operator) accountRequestIdNotifications(senderIndex uint16, stateIndex uint32, reqs ...*sctransaction.RequestId) {
+func (op *Operator) appendRequestIdNotifications(senderIndex uint16, stateIndex uint32, reqs ...*sctransaction.RequestId) {
 	switch {
 	case stateIndex == op.stateTx.MustState().StateIndex():
 		for _, id := range reqs {
