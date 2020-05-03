@@ -18,14 +18,19 @@ const (
 
 type TimerTick int
 
-// message is sent to the leader of the state processing
-// it is sent upon state change or upon arrival of the new request
-// the receiving operator will ignore repeating messages
-type NotifyReqMsg struct {
+// all peer messages have this
+type PeerMsgHeader struct {
 	// is set upon receive the message
 	SenderIndex uint16
 	// state index in the context of which the message is sent
 	StateIndex uint32
+}
+
+// message is sent to the leader of the state processing
+// it is sent upon state change or upon arrival of the new request
+// the receiving operator will ignore repeating messages
+type NotifyReqMsg struct {
+	PeerMsgHeader
 	// list of request ids ordered by the time of arrival
 	RequestIds []*sctransaction.RequestId
 }
@@ -34,12 +39,9 @@ type NotifyReqMsg struct {
 // other peers are expected to check is timestamp is acceptable then
 // process request and sign the result hash with the timestamp proposed by the leader
 type StartProcessingReqMsg struct {
-	// is set upon receive the message
-	SenderIndex uint16
+	PeerMsgHeader
 	// timestamp of the message. Field is set upon receive the message to sender's timestamp
 	Timestamp time.Time
-	// state index in the context of which the message is sent
-	StateIndex uint32
 	// request id
 	RequestId *sctransaction.RequestId
 }
@@ -47,10 +49,7 @@ type StartProcessingReqMsg struct {
 // after calculations the result peer responds to the start processing msg
 // with SignedHashMsg, which contains result hash and signatures
 type SignedHashMsg struct {
-	// is set upon receive the message
-	SenderIndex uint16
-	// state index in the context of which the message is sent
-	StateIndex uint32
+	PeerMsgHeader
 	// timestamp of this message. Field is set upon receive the message to sender's timestamp
 	Timestamp time.Time
 	// request id
@@ -65,16 +64,12 @@ type SignedHashMsg struct {
 
 // request state update from peer. Used in syn process
 type GetStateUpdateMsg struct {
-	// is set upon receive the message
-	SenderIndex uint16
-	// state index of the requested state update
-	StateIndex uint32
+	PeerMsgHeader
 }
 
 // state update sent to peer. Used in sync process
 type StateUpdateMsg struct {
-	// is set upon receive the message
-	SenderIndex uint16
+	PeerMsgHeader
 	// state update
 	StateUpdate state.StateUpdate
 	// locally calculated by VM (needed for syncing)

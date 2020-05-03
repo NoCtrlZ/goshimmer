@@ -85,10 +85,6 @@ func newCommitteeObj(scdata *registry.SCData) (committee.Committee, error) {
 	return ret, nil
 }
 
-func validateSCData(scdata *registry.SCData, ownIndex uint16) error {
-	return nil
-}
-
 // implements commtypes.Committee interface
 
 func (c *committeeObj) SetOperational() {
@@ -98,6 +94,12 @@ func (c *committeeObj) SetOperational() {
 func (c *committeeObj) Dismiss() {
 	c.isOperational.Store(false)
 	close(c.chMsg)
+
+	for i, pa := range c.scdata.NodeLocations {
+		if i != int(c.ownIndex) {
+			peering.StopUsingPeer(pa)
+		}
+	}
 }
 
 func (c *committeeObj) ScId() sctransaction.ScId {

@@ -6,6 +6,7 @@ import (
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
+	"github.com/iotaledger/goshimmer/plugins/qnode/variables"
 	"io"
 )
 
@@ -15,7 +16,8 @@ type RequestId [RequestIdSize]byte
 
 type RequestBlock struct {
 	scid *ScId
-	body *RequestBody
+	// small variable state with variable/value pairs
+	vars variables.Variables
 }
 
 // RequestBlock
@@ -30,6 +32,10 @@ func (req *RequestBlock) ScId() *ScId {
 	return req.ScId()
 }
 
+func (req *RequestBlock) Variables() variables.Variables {
+	return req.vars
+}
+
 // encoding
 // important: each block starts with 65 bytes of scid
 
@@ -37,7 +43,9 @@ func (req *RequestBlock) Write(w io.Writer) error {
 	if err := req.scid.Write(w); err != nil {
 		return err
 	}
-	// TODO write body
+	if err := req.vars.Write(w); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -46,12 +54,16 @@ func (req *RequestBlock) Read(r io.Reader) error {
 	if err := scid.Read(r); err != nil {
 		return err
 	}
-	// TODO read body
+	vars := variables.NewVariables()
+	if err := vars.Read(r); err != nil {
+		return err
+	}
 	req.scid = scid
+	req.vars = vars
 	return nil
 }
 
-// TODO the rest of request body
+// TODO the rest of request vars
 
 // Request Id
 

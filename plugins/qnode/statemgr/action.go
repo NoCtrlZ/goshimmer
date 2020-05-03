@@ -83,7 +83,9 @@ func (sm *StateManager) requestStateUpdateFromPeerIfNeeded() {
 	// it is time to ask for the next state update to next peer in the permutation
 	sm.permutationIndex = (sm.permutationIndex + 1) % sm.committee.Size()
 	data := hashing.MustBytes(&committee.GetStateUpdateMsg{
-		StateIndex: sm.solidVariableState.StateIndex() + 1,
+		PeerMsgHeader: committee.PeerMsgHeader{
+			StateIndex: sm.solidVariableState.StateIndex() + 1,
+		},
 	})
 	// send messages until first without error
 	for i := uint16(0); i < sm.committee.Size(); i++ {
@@ -96,7 +98,12 @@ func (sm *StateManager) requestStateUpdateFromPeerIfNeeded() {
 	}
 }
 
-func (sm *StateManager) updateSynchronizationStatus(idx uint32) {
+// index of evidenced state index is passed to record the largest one.
+// This is needed to check synchronization status. If some state index is more than
+// 1 behind the largest, node is not synced
+// function returns if the message with idx must be passed to consensus operator, which works only with
+// state indices of current or next state
+func (sm *StateManager) CheckSynchronizationStatus(idx uint32) bool {
 	// synced state is when current state index is behind
 	// the largestEvidencedStateIndex no more than by 1 point
 	wasSynchronized := sm.isSynchronized()
@@ -106,6 +113,11 @@ func (sm *StateManager) updateSynchronizationStatus(idx uint32) {
 	if !sm.isSynchronized() && wasSynchronized {
 		sm.syncMessageDeadline = time.Now()
 	}
+	currentStateIndex := uint32(0)
+	if sm.solidVariableState != nil {
+		currentStateIndex = sm.solidVariableState.StateIndex()
+	}
+	return idx == currentStateIndex || idx == currentStateIndex+1
 }
 
 func (sm *StateManager) isSynchronized() bool {

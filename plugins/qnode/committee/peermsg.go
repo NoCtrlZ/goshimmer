@@ -108,6 +108,9 @@ func (msg *GetStateUpdateMsg) Read(r io.Reader) error {
 }
 
 func (msg *StateUpdateMsg) Write(w io.Writer) error {
+	if err := util.WriteUint32(w, msg.StateIndex); err != nil {
+		return err
+	}
 	if err := msg.StateUpdate.Write(w); err != nil {
 		return err
 	}
@@ -115,6 +118,9 @@ func (msg *StateUpdateMsg) Write(w io.Writer) error {
 }
 
 func (msg *StateUpdateMsg) Read(r io.Reader) error {
+	if err := util.ReadUint32(r, &msg.StateIndex); err != nil {
+		return err
+	}
 	msg.StateUpdate = state.NewStateUpdate(sctransaction.NilScId, 0)
 	if err := msg.StateUpdate.Read(r); err != nil {
 		return err

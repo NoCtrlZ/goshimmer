@@ -16,16 +16,16 @@ func (op *Operator) EventStateTransitionMsg(msg *committee.StateTransitionMsg) {
 }
 
 // triggered by new request msg from the node
-func (op *Operator) EventRequestMsg(reqMsg committee.RequestMsg) {
-	if err := op.validateRequestBlock(&reqMsg); err != nil {
-		log.Errorw("invalid request message received. Ignored...",
+func (op *Operator) EventRequestMsg(reqMsg *committee.RequestMsg) {
+	if err := op.validateRequestBlock(reqMsg); err != nil {
+		log.Warnw("request block validation failed.Ignored",
 			"req", reqMsg.Id().Short(),
 			"err", err,
 		)
 		return
 	}
-	req := op.requestFromMsg(&reqMsg)
-	req.log.Debugw("eventRequestMsg", "id", reqMsg.Id().Short())
+	req := op.requestFromMsg(reqMsg)
+	req.log.Debugf("eventRequestMsg: id = %s", reqMsg.Id().Short())
 
 	// include request into own list of the current state
 	op.appendRequestIdNotifications(op.committee.OwnPeerIndex(), op.stateTx.MustState().StateIndex(), req.reqId)
@@ -36,14 +36,37 @@ func (op *Operator) EventRequestMsg(reqMsg committee.RequestMsg) {
 }
 
 func (op *Operator) EventNotifyReqMsg(msg *committee.NotifyReqMsg) {
+	log.Debugw("EventNotifyReqMsg",
+		"num", len(msg.RequestIds),
+		"sender", msg.SenderIndex,
+		"stateIdx", msg.StateIndex,
+	)
+	op.MustValidStateIndex(msg.StateIndex)
 
+	// include all reqids into notifications list
+	op.appendRequestIdNotifications(msg.SenderIndex, msg.StateIndex, msg.RequestIds...)
+	op.takeAction()
 }
 
 func (op *Operator) EventStartProcessingReqMsg(msg *committee.StartProcessingReqMsg) {
+	log.Debugw("EventStartProcessingReqMsg",
+		"reqId", msg.RequestId.Short(),
+		"sender", msg.SenderIndex,
+	)
+
+	op.MustValidStateIndex(msg.StateIndex)
+
+	// TODO
 
 }
 
 func (op *Operator) EventSignedHashMsg(msg *committee.SignedHashMsg) {
+	log.Debugw("EventSignedHashMsg",
+		"reqId", msg.RequestId.Short(),
+		"sender", msg.SenderIndex,
+	)
+
+	// TODO
 
 }
 

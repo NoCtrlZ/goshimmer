@@ -30,7 +30,7 @@ func (c *committeeObj) dispatchMessage(msg interface{}) {
 		// receive state transaction message
 		c.stateMgr.EventStateTransactionMsg(msgt)
 
-	case committee.RequestMsg:
+	case *committee.RequestMsg:
 		// receive request message
 		c.operator.EventRequestMsg(msgt)
 
@@ -57,7 +57,9 @@ func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 		}
 		msgt.SenderIndex = msg.SenderIndex
 
-		c.operator.EventNotifyReqMsg(msgt)
+		if c.stateMgr.CheckSynchronizationStatus(msgt.StateIndex) {
+			c.operator.EventNotifyReqMsg(msgt)
+		}
 
 	case committee.MsgStartProcessingRequest:
 		msgt := &committee.StartProcessingReqMsg{}
@@ -68,7 +70,9 @@ func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 		msgt.SenderIndex = msg.SenderIndex
 		msgt.Timestamp = time.Unix(0, msg.Timestamp)
 
-		c.operator.EventStartProcessingReqMsg(msgt)
+		if c.stateMgr.CheckSynchronizationStatus(msgt.StateIndex) {
+			c.operator.EventStartProcessingReqMsg(msgt)
+		}
 
 	case committee.MsgSignedHash:
 		msgt := &committee.SignedHashMsg{}
@@ -79,7 +83,9 @@ func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 		msgt.SenderIndex = msg.SenderIndex
 		msgt.Timestamp = time.Unix(0, msg.Timestamp)
 
-		c.operator.EventSignedHashMsg(msgt)
+		if c.stateMgr.CheckSynchronizationStatus(msgt.StateIndex) {
+			c.operator.EventSignedHashMsg(msgt)
+		}
 
 	case committee.MsgGetStateUpdate:
 		msgt := &committee.GetStateUpdateMsg{}
@@ -88,7 +94,10 @@ func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 			return
 		}
 		msgt.SenderIndex = msg.SenderIndex
-		c.stateMgr.EventGetStateUpdateMsg(msgt)
+
+		if c.stateMgr.CheckSynchronizationStatus(msgt.StateIndex) {
+			c.stateMgr.EventGetStateUpdateMsg(msgt)
+		}
 
 	case committee.MsgStateUpdate:
 		msgt := &committee.StateUpdateMsg{}
@@ -98,7 +107,9 @@ func (c *committeeObj) processPeerMessage(msg *qnode_events.PeerMessage) {
 		}
 		msgt.SenderIndex = msg.SenderIndex
 
-		c.stateMgr.EventStateUpdateMsg(msgt)
+		if c.stateMgr.CheckSynchronizationStatus(msgt.StateIndex) {
+			c.stateMgr.EventStateUpdateMsg(msgt)
+		}
 
 	default:
 		log.Errorf("processPeerMessage: wrong msg type")

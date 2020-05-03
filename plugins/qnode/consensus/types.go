@@ -1,11 +1,13 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"github.com/iotaledger/hive.go/logger"
 	"time"
 )
@@ -16,7 +18,7 @@ type Operator struct {
 	stateTx       *sctransaction.Transaction
 	variableState state.VariableState
 	// VM
-	processor committee.Processor
+	processor vm.Processor
 
 	requests          map[sctransaction.RequestId]*request
 	processedRequests map[sctransaction.RequestId]time.Duration
@@ -90,4 +92,20 @@ func NewOperator(committee committee.Committee, dkshare *tcrypto.DKShare) *Opera
 
 func (op *Operator) Quorum() uint16 {
 	return op.dkshare.T
+}
+
+func (op *Operator) StateIndex() uint32 {
+	if op.variableState == nil {
+		return 0
+	}
+	return op.variableState.StateIndex()
+}
+
+func (op *Operator) MustValidStateIndex(stateIndex uint32) {
+	if stateIndex != op.StateIndex() && stateIndex != op.StateIndex()+1 {
+		// only tolerated messages from current and next state indices
+		// stateManager should not pass other messages
+		panic(fmt.Errorf("wrong state index. Current %d, got %d", op.StateIndex(), stateIndex))
+	}
+
 }

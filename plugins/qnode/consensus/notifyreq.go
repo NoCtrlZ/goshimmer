@@ -17,7 +17,9 @@ func (op *Operator) sendRequestNotificationsToLeader(reqs []*request) {
 		ids[i] = reqs[i].reqId
 	}
 	msgData := hashing.MustBytes(&committee.NotifyReqMsg{
-		StateIndex: op.stateTx.MustState().StateIndex(),
+		PeerMsgHeader: committee.PeerMsgHeader{
+			StateIndex: op.stateTx.MustState().StateIndex(),
+		},
 		RequestIds: ids,
 	})
 	// send until first success, but no more than number of nodes in the committee
@@ -66,14 +68,16 @@ func (op *Operator) sortedRequestIdsByAge() []*sctransaction.RequestId {
 // by the sender index
 func (op *Operator) appendRequestIdNotifications(senderIndex uint16, stateIndex uint32, reqs ...*sctransaction.RequestId) {
 	switch {
-	case stateIndex == op.stateTx.MustState().StateIndex():
+	case stateIndex == op.StateIndex():
 		for _, id := range reqs {
 			op.requestNotificationsCurrentState = appendNotification(op.requestNotificationsCurrentState, id, senderIndex)
 		}
-	case stateIndex == op.stateTx.MustState().StateIndex()+1:
+	case stateIndex == op.StateIndex()+1:
 		for _, id := range reqs {
 			op.requestNotificationsNextState = appendNotification(op.requestNotificationsNextState, id, senderIndex)
 		}
+	default:
+		panic("wrong state index")
 	}
 }
 

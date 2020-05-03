@@ -47,8 +47,10 @@ func (op *Operator) startProcessing() {
 	}
 	req.log.Debugw("request selected to process", "stateIdx", op.stateTx.MustState().StateIndex())
 	msgData := hashing.MustBytes(&committee.StartProcessingReqMsg{
-		StateIndex: op.stateTx.MustState().StateIndex(),
-		RequestId:  req.reqId,
+		PeerMsgHeader: committee.PeerMsgHeader{
+			StateIndex: op.stateTx.MustState().StateIndex(),
+		},
+		RequestId: req.reqId,
 	})
 
 	numSucc, ts := op.committee.SendMsgToPeers(committee.MsgStartProcessingRequest, msgData)

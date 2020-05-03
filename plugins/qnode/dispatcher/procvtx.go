@@ -118,7 +118,7 @@ func dispatchState(tx *sctransaction.Transaction) {
 func dispatchRequests(tx *sctransaction.Transaction) {
 	for i, reqBlk := range tx.Requests() {
 		if cmt := getCommittee(reqBlk.ScId().Color()); cmt != nil {
-			cmt.ReceiveMessage(committee.RequestMsg{
+			cmt.ReceiveMessage(&committee.RequestMsg{
 				Transaction: tx,
 				Index:       uint16(i),
 			})
