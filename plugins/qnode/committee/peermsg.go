@@ -35,8 +35,9 @@ func (msg *NotifyReqMsg) Read(r io.Reader) error {
 	if arrLen == 0 {
 		return nil
 	}
-	msg.RequestIds = make([]sctransaction.RequestId, arrLen)
+	msg.RequestIds = make([]*sctransaction.RequestId, arrLen)
 	for i := range msg.RequestIds {
+		msg.RequestIds[i] = new(sctransaction.RequestId)
 		_, err = r.Read(msg.RequestIds[i].Bytes())
 		if err != nil {
 			return err

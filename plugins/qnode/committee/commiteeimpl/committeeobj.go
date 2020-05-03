@@ -16,8 +16,8 @@ import (
 
 type committeeObj struct {
 	isOperational atomic.Bool
-	ownIndex      uint16
 	peers         []*peering.Peer
+	ownIndex      uint16
 	scdata        *registry.SCData
 	chMsg         chan interface{}
 	stateMgr      *statemgr.StateManager
@@ -25,19 +25,37 @@ type committeeObj struct {
 }
 
 func init() {
-	committee.New = newCommiteeObj
+	committee.New = newCommitteeObj
 }
 
-func newCommiteeObj(scdata *registry.SCData) (committee.Committee, error) {
+func newCommitteeObj(scdata *registry.SCData) (committee.Committee, error) {
 	ownIndex, ok := peering.FindOwnIndex(scdata.NodeLocations)
 	if !ok {
 		return nil, fmt.Errorf("not processed by this node scid: %s", scdata.ScId.String())
 	}
+	dkshare, keyExists, err := registry.GetDKShare(scdata.ScId.Address())
+	if err != nil {
+		return nil, err
+	}
+	if !keyExists {
+		return nil, fmt.Errorf("unkniwn key. scid = %s", scdata.ScId.String())
+	}
+	err = fmt.Errorf("sc data inconsstent with key parameteres for scid %s", scdata.ScId.String())
+	if scdata.ScId.Address() != dkshare.Address {
+		return nil, err
+	}
+	if len(scdata.NodeLocations) != int(dkshare.N) {
+		return nil, err
+	}
+	if dkshare.Index != ownIndex {
+		return nil, err
+	}
+
 	ret := &committeeObj{
-		ownIndex: ownIndex,
 		chMsg:    make(chan interface{}, 10),
 		scdata:   scdata,
 		peers:    make([]*peering.Peer, 0, len(scdata.NodeLocations)),
+		ownIndex: ownIndex,
 	}
 	for i, pa := range scdata.NodeLocations {
 		if i != int(ownIndex) {
@@ -46,7 +64,7 @@ func newCommiteeObj(scdata *registry.SCData) (committee.Committee, error) {
 	}
 
 	ret.stateMgr = statemgr.New(ret)
-	ret.operator = consensus.NewOperator()
+	ret.operator = consensus.NewOperator(ret, dkshare)
 
 	go func() {
 		for msg := range ret.chMsg {
@@ -65,6 +83,10 @@ func newCommiteeObj(scdata *registry.SCData) (committee.Committee, error) {
 	}
 
 	return ret, nil
+}
+
+func validateSCData(scdata *registry.SCData, ownIndex uint16) error {
+	return nil
 }
 
 // implements commtypes.Committee interface

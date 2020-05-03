@@ -2,6 +2,7 @@ package sctransaction
 
 import (
 	"errors"
+	"fmt"
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
@@ -54,7 +55,7 @@ func (req *RequestBlock) Read(r io.Reader) error {
 
 // Request Id
 
-func NewRequestId(txid *valuetransaction.Id, index uint16) (ret RequestId) {
+func NewRequestId(txid valuetransaction.Id, index uint16) (ret RequestId) {
 	copy(ret[:valuetransaction.IdLength], txid.Bytes())
 	copy(ret[valuetransaction.IdLength:], util.Uint16To2Bytes(index)[:])
 	return
@@ -94,4 +95,12 @@ func (rid *RequestId) Read(r io.Reader) error {
 		return errors.New("not enough data for RequestId")
 	}
 	return nil
+}
+
+func (rid *RequestId) String() string {
+	return fmt.Sprintf("[%d]%s", rid.Index(), rid.TransactionId().String())
+}
+
+func (rid *RequestId) Short() string {
+	return util.Short(rid.String())
 }

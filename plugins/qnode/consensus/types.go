@@ -5,12 +5,14 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
+	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/iotaledger/hive.go/logger"
 	"time"
 )
 
 type Operator struct {
 	committee     committee.Committee
+	dkshare       *tcrypto.DKShare
 	stateTx       *sctransaction.Transaction
 	variableState state.VariableState
 	// VM
@@ -42,7 +44,7 @@ type requestNotification struct {
 type leaderStatus struct {
 	req          *request
 	ts           time.Time
-	resultTx     sctransaction.Transaction
+	resultTx     *sctransaction.Transaction
 	finalized    bool
 	signedHashes []signedHash
 }
@@ -63,7 +65,10 @@ type computationRequest struct {
 type request struct {
 
 	// id of the hash of request tx id and request block index
-	reqId sctransaction.RequestId
+	reqId *sctransaction.RequestId
+
+	// request message or nil if wasn't received yet
+	reqMsg *committee.RequestMsg
 
 	// time when request message was received by the operator
 	whenMsgReceived time.Time
@@ -76,6 +81,13 @@ type request struct {
 	log        *logger.Logger
 }
 
-func NewOperator() *Operator {
-	return &Operator{}
+func NewOperator(committee committee.Committee, dkshare *tcrypto.DKShare) *Operator {
+	return &Operator{
+		committee: committee,
+		dkshare:   dkshare,
+	}
+}
+
+func (op *Operator) Quorum() uint16 {
+	return op.dkshare.T
 }

@@ -12,7 +12,7 @@ func (op *Operator) sendRequestNotificationsToLeader(reqs []*request) {
 	if op.iAmCurrentLeader() {
 		return
 	}
-	ids := make([]sctransaction.RequestId, len(reqs))
+	ids := make([]*sctransaction.RequestId, len(reqs))
 	for i := range ids {
 		ids[i] = reqs[i].reqId
 	}
@@ -57,7 +57,7 @@ func (op *Operator) sortedRequestIdsByAge() []*sctransaction.RequestId {
 	sortedReqs := op.sortedRequestsByAge()
 	ids := make([]*sctransaction.RequestId, len(sortedReqs))
 	for i := range ids {
-		ids[i] = &sortedReqs[i].reqId
+		ids[i] = sortedReqs[i].reqId
 	}
 	return ids
 }

@@ -27,7 +27,7 @@ type NotifyReqMsg struct {
 	// state index in the context of which the message is sent
 	StateIndex uint32
 	// list of request ids ordered by the time of arrival
-	RequestIds []sctransaction.RequestId
+	RequestIds []*sctransaction.RequestId
 }
 
 // message is sent by the leader to other peers to initiate request processing
@@ -41,7 +41,7 @@ type StartProcessingReqMsg struct {
 	// state index in the context of which the message is sent
 	StateIndex uint32
 	// request id
-	RequestId sctransaction.RequestId
+	RequestId *sctransaction.RequestId
 }
 
 // after calculations the result peer responds to the start processing msg
