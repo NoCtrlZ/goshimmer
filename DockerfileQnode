@@ -1,6 +1,10 @@
 FROM golang:1.13-alpine
 RUN apk add --no-cache git gcc g++
 
+# Get Env Variable From Docker Compose
+ARG NODE_CONFIG
+ARG NODE_PORT
+
 # Set The Current Working Directory Inside The Container
 RUN mkdir /goshimmer
 WORKDIR /goshimmer
@@ -10,11 +14,11 @@ COPY . .
 RUN go mod download
 
 # Copy Default Config File To Qnode Directory
-COPY config.docker.json ./plugins/qnode/config.json
+COPY ./${NODE_CONFIG} ./plugins/qnode/config.json
 
 # Change Directory
 WORKDIR /goshimmer/plugins/qnode/
 
-EXPOSE 8080
+EXPOSE ${NODE_PORT}
 
 ENTRYPOINT ["go", "run", "./qnode-test/main.go"]
