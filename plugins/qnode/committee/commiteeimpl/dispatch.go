@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	qnode_events "github.com/iotaledger/goshimmer/plugins/qnode/events"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 	"time"
 )
 
@@ -33,6 +34,10 @@ func (c *committeeObj) dispatchMessage(msg interface{}) {
 	case *committee.RequestMsg:
 		// receive request message
 		c.operator.EventRequestMsg(msgt)
+
+	case *vm.VMOutput:
+		// VM finished working
+		c.operator.EventResultCalculated(msgt)
 
 	case committee.TimerTick:
 		if stateMgr {

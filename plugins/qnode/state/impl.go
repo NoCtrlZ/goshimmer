@@ -56,6 +56,10 @@ func NewStateUpdate(scid sctransaction.ScId, stateIndex uint32) StateUpdate {
 
 // StateUpdate
 
+func (se *mockStateUpdate) Error() string {
+	return ""
+}
+
 func (se *mockStateUpdate) ScId() sctransaction.ScId {
 	return se.scid
 }

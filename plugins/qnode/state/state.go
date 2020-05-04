@@ -16,7 +16,8 @@ func SaveStateToDb(stateUpd StateUpdate, varState VariableState, reqIds *[]sctra
 		return err
 	}
 
-	if err := MarkReqIdsProcessed(reqIds); err != nil {
+	if err := MarkReqIdsProcessed(reqIds, stateUpd.Error()); err != nil {
+		// very bad
 		return err
 	}
 	// ---- end of must be atomic. how to make it?
@@ -25,6 +26,11 @@ func SaveStateToDb(stateUpd StateUpdate, varState VariableState, reqIds *[]sctra
 	return nil
 }
 
-func MarkReqIdsProcessed(reqIds *[]sctransaction.RequestId) error {
-	panic("implement me")
+func MarkReqIdsProcessed(reqIds *[]sctransaction.RequestId, errstr string) error {
+	for _, reqid := range *reqIds {
+		if err := MarkRequestProcessed(&reqid, errstr); err != nil {
+			return err
+		}
+	}
+	return nil
 }

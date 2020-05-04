@@ -14,11 +14,12 @@ import (
 // database keys
 
 const (
-	stateUpdateDbPrefix   = "upd_"
-	variableStateDbPrefix = "vs_"
+	stateUpdateDbPrefix      = "upd_"
+	variableStateDbPrefix    = "vs_"
+	requestProcessedDbPrefix = "rq_"
 )
 
-func StateUpdateStorageKey(color balance.Color, stateIndex uint32) []byte {
+func stateUpdateStorageKey(color balance.Color, stateIndex uint32) []byte {
 	var buf bytes.Buffer
 	buf.Write([]byte(stateUpdateDbPrefix))
 	buf.Write(color.Bytes())
@@ -26,16 +27,23 @@ func StateUpdateStorageKey(color balance.Color, stateIndex uint32) []byte {
 	return buf.Bytes()
 }
 
-func VariableStateStorageKey(color balance.Color) []byte {
+func variableStateStorageKey(color balance.Color) []byte {
 	var buf bytes.Buffer
 	buf.Write([]byte(variableStateDbPrefix))
 	buf.Write(color.Bytes())
 	return buf.Bytes()
 }
 
+func requestStorageKey(reqid *sctransaction.RequestId) []byte {
+	var buf bytes.Buffer
+	buf.Write([]byte(requestProcessedDbPrefix))
+	buf.Write(reqid.Bytes())
+	return buf.Bytes()
+}
+
 // loads state update with the given index
 func LoadStateUpdate(scid sctransaction.ScId, stateIndex uint32) (StateUpdate, error) {
-	storageKey := StateUpdateStorageKey(scid.Color(), stateIndex)
+	storageKey := stateUpdateStorageKey(scid.Color(), stateIndex)
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
@@ -68,14 +76,14 @@ func (su *mockStateUpdate) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   StateUpdateStorageKey(su.scid.Color(), su.stateIndex),
+		Key:   stateUpdateStorageKey(su.scid.Color(), su.stateIndex),
 		Value: hashing.MustBytes(su),
 	})
 }
 
 // loads variable state from db
 func LoadVariableState(scid sctransaction.ScId) (VariableState, error) {
-	storageKey := VariableStateStorageKey(scid.Color())
+	storageKey := variableStateStorageKey(scid.Color())
 	dbase, err := db.Get()
 	if err != nil {
 		return nil, err
@@ -106,7 +114,48 @@ func (vs *mockVariableState) SaveToDb() error {
 		return err
 	}
 	return dbase.Set(database.Entry{
-		Key:   VariableStateStorageKey(vs.scid.Color()),
+		Key:   variableStateStorageKey(vs.scid.Color()),
 		Value: hashing.MustBytes(vs),
 	})
+}
+
+// marks request processed
+// TODO time when processed, cleanup the index after some time and so on
+func MarkRequestProcessed(reqid *sctransaction.RequestId, errstr string) error {
+	dbase, err := db.Get()
+	if err != nil {
+		return err
+	}
+	return dbase.Set(database.Entry{
+		Key:   requestStorageKey(reqid),
+		Value: []byte(errstr),
+	})
+}
+
+// checks if request is processed
+func IsRequestProcessed(reqid *sctransaction.RequestId) (bool, error) {
+	storageKey := requestStorageKey(reqid)
+	dbase, err := db.Get()
+	if err != nil {
+		return false, err
+	}
+	exist, err := dbase.Contains(storageKey)
+	if err != nil {
+		return false, err
+	}
+	return exist, nil
+}
+
+// retrieves associated error string to the "request processed" record (if exists)
+func RequestProcessedErrorString(reqid *sctransaction.RequestId) (string, error) {
+	storageKey := requestStorageKey(reqid)
+	dbase, err := db.Get()
+	if err != nil {
+		return "", err
+	}
+	entry, err := dbase.Get(storageKey)
+	if err != nil {
+		return "", err
+	}
+	return string(entry.Value), nil
 }

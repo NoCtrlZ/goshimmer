@@ -6,22 +6,17 @@ import (
 )
 
 func (op *Operator) processRequest(req *request, ts time.Time, leaderPeerIndex uint16) {
-	var ctx *runtimeContext
-	var err error
-	ctx, err = newStateUpdateRuntimeContext(leaderPeerIndex, req.reqRef, op.stateTx, ts)
-	if err != nil {
-		req.log.Warnw("can't create runtime context",
-			"aid", req.reqRef.RequestBlock().SContractId().Short(),
-			"isConfigUpdate", req.reqRef.RequestBlock().IsConfigUpdateReq(),
-			"err", err,
-		)
-		return
+	ctx := &runtimeContext{
+		leaderPeerIndex: leaderPeerIndex,
+		reqMsg:          req.reqMsg,
+		timestamp:       ts,
+		stateTx:         op.stateTx,
+		variableState:   op.variableState,
+		log:             req.log,
 	}
-	op.processor.Run(ctx)
-	ctx.resultTx.MustState().WithTime(ctx.ts)
+	result := op.processor.Run(ctx)
 
-	req.log.Debugf("+++++  RES: %+v", ctx.resultTx.MustState().Vars())
-	op.postEventToQueue(ctx)
+	op.committee.ReceiveMessage(result)
 }
 
 func (op *Operator) sendResultToTheLeader(ctx *runtimeContext) {

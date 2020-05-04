@@ -12,7 +12,7 @@ type VariableState interface {
 	Apply(StateUpdate) VariableState
 	SaveToDb() error
 	Variables() variables.Variables
-	Read(io.Reader) error
+	Read(io.Reader) error // TODO serialization must be replaced for more efficient mechanism
 	Write(io.Writer) error
 }
 
@@ -24,6 +24,7 @@ type StateUpdate interface {
 	SetStateTransactionId(valuetransaction.Id)
 	SaveToDb() error
 	Variables() variables.Variables
+	Error() string
 	Read(io.Reader) error
 	Write(io.Writer) error
 }

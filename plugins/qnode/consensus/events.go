@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
+	"github.com/iotaledger/goshimmer/plugins/qnode/vm"
 )
 
 func (op *Operator) EventStateTransitionMsg(msg *committee.StateTransitionMsg) {
@@ -58,6 +59,53 @@ func (op *Operator) EventStartProcessingReqMsg(msg *committee.StartProcessingReq
 
 	// TODO
 
+}
+
+func (op *Operator) EventResultCalculated(vmout *vm.VMOutput) {
+	log.Debugf("eventResultCalculated")
+
+	ctx := vmout.Inputs.(*runtimeContext)
+
+	// check if result belongs to context
+	if ctx.variableState.StateIndex() != op.StateIndex() {
+		// out of context. ignore
+		return
+	}
+
+	//reqId := ctx.reqRef.Id()
+	//req, ok := op.requestFromId(reqId)
+	//if !ok {
+	//	// processed
+	//	return
+	//}
+	//req.log.Debugw("eventResultCalculated",
+	//	"state idx", ctx.state.MustState().StateIndex(),
+	//	"cur state idx", op.stateTx.MustState().StateIndex(),
+	//	"resultErr", ctx.err,
+	//)
+	//
+	//if ctx.err != nil {
+	//	var err error
+	//	ctx.resultTx, err = clientapi.ErrorTransaction(ctx.reqRef, ctx.state.MustState().Config(), ctx.err)
+	//	if err != nil {
+	//		req.log.Errorw("eventResultCalculated: error while processing error state",
+	//			"state idx", ctx.state.MustState().StateIndex(),
+	//			"current state idx", op.stateTx.MustState().StateIndex(),
+	//			"error", err,
+	//		)
+	//		return
+	//	}
+	//}
+	//req.log.Debugw("eventResultCalculated:",
+	//	"input tx", ctx.state.Id().Short(),
+	//	"res tx", ctx.resultTx.Id().Short(),
+	//)
+	//if ctx.leaderIndex == op.PeerIndex() {
+	//	op.saveOwnResult(ctx)
+	//} else {
+	//	op.sendResultToTheLeader(ctx)
+	//}
+	op.takeAction()
 }
 
 func (op *Operator) EventSignedHashMsg(msg *committee.SignedHashMsg) {
