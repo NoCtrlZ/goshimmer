@@ -11,7 +11,7 @@ import (
 // object panics if attempted to modify structure after finalization
 type TransactionBuilder struct {
 	inputs        *valuetransaction.Inputs
-	outputs       map[address.Address][]*balance.Balance
+	outputs       map[address.Address]map[balance.Color]int64
 	stateBlock    *StateBlock
 	requestBlocks []*RequestBlock
 	finalized     bool
@@ -20,7 +20,7 @@ type TransactionBuilder struct {
 func NewTransactionBuilder() *TransactionBuilder {
 	return &TransactionBuilder{
 		inputs:        valuetransaction.NewInputs(),
-		outputs:       make(map[address.Address][]*balance.Balance),
+		outputs:       make(map[address.Address]map[balance.Color]int64),
 		requestBlocks: make([]*RequestBlock, 0),
 	}
 }
@@ -29,7 +29,15 @@ func (txb *TransactionBuilder) Finalize() (*Transaction, error) {
 	if txb.finalized {
 		return nil, errors.New("attempt to modify already finalized transaction builder")
 	}
-	txv := valuetransaction.New(txb.inputs, valuetransaction.NewOutputs(txb.outputs))
+
+	outputs := make(map[address.Address][]*balance.Balance)
+	for addr, bmap := range txb.outputs {
+		outputs[addr] = make([]*balance.Balance, 0)
+		for col, val := range bmap {
+			outputs[addr] = append(outputs[addr], balance.New(col, val))
+		}
+	}
+	txv := valuetransaction.New(txb.inputs, valuetransaction.NewOutputs(outputs))
 	ret, err := NewTransaction(txv, txb.stateBlock, txb.requestBlocks)
 	if err != nil {
 		return nil, err
@@ -44,11 +52,16 @@ func (txb *TransactionBuilder) AddInputs(oid ...valuetransaction.OutputId) {
 	}
 }
 
-func (txb *TransactionBuilder) AddOutput(addr address.Address, bal *balance.Balance) {
+func (txb *TransactionBuilder) AddBalanceToOutput(addr address.Address, bal *balance.Balance) {
 	if _, ok := txb.outputs[addr]; ok {
-		txb.outputs[addr] = make([]*balance.Balance, 0)
+		txb.outputs[addr] = make(map[balance.Color]int64)
 	}
-	txb.outputs[addr] = append(txb.outputs[addr], bal)
+	balances := txb.outputs[addr]
+	if val, ok := balances[bal.Color()]; ok {
+		balances[bal.Color()] = val + bal.Value()
+	} else {
+		balances[bal.Color()] = bal.Value()
+	}
 }
 
 func (txb *TransactionBuilder) AddStateBlock(scid *ScId, stateIndex uint32) {

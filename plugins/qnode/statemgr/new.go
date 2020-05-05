@@ -3,7 +3,7 @@
 package statemgr
 
 import (
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/hashing"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/state"
@@ -11,7 +11,7 @@ import (
 )
 
 type StateManager struct {
-	committee commtypes.Committee
+	committee committee.Committee
 
 	// pending state updates are a candidates to confirmation by the state transaction
 	// which leads to the state transaction
@@ -48,7 +48,7 @@ type pendingStateUpdate struct {
 	nextVariableState state.VariableState
 }
 
-func New(committee commtypes.Committee) *StateManager {
+func New(committee committee.Committee) *StateManager {
 	ret := &StateManager{
 		committee:           committee,
 		pendingStateUpdates: make(map[hashing.HashValue]*pendingStateUpdate),
@@ -74,7 +74,6 @@ func (sm *StateManager) initLoadState() {
 	if sm.solidVariableState != nil {
 		stateIndex = sm.solidVariableState.StateIndex()
 	}
-
 	// if sm.solidVariableState == nil it may be an origin state
 
 	// load solid state update from db with the state index taken from the variable state
@@ -93,8 +92,10 @@ func (sm *StateManager) initLoadState() {
 	// open msg queue for the committee
 	sm.committee.SetOperational()
 
-	// here we have at least sm.lastSolidStateUpdate
-	// for genesis state sm.solidVariableState == nil
-	// async load state transaction
-	sm.asyncLoadStateTransaction(stateUpdate.StateTransactionId(), sm.committee.ScId(), stateIndex)
+	// request last state transaction to update sync status
+	go sm.findLastStateTransaction(sm.committee.ScId())
+
+	// async load state transaction for the current state update
+	go sm.loadStateTransaction(stateUpdate.StateTransactionId(), sm.committee.ScId(), stateIndex)
+
 }

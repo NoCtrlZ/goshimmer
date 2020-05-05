@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/balance"
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
-	"github.com/iotaledger/goshimmer/plugins/qnode/commtypes"
+	"github.com/iotaledger/goshimmer/plugins/qnode/committee"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/util"
 	"hash/crc32"
@@ -110,15 +110,15 @@ func dispatchState(tx *sctransaction.Transaction) {
 		return
 	}
 	// all state block validations passed
-	if committee := getCommittee(tx.MustState().ScId().Color()); committee != nil {
-		committee.ReceiveMessage(commtypes.StateTransactionMsg{Transaction: tx})
+	if cmt := getCommittee(tx.MustState().ScId().Color()); cmt != nil {
+		cmt.ReceiveMessage(committee.StateTransactionMsg{Transaction: tx})
 	}
 }
 
 func dispatchRequests(tx *sctransaction.Transaction) {
 	for i, reqBlk := range tx.Requests() {
-		if committee := getCommittee(reqBlk.ScId().Color()); committee != nil {
-			committee.ReceiveMessage(commtypes.RequestMsg{
+		if cmt := getCommittee(reqBlk.ScId().Color()); cmt != nil {
+			cmt.ReceiveMessage(&committee.RequestMsg{
 				Transaction: tx,
 				Index:       uint16(i),
 			})

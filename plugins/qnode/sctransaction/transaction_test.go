@@ -81,7 +81,7 @@ func TestTransactionStateBlock1(t *testing.T) {
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
 	bal := balance.New(balance.ColorIOTA, 1)
-	txb.AddOutput(addr, bal)
+	txb.AddBalanceToOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
 	txb.AddStateBlock(scid, 42)
@@ -104,7 +104,7 @@ func TestTransactionStateBlock2(t *testing.T) {
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
 	bal := balance.New(balance.ColorIOTA, 1)
-	txb.AddOutput(addr, bal)
+	txb.AddBalanceToOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
 	txb.AddStateBlock(scid, 42)
@@ -131,7 +131,7 @@ func TestTransactionRequestBlock(t *testing.T) {
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
 	bal := balance.New(balance.ColorIOTA, 1)
-	txb.AddOutput(addr, bal)
+	txb.AddBalanceToOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
 
@@ -156,7 +156,7 @@ func TestTransactionMultiBlocks(t *testing.T) {
 	o1 := valuetransaction.NewOutputId(addr, valuetransaction.RandomId())
 	txb.AddInputs(o1)
 	bal := balance.New(balance.ColorIOTA, 1)
-	txb.AddOutput(addr, bal)
+	txb.AddBalanceToOutput(addr, bal)
 
 	scid, _ := ScIdFromString(testScid)
 

@@ -3,6 +3,7 @@ package state
 import (
 	valuetransaction "github.com/iotaledger/goshimmer/dapps/valuetransfers/packages/transaction"
 	"github.com/iotaledger/goshimmer/plugins/qnode/sctransaction"
+	"github.com/iotaledger/goshimmer/plugins/qnode/variables"
 	"io"
 )
 
@@ -10,7 +11,8 @@ type VariableState interface {
 	StateIndex() uint32
 	Apply(StateUpdate) VariableState
 	SaveToDb() error
-	Read(io.Reader) error
+	Variables() variables.Variables
+	Read(io.Reader) error // TODO serialization must be replaced for more efficient mechanism
 	Write(io.Writer) error
 }
 
@@ -21,6 +23,8 @@ type StateUpdate interface {
 	StateTransactionId() valuetransaction.Id
 	SetStateTransactionId(valuetransaction.Id)
 	SaveToDb() error
+	Variables() variables.Variables
+	Error() string
 	Read(io.Reader) error
 	Write(io.Writer) error
 }
