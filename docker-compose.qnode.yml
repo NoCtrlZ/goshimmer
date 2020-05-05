@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: DockerfileQnode
       args:
-        - NODE_CONFIG=qnodes/node1.config.json
+        - NODE_CONFIG=plugins/qnode/containers-config/node1.config.json
         - NODE_PORT=8080
     container_name: qnode1
     restart: unless-stopped
@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: DockerfileQnode
       args:
-        - NODE_CONFIG=qnodes/node2.config.json
+        - NODE_CONFIG=plugins/qnode/containers-config/node2.config.json
         - NODE_PORT=8081
     container_name: qnode2
     restart: unless-stopped
@@ -37,7 +37,7 @@ services:
       context: .
       dockerfile: DockerfileQnode
       args:
-        - NODE_CONFIG=qnodes/node3.config.json
+        - NODE_CONFIG=plugins/qnode/containers-config/node3.config.json
         - NODE_PORT=8082
     container_name: qnode3
     restart: unless-stopped
@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: DockerfileQnode
       args:
-        - NODE_CONFIG=qnodes/node4.config.json
+        - NODE_CONFIG=plugins/qnode/containers-config/node4.config.json
         - NODE_PORT=8083
     container_name: qnode4
     restart: unless-stopped
