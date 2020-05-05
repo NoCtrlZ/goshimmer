@@ -1,20 +1,14 @@
 # Qnode Plugin
 ## Setup
-Copy the default config file to `qnode-test` directory and run qnode api server.
+Copy the dependencies file to current directory and execute `docker-compose`.
 ```
-$ cp ../../config.default.json ./config.json
-$ go run qnode-test/main.go
+$ cp ../../go.mod .
+$ docker-compose up
 ```
-
-## Docker
-Execute the following command on `root` directory.
-```
-$ docker-compose -f docker-compose.qnode.yml up
-```
-The `qnode` api server will be listening on [localhost:8080](http://localhost/8080/adm/getsclist)  
+The `qnode` containers will be listening on ports 8080, 8081, 8082, 8083  
 If you want to stop container, execute the following command.
 ```
-$ docker-compose -f docker-compose.qnode.yml down
+$ docker-compose down
 ```
 ## Loadmap
 There are four steps to complete qnode project.

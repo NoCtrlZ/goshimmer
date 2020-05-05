@@ -6,19 +6,19 @@ ARG NODE_CONFIG
 ARG NODE_PORT
 
 # Set The Current Working Directory Inside The Container
-RUN mkdir /goshimmer
-WORKDIR /goshimmer
+RUN mkdir /app
+WORKDIR /app
 
 # Copy Everything From The Current Directory And Download Dependencies
 COPY . .
-RUN go mod download
+RUN go get -u github.com/iotaledger/goshimmer
+RUN go get -u .
 
 # Copy Default Config File To Qnode Directory
-COPY ./${NODE_CONFIG} ./plugins/qnode/config.json
-
-# Change Directory
-WORKDIR /goshimmer/plugins/qnode/
+COPY ./${NODE_CONFIG} ./plugins/qnode/qnode-test/config.json
 
 EXPOSE ${NODE_PORT}
 
-ENTRYPOINT ["go", "run", "./qnode-test/main.go"]
+WORKDIR /app/qnode-test
+
+ENTRYPOINT ["go", "run", "./main.go"]

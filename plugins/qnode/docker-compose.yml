@@ -1,0 +1,62 @@
+version: "3"
+services:
+  qnode1:
+    build:
+      context: .
+      args:
+        - NODE_CONFIG=containers-config/node1.config.json
+        - NODE_PORT=8080
+    container_name: qnode1
+    restart: unless-stopped
+    volumes:
+      - ./mainnetdb:/app/mainnetdb:rw
+    ports:
+      - "14666:14666/tcp"
+      - "14626:14626/udp"
+      - "14626:14626/tcp"
+      - "8080:8080/tcp"
+  # qnode2:
+  #   build:
+  #     context: .
+  #     args:
+  #       - NODE_CONFIG=containers-config/node2.config.json
+  #       - NODE_PORT=8081
+  #   container_name: qnode2
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./mainnetdb:/app/mainnetdb:rw
+  #   ports:
+  #     - "14667:14667/tcp"
+  #     - "14627:14627/udp"
+  #     - "14627:14627/tcp"
+  #     - "8081:8081/tcp"
+  # qnode3:
+  #   build:
+  #     context: .
+  #     args:
+  #       - NODE_CONFIG=containers-config/node3.config.json
+  #       - NODE_PORT=8082
+  #   container_name: qnode3
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./mainnetdb:/app/mainnetdb:rw
+  #   ports:
+  #     - "14668:14668/tcp"
+  #     - "14628:14628/udp"
+  #     - "14628:14628/tcp"
+  #     - "8082:8082/tcp"
+  # qnode4:
+  #   build:
+  #     context: .
+  #     args:
+  #       - NODE_CONFIG=containers-config/node4.config.json
+  #       - NODE_PORT=8083
+  #   container_name: qnode4
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./mainnetdb:/app/mainnetdb:rw
+  #   ports:
+  #     - "14669:14669/tcp"
+  #     - "14629:14629/udp"
+  #     - "14629:14629/tcp"
+  #     - "8083:8083/tcp"

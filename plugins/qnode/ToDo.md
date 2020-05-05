@@ -1,5 +1,6 @@
 # To Do List
 ## Remove
-- DockerfileQnode
-- docker-compose.qnode.yml
+- Dockerfile
+- docker-compose.yml
 - config.docker.json
+- containers-config
