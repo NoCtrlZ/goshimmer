@@ -8,6 +8,7 @@ import (
 	"github.com/iotaledger/goshimmer/plugins/qnode/tcrypto"
 	"github.com/pkg/errors"
 	"math/rand"
+	"fmt"
 )
 
 func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*address.Address, error) {
@@ -76,6 +77,19 @@ func GenerateNewDistributedKeySet(nodes []*registry.PortAddr, n, t uint16) (*add
 		addrRet = addr
 	}
 	return addrRet, nil
+}
+
+func GetDistributedKey(nodes []*registry.PortAddr, n, t uint16) (*dkgapi.GetAllDKSResponse, error) {
+	var DKSs = make(map[string][]*tcrypto.DKShare)
+	for _, pa := range nodes {
+		resp, err := callGetKey(pa.Addr, pa.Port)
+		fmt.Println(resp)
+		if err != nil {
+			return nil, err
+		}
+		DKSs[pa.String()] = resp.DKSs
+	}
+	return &dkgapi.GetAllDKSResponse{DKSs: DKSs}, nil
 }
 
 // retrieves public info about key with specific address
